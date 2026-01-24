@@ -9,7 +9,10 @@ import java.util.List;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
+import com.pathplanner.lib.path.GoalEndState;
+import com.pathplanner.lib.path.IdealStartingState;
 import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.path.Waypoint;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -24,22 +27,19 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OperatorConstants.OIContants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
 import frc.robot.OdometryUpdates.QuestNavSubsystem;
-import frc.robot.commands.BLUE_ElasticMultiplePaths;
-import frc.robot.commands.BLUE_ElasticTestPathCommand;
-import frc.robot.commands.BLUE_OneMeterForwardPPCommand;
-import frc.robot.commands.BLUE_ThreeMeterForwardPPCommand;
 import frc.robot.commands.DriveManuallyCommand;
-import frc.robot.commands.RED_OneMeterForwardTurnPPCommand;
-import frc.robot.commands.ReturnTestPPCommand;
 import frc.robot.commands.StopRobot;
 import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.SmartDashboardSubsystem;
 
 public class RobotContainer {
@@ -59,15 +59,14 @@ public class RobotContainer {
   public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
   public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
   public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
+  public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
+  public static ShooterSubsystem shooterSubsystem = new ShooterSubsystem();
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
-  private static String lastAutoPathPreview = "";
-
   public RobotContainer() {
     configureBindings();
-    testTrajectory();
     setYaws();
 
     driveSubsystem.setDefaultCommand(
@@ -84,86 +83,10 @@ public class RobotContainer {
     // port autonomous routines as commands
     // sets the default option of the SendableChooser to the simplest autonomous
     // command. (from touching the hub, drive until outside the tarmac zone)
-    selectAutoListBasedOnATPose(driveSubsystem.getState().Pose);
     SmartDashboard.putData(autoChooser);
   }
 
-  public static void selectAutoListBasedOnATPose(Pose2d robotPose2d) {
-    boolean isRobotBlue = true;
-    if (robotPose2d.getX() < TrajectoryHelper.FIELD_LENGTH_BLUE) {
-      isRobotBlue = true;
-    } else {
-      isRobotBlue = false;
-    }
-    try {
-      if (isRobotBlue) {
-        autoChooser.addOption("One Meter Forward", new BLUE_OneMeterForwardPPCommand());
-        autoChooser.addOption("ThreeMeterForward", new BLUE_ThreeMeterForwardPPCommand());
-        autoChooser.addOption("Elastic Test Command", new BLUE_ElasticTestPathCommand());
-        autoChooser.addOption("Elastic MultiplePaths Command", new BLUE_ElasticMultiplePaths());
-        autoChooser.setDefaultOption("One Meter Forward", new BLUE_OneMeterForwardPPCommand());
-      } else {
-        autoChooser.addOption("1M->Turn", new RED_OneMeterForwardTurnPPCommand());
-      }
-    } catch (Exception e) {
-      DriverStation.reportError("Error loading default auto path: " + e.getMessage(), e.getStackTrace());
-    }
-  }
-
-  // NEW: call this periodically to keep the auto preview in sync with the chooser
-  public static void updateAutoPathPreview() {
-    Command selected = autoChooser.getSelected();
-    if (selected == null) {
-      return;
-    }
-
-    // Map the selected Command to its PathPlanner path file name
-    ArrayList<String> newPathNameList = new ArrayList<String>();
-    String newPathName = null;
-
-    if (selected instanceof BLUE_OneMeterForwardPPCommand) {
-      newPathName = "OneMeterForward";
-      newPathNameList.add("OneMeterForward");
-    } else if (selected instanceof RED_OneMeterForwardTurnPPCommand) {
-      newPathName = "OneMeterForwardTurn";
-      newPathNameList.add("OneMeterForwardTurn");
-    } else if (selected instanceof BLUE_ThreeMeterForwardPPCommand) {
-      newPathName = "ThreeMeterForward";
-      newPathNameList.add("ThreeMeterForward");
-    } else if (selected instanceof BLUE_ElasticTestPathCommand) {
-      newPathName = "ElasticTestPath";
-      newPathNameList.add("ElasticTestPath");
-    } else if (selected instanceof BLUE_ElasticMultiplePaths) {
-      newPathName = "ElasticMultiplePaths";
-      newPathNameList.add("ElasticSegment1");
-      newPathNameList.add("ElasticSegment2");
-      newPathNameList.add("ElasticSegment3");
-    }
-
-    // Nothing we know how to preview
-    if (newPathName == null) {
-      return;
-    }
-
-    // If it's the same path as last time, don't spam reload
-    if (newPathName.equals(lastAutoPathPreview)) {
-      return;
-    }
-
-    lastAutoPathPreview = newPathName;
-
-    try {
-      List<PathPlannerPath> newPaths = new ArrayList<>();
-      for (String path : newPathNameList) {
-        newPaths.add(PathPlannerPath.fromPathFile(path));
-      }
-      ElasticHelpers.setAutoPathMultiple(newPaths); // pushes it into the auto Field2d
-    } catch (Exception e) {
-      DriverStation.reportError(
-          "Error loading path for auto preview: " + newPathNameList,
-          e.getStackTrace());
-    }
-  }
+  
 
   private void configureBindings() {
     // Note that X is defined as forward according to WPILib convention,
@@ -220,28 +143,6 @@ public class RobotContainer {
     );
   }
 
-  private void testTrajectory() {
-    new JoystickButton(xboxDriveController, 1)
-        .onTrue(new BLUE_OneMeterForwardPPCommand());
-    new JoystickButton(xboxDriveController, 2)
-    .onTrue(new BLUE_ThreeMeterForwardPPCommand());
-    // new JoystickButton(xboxDriveController, 2)
-    //     .onTrue(new ReturnTestPPCommand())
-    //     .onFalse(new StopRobot());
-    new JoystickButton(xboxDriveController, 3)
-        .onTrue(new InstantCommand(
-            () -> questNavSubsystem.resetQuestOdometry(new Pose3d(10, 10, 0, new Rotation3d(0, 0, Math.PI))))); // TODO:
-                                                                                                                // Check
-                                                                                                                // Formatting
-
-    new JoystickButton(xboxDriveController, 4)
-        .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
-        .onFalse(new StopRobot());
-
-    new JoystickButton(xboxDriveController, 5)
-        .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
-        .onFalse(new StopRobot());
-  }
 
   public void setYaws() {
     new JoystickButton(xboxDriveController, 8)
@@ -308,6 +209,30 @@ public class RobotContainer {
         // return Commands.sequence(new InstantCommand(() ->
         // questNavSubsystem.resetQuestOdometry(TrajectoryHelper.flipQuestPoseRed(startPose))),
         // AutoBuilder.resetOdom(startPose));
+      }
+    } catch (Exception e) {
+      DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
+      return Commands.none();
+    }
+  }
+
+    public static Command runTrajectory2Poses(Pose2d startPose, Pose2d endPose,
+      boolean shouldResetOdometryToStartingPose) {
+    try {
+      List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
+
+      PathPlannerPath path = new PathPlannerPath(
+          waypoints,
+          AutoConstants.pathCconstraints,
+          new IdealStartingState(0, startPose.getRotation()),
+          new GoalEndState(0, endPose.getRotation()));
+      path.preventFlipping = true;
+      driveSubsystem.setOdometryPoseToSpecificPose(startPose); // reset odometry, as PP may not do so
+      if (!shouldResetOdometryToStartingPose) {
+        return AutoBuilder.followPath(path);
+      } else { // reset odometry the right way
+        System.out.println("== Driving from "+startPose+" to "+endPose);
+        return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());

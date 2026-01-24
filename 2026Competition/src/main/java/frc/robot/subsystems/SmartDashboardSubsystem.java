@@ -42,8 +42,6 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
     ElasticHelpers.updateRobotPose(robotPose);
 
-    RobotContainer.updateAutoPathPreview();
-
     updateLLTelemetry();
     SystemsCheckTelemetry();
     TeleopTelemetry();

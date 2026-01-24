@@ -4,16 +4,43 @@
 
 package frc.robot;
 
+import org.littletonrobotics.junction.LoggedRobot;
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.NT4Publisher;
+import org.littletonrobotics.junction.wpilog.WPILOGWriter;
+import org.littletonrobotics.junction.wpilog.WPILOGReader;
+import org.littletonrobotics.junction.LogFileUtil;
+
+
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
-public class Robot extends TimedRobot {
+public class Robot extends LoggedRobot {
   private Command m_autonomousCommand;
 
   private final RobotContainer m_robotContainer;
 
   public Robot() {
+    // --- AdvantageKit setup (NO robot behavior changes) ---
+    Logger.recordMetadata("Project", "2026Competition");
+    Logger.recordMetadata("Mode", "Competition");
+
+    if (isReal()) {
+      // Log to roboRIO internal storage (NO USB required)
+      Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
+
+      // Allow live viewing in AdvantageScope
+      Logger.addDataReceiver(new NT4Publisher());
+    } else {
+      // Simulation / replay mode
+      setUseTiming(false);
+      String logPath = LogFileUtil.findReplayLog();
+      Logger.setReplaySource(new WPILOGReader(logPath));
+      Logger.addDataReceiver(new WPILOGWriter(logPath + "_sim"));
+    }
+
+    Logger.start();
     m_robotContainer = new RobotContainer();
     RobotContainer.setIfAllianceRed();
   }

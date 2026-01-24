@@ -23,12 +23,14 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerFeedbackType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
+import com.pathplanner.lib.path.PathConstraints;
 
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.MomentOfInertia;
 import edu.wpi.first.units.measure.Voltage;
+import frc.robot.Constants.OperatorConstants.SwerveConstants;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
@@ -59,6 +61,33 @@ public final class Constants {
 		public static final boolean questnav = false;
 	}
   
+  public static final class AutoConstants {
+		public static PathConstraints pathCconstraints = new PathConstraints(
+			SwerveConstants.MaxSpeed,
+			SwerveConstants.maxAcceleration,
+			SwerveConstants.MaxAngularRate,
+			SwerveConstants.maxAngularAcceleration,
+			12, // Volts - nomonal battery
+			false // constraints shold not be unlimited
+			);
+
+		public static PathConstraints testPathCconstraints = new PathConstraints(
+				2.5,
+				2.0,
+				SwerveConstants.MaxAngularRate,
+				SwerveConstants.maxAngularAcceleration,
+				12, // Volts - nomonal battery
+				false // constraints shold not be unlimited
+				);
+
+		public static enum autoPoses {
+
+			//
+
+		}
+		public static final double panReefTolerance = 0.02; // tolerance in meters for reef panning
+	}
+
   public static class OperatorConstants {
     public static final int kDriverControllerPort = 0;
 
@@ -97,6 +126,9 @@ public final class Constants {
 
       public static final double MaxSpeed = 5.21; // m/s
       public static final double MaxAngularRate = 4.71238898038469; // rad/s
+      public static final double maxAngularAcceleration = 37.6992; // this is max angular acceleration units:
+																		// rad/s^2
+      public static final double maxAcceleration = 41.68; // this is Max linear acceleration units: m/s^2
       public static final double DeadbandRatioLinear = 0.05; //determined by calibration method 
       public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
 
@@ -261,6 +293,108 @@ public final class Constants {
 				);
 
 
+    }
+
+        /** Shooter prototype (Kraken X60 on TalonFX, Phoenix 6). */
+    public static final class Shooter {
+      public static final int CAN_ID = 20;
+      public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+
+      /** Shooter expels ball on negative output, so invert motor. */
+      public static final boolean MOTOR_INVERTED = true;
+      public static final boolean NEUTRAL_COAST = true;
+
+      public static final double MAX_DUTY_CYCLE = 0.8;
+      public static final double SUPPLY_CURRENT_LIMIT_A = 60.0;
+      public static final double STATOR_CURRENT_LIMIT_A = 60.0;
+
+      /** Velocity control gains (placeholders). */
+      public static final double kP = 0.120; //0.12
+      public static final double kI = 0.0;
+      public static final double kD = 0.0; //0.00
+      public static final double kS = 0.18; //0.18
+      public static final double kV = 0.13125; // Try this tomorrow: 0.13125
+      public static final double kA = 0.01; //0.0
+
+      /** Setpoint logic. */
+      public static final double DEFAULT_RPM = 3000.0;
+      public static final double RPM_STEP = 50.0;
+      public static final double READY_TOLERANCE_RPM = 75.0;
+      public static final double READY_MIN_TIME_S = 0.20;
+      public static final double DIP_DETECT_DROP_RPM = 250.0;
+
+      /** Simulation placeholders (combined wheel+flywheel inertia). */
+      /** Simulation: motor rotations / wheel rotations. 1.0 for your 1:1 belt. */
+      public static final double SIM_GEAR_RATIO = 1.0;
+      public static final double SIM_J_KGM2 = 0.02;
+
+      // ChatGPT constants for updated readiness logic
+      public static final int READY_WINDOW_SAMPLES = 10;     // 200ms @ 20ms loop
+      public static final double READY_RPM_TOLERANCE = 40.0;
+      public static final double READY_STDDEV_MAX = 30.0;
+
+    }
+
+    /** SysId gating + default parameters. */
+    public static final class SysId {
+      /** Safety gate: characterization only runs if true. */
+      public static final boolean ENABLE_SYSID = false;
+
+      /**
+       * Runtime gate (SmartDashboard boolean). Both this and ENABLE_SYSID must be
+       * true.
+       */
+      public static final String SYSID_DASH_ENABLE_KEY = "SysId/Enable";
+
+      public static final double TURRET_RAMP_RATE_V_PER_S = 1.0;
+      public static final double TURRET_STEP_V = 4.0;
+      public static final double TURRET_TIMEOUT_S = 10.0;
+
+      public static final double SHOOTER_RAMP_RATE_V_PER_S = 1.0;
+      public static final double SHOOTER_STEP_V = 4.0;
+      public static final double SHOOTER_TIMEOUT_S = 10.0;
+    }
+
+    public static final class IntakeConstants {
+      public static final int intakeRollerMotorId = 10;
+      public static final boolean IntakeRollerInverted = false;
+
+      public static final int intakePivotMotorId = 11;
+      public static final boolean intakePivotMotorInverted = false;
+      public static final double defaultSpeed = 0.3;
+
+      public static enum IntakePositions{ // position of the arm for the piece placement/pickup
+				IntakeDown(0.0),
+				IntakeUp(0.0);
+        private double intakePositionSelected;
+				IntakePositions(double position) {
+				  this.intakePositionSelected = position;
+				}
+				public double getPosition() {
+				  return intakePositionSelected;
+				}
+			  }
+
+      public static final class IntakePidConstants {
+        public static class PositionDutyCycleConstants {
+					public static final double intake_kP = 0.1;
+					public static final double intake_kI = 0.0;
+					public static final double intake_kD = 0.01;
+					public static final double intake_kV = 0.12;
+				}
+
+				public static class MotionMagicDutyCycleConstants {
+					public static final int slot = 0;
+					public static final double intake_kP = 0.64; //0.64
+					public static final double intake_kI = 0.0;
+					public static final double intake_kD = 0.0;
+					public static final double MotionMagicCruiseVelocity = 50.0; //75.0
+					public static final double motionMagicAcceleration = 100.0; //150.0
+					public static final double motionMagicJerk = 1000.0; //1500.0
+				}
+
+        public static final double tolerance = 3.0;
+      }
     }
 
   }
