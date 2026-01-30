@@ -36,6 +36,11 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     SmartDashboard.putString("Lock in to End Game", ElasticHelpers.shouldEndGameColor());
   }
 
+  public void GPMTelemetry() {
+    SmartDashboard.putNumber("Turret Absolute Position: ", RobotContainer.turretSubsystem.getAbsolutePosition());
+    SmartDashboard.putNumber("Turret Relative Position: ", RobotContainer.turretSubsystem.getRelativePosition());
+  }
+
   @Override
   public void periodic() {
     // This method will be called once per scheduler run

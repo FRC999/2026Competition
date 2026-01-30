@@ -19,6 +19,7 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -34,13 +35,17 @@ import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
 import frc.robot.OdometryUpdates.QuestNavSubsystem;
 import frc.robot.commands.DriveManuallyCommand;
+import frc.robot.commands.ShooterAdjustRpmCommand;
+import frc.robot.commands.ShooterEnableCommand;
 import frc.robot.commands.StopRobot;
+import frc.robot.commands.TurretJogCommand;
 import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.SmartDashboardSubsystem;
+import frc.robot.subsystems.TurretSubsystem;
 
 public class RobotContainer {
 
@@ -54,12 +59,14 @@ public class RobotContainer {
   private final Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
+  private static final Joystick turretStick =  new Joystick(0);
 
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
   public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
   public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
   public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
   public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
+  public static TurretSubsystem turretSubsystem = new TurretSubsystem();
   public static ShooterSubsystem shooterSubsystem = new ShooterSubsystem();
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 
@@ -68,6 +75,7 @@ public class RobotContainer {
   public RobotContainer() {
     configureBindings();
     setYaws();
+    
 
     driveSubsystem.setDefaultCommand(
         new DriveManuallyCommand(
@@ -77,6 +85,7 @@ public class RobotContainer {
     FollowPathCommand.warmupCommand().schedule();
 
     AutonomousConfigure();
+    testTurretShooter();
   }
 
   public static void AutonomousConfigure() {
@@ -266,5 +275,19 @@ public class RobotContainer {
 
   public Command getAutonomousCommand() {
     return autoChooser.getSelected();
+  }
+
+  public static void testTurretShooter() {
+    // new JoystickButton(turretStick, 1)
+    //     .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, Constants.OperatorConstants.Shooter.RPM_STEP));
+
+    // new JoystickButton(turretStick, 2)
+    //     .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, -Constants.OperatorConstants.Shooter.RPM_STEP));
+
+    new JoystickButton(turretStick, 3).whileTrue(new ShooterEnableCommand(shooterSubsystem));
+
+
+    new JoystickButton(turretStick, 5).whileTrue(new TurretJogCommand(turretSubsystem, -0.25));
+    new JoystickButton(turretStick, 6).whileTrue(new TurretJogCommand(turretSubsystem, 0.25));
   }
 }

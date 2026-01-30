@@ -132,7 +132,7 @@ public final class Constants {
       public static final double DeadbandRatioLinear = 0.05; //determined by calibration method 
       public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
 
-      public static final CANBus kCANBus = new CANBus("canivore1", "./logs/example.hoot"); // 2025
+      public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot"); // 2025
       //public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot"); // 2024 no canivore
 
       public static final Pigeon2Configuration pigeonConfigs = null;
@@ -295,13 +295,72 @@ public final class Constants {
 
     }
 
+    public static final class Turret {
+      public static final int MOTOR_ID = 9;
+      public static final int CAN_ENCODER_ID = 11;
+
+      /** Use the same CAN bus as the drivetrain by default. */
+      public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+
+      /** Absolute PWM encoder reference (PulseWidth 0-4095 equivalent). */
+      public static final int ABS_TICKS_PER_REV = 4096;
+      /** Absolute encoder tick value that corresponds to turret pointing forward. */
+      public static final int ABS_FORWARD_TICKS = 1282;
+
+      /**
+       * Boot assumption: at robot power-on, turret is within +/- 180 degrees of forward.
+       * Used to seed the software unwrapped angle.
+       */
+      public static final double BOOT_MAX_ABS_DEG = 180.0;
+
+      /** Mechanical safe range relative to forward (degrees). */
+      public static final double MIN_ANGLE_DEG = -340.0;
+      public static final double MAX_ANGLE_DEG = 340.0;
+      /**
+       * When within this margin of a limit, prefer turning the other direction when
+       * possible.
+       */
+      public static final double LIMIT_MARGIN_DEG = 10.0;
+
+      /**
+       * Control direction conventions: CCW is positive. Start with false; adjust as
+       * needed on-robot.
+       */
+      public static final boolean MOTOR_INVERTED = true;
+																					
+
+      /** If angle changes the wrong direction relative to motor output, flip this. */
+      public static final boolean SENSOR_PHASE_INVERTED = false;
+
+      /** Output safety limits. */
+      public static final double MAX_DUTY_CYCLE = 0.8;
+      public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
+      public static final double STATOR_CURRENT_LIMIT_A = 40.0;
+
+      /** Placeholder gains (Position control). Tune after SysId. */
+      public static final double kP = 40.0;
+      public static final double kI = 0.0;
+      public static final double kD = 2.0;
+      public static final double kS = 0.0;
+      public static final double kV = 0.0;
+      public static final double kA = 0.0;
+
+      /** MotionMagic placeholders (rotations-based). */
+      public static final double MM_CRUISE_VEL_RPS = 1.0;
+      public static final double MM_ACCEL_RPS2 = 2.0;
+
+      /** Simulation placeholders. */
+      public static final double SIM_GEAR_RATIO = 1.0;
+      public static final double SIM_TURRET_J_KGM2 = 0.02;
+    }
+
         /** Shooter prototype (Kraken X60 on TalonFX, Phoenix 6). */
     public static final class Shooter {
-      public static final int CAN_ID = 20;
+      public static final int CAN_ID = 10;
       public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
 
       /** Shooter expels ball on negative output, so invert motor. */
-      public static final boolean MOTOR_INVERTED = true;
+      public static final boolean MOTOR_INVERTED = false;
       public static final boolean NEUTRAL_COAST = true;
 
       public static final double MAX_DUTY_CYCLE = 0.8;
@@ -309,12 +368,12 @@ public final class Constants {
       public static final double STATOR_CURRENT_LIMIT_A = 60.0;
 
       /** Velocity control gains (placeholders). */
-      public static final double kP = 0.120; //0.12
+      public static final double kP = 0.155; //0.12
       public static final double kI = 0.0;
-      public static final double kD = 0.0; //0.00
+      public static final double kD = 0.0005; //0.00
       public static final double kS = 0.18; //0.18
-      public static final double kV = 0.13125; // Try this tomorrow: 0.13125
-      public static final double kA = 0.01; //0.0
+      public static final double kV = 0.127; // Try this tomorrow: 0.13125
+      public static final double kA = 0.0; //0.0
 
       /** Setpoint logic. */
       public static final double DEFAULT_RPM = 3000.0;
