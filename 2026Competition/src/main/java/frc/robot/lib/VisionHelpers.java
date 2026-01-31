@@ -200,7 +200,7 @@ public class VisionHelpers {
     // Create positions for robot placement near reef pipes
     // posenames similar to "RobotBluReef1Left"
     // adds to RobotPoseConstants.visionRobotPoses
-    public static void addRobotPosesForCoralPlacement() {
+    public static void addRobotPosesForCoralPlacement() { // TODO: Remove this method once new method for REBUILT are made
 
 
         List<String> keys = new ArrayList<>();
