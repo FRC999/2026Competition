@@ -88,8 +88,6 @@ public class TurretSubsystem extends SubsystemBase {
   // If you ever re-install and it flips, change to -1.
   private static final double ANGLE_SIGN = -1.0;
 
-																					 
-
   // ---------------- Software unwrap tracking ----------------
 
   /** last wrapped absolute angle (deg) in [0, 360) */
@@ -157,27 +155,13 @@ public class TurretSubsystem extends SubsystemBase {
     SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
   }
 
-  private void configureStatusSignals() {
-													 
-										  
+  private void configureStatusSignals() {			  
     rawPwmPosSig.setUpdateFrequency(100.0);
     motorVoltageSig.setUpdateFrequency(50.0);
-
-																			
-										  
-
     turret.optimizeBusUtilization();
   }
 
-										  
-															   
-																   
-								  
-								   
-   
-
-  private InvertedValue motorInvertedValue() {
-										
+  private InvertedValue motorInvertedValue() {			
 																			  
     return Constants.OperatorConstants.Turret.MOTOR_INVERTED
         ? InvertedValue.CounterClockwise_Positive
@@ -210,17 +194,7 @@ public class TurretSubsystem extends SubsystemBase {
         .withSupplyCurrentLimitEnable(true)
         .withSupplyCurrentLimit(Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LIMIT_A)
         .withStatorCurrentLimitEnable(true)
-        .withStatorCurrentLimit(Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A);
-
-								  
-																	
-																							  
-
-						   
-						   
-								
-																								
-																						   
+        .withStatorCurrentLimit(Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A);									   
 
     // PWM feedback (absolute)
     ExternalFeedbackConfigs pwm = new ExternalFeedbackConfigs()
@@ -244,17 +218,12 @@ public class TurretSubsystem extends SubsystemBase {
     turret.getConfigurator().apply(commutation);
     turret.getConfigurator().apply(limits);
     turret.getConfigurator().apply(pwm);
-    turret.getConfigurator().apply(slot0);
-												  
-											 
-												   
+    turret.getConfigurator().apply(slot0);								   
 
     // Default to wrap ON, and switch off when we must force long-way
     turret.getConfigurator().apply(clWrapOn);
     continuousWrapEnabled = true;
-  }
-									  
-										 
+  }						 
 											   
 	public final double getAbsolutePosition() {
     return throughboreCANcoder.getAbsolutePosition().getValueAsDouble();
@@ -264,8 +233,6 @@ public class TurretSubsystem extends SubsystemBase {
     return throughboreCANcoder.getPosition().getValueAsDouble();
   }
 								
-							  
-
   private void setContinuousWrap(boolean enable) {
     if (enable == continuousWrapEnabled) return;
     turret.getConfigurator().apply(enable ? clWrapOn : clWrapOff);
@@ -275,22 +242,12 @@ public class TurretSubsystem extends SubsystemBase {
 
   /**
    * Read absolute PWM angle (deg) in [0, 360).
-   * If signal is stale, returns last known value.
-	
-																			 
-																				 
-																   
+   * If signal is stale, returns last known value.						   
    */
   private double getAbsDegWrapped() {
     rawPwmPosSig.refresh();
     StatusCode status = rawPwmPosSig.getStatus();
     SmartDashboard.putString("Turret/AbsPwmStatus", status.toString());
-																						   
-													  
-											
-
-																			 
-										
 
     if (status != StatusCode.OK) {
       return lastAbsDegWrapped;
@@ -309,15 +266,10 @@ public class TurretSubsystem extends SubsystemBase {
     Timer.delay(0.05);
 
     double absDeg = getAbsDegWrapped();
-    lastAbsDegWrapped = absDeg;
-									 
-																						   
-																								 
-											
+    lastAbsDegWrapped = absDeg;	
 
     double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
 										 
-
     // Boot assumption: within +/-180
     deltaDeg = clamp(
         deltaDeg,
@@ -326,28 +278,12 @@ public class TurretSubsystem extends SubsystemBase {
 
     continuousDeg = deltaDeg;
     lastContinuousDeg = continuousDeg;
-								   
-	 
 														 
     lastUpdateTs = Timer.getFPGATimestamp();
     targetDeg = continuousDeg;
 							 
-												   
-									
-																   
-	   
-						
-	 
-									
-   
-
     SmartDashboard.putNumber("Turret/SeedAbsDeg", absDeg);
-    SmartDashboard.putNumber("Turret/SeedContinuousDeg", continuousDeg);
-										 
-																							 
-																  
-																				 
-				 
+    SmartDashboard.putNumber("Turret/SeedContinuousDeg", continuousDeg);	 
   }
 
   /**
@@ -429,12 +365,6 @@ public class TurretSubsystem extends SubsystemBase {
    */
   public void goToAngleDeg(double desiredDeg) {
     double best = chooseBestEquivalentTargetDeg(desiredDeg);
-			  
-					  
-															 
-															  
-										 
-
     if (Double.isNaN(best)) {
       stop();
       SmartDashboard.putString("Turret/GoalStatus", "REJECTED_UNREACHABLE");
@@ -541,11 +471,6 @@ public class TurretSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     updateContinuousAngle();
-																		   
-
-														
-									  
-
     SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
     SmartDashboard.putNumber("Turret/VelDegPerSec", getVelocityDegPerSec());
     SmartDashboard.putNumber("Turret/AppliedVolts", getAppliedVolts());
@@ -562,29 +487,18 @@ public class TurretSubsystem extends SubsystemBase {
     final double dt = 0.02;
 
     var simState = turret.getSimState();
-
 												  
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
-
-																	 
+											 
     double appliedV = simState.getMotorVoltage();
     turretSim.setInputVoltage(appliedV);
     turretSim.update(dt);
-
 														   
     double rps = turretSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-
 									  
-    simPosRot += rps * dt;
-
-														   
-										
-												 
-
-												
+    simPosRot += rps * dt;					
     double pwmRot = simPosRot - Math.floor(simPosRot);
     simState.setPulseWidthPosition(pwmRot);
-
 								
     RoboRioSim.setVInVoltage(
         BatterySim.calculateDefaultBatteryLoadedVoltage(turretSim.getCurrentDrawAmps()));
