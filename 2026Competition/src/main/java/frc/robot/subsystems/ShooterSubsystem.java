@@ -39,9 +39,14 @@ import frc.robot.Constants;
 /** Kraken X60 shooter prototype (TalonFX, Phoenix 6). */
 public class ShooterSubsystem extends SubsystemBase {
 
+  // Creates a new Talon FX motor controller using can id, and specific CANBUS name from wiring
   private final TalonFX shooter = new TalonFX(Constants.OperatorConstants.Shooter.CAN_ID,
       Constants.OperatorConstants.Shooter.CANBUS_NAME);
 
+  /*Creates a velocity closed loop (hardware pid) request with 0 velocity (rotations per second)
+    with a Slot 0 config (configurations for pid values)
+    Duty cycle is for managing speed, is open-loop (software pid)
+  */
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withSlot(0);
   private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
 
@@ -52,6 +57,10 @@ public class ShooterSubsystem extends SubsystemBase {
   private boolean dipDetected = false;
 
   // ---------------- Shooter readiness (rolling window stats) ----------------
+  /*Creates a fixed array of rpm samples
+    count refers to the number of valid rpm samples
+    index refers to the specific rpm sample being tracked
+  */
   private final double[] rpmWindow = new double[Constants.OperatorConstants.Shooter.READY_WINDOW_SAMPLES];
   private int rpmWindowCount = 0;
   private int rpmWindowIndex = 0;
@@ -69,7 +78,7 @@ public class ShooterSubsystem extends SubsystemBase {
           Constants.OperatorConstants.Shooter.SIM_J_KGM2),
       DCMotor.getKrakenX60(1));
 
-  // Phoenix 6 typed signals
+  // Phoenix 6 typed signals, creates a signal represneting rotor velocity or motor voltage (in internal Phoenix 6 units)
   private final StatusSignal<AngularVelocity> velocitySig = shooter.getVelocity();
   private final StatusSignal<Voltage> motorVoltageSig = shooter.getMotorVoltage();
 
@@ -81,7 +90,7 @@ public class ShooterSubsystem extends SubsystemBase {
           Seconds.of(Constants.OperatorConstants.SysId.SHOOTER_TIMEOUT_S)),
       new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "shooter"));
 
-  /** Runtime gating for SysId. */
+  /** Runtime gating for SysId. Prevents accidental sysid running */
   private boolean isSysIdEnabled() {
     return Constants.OperatorConstants.SysId.ENABLE_SYSID
         && SmartDashboard.getBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
@@ -92,12 +101,19 @@ public class ShooterSubsystem extends SubsystemBase {
     configureStatusSignals();
   }
 
+  /*Requests 100 Hz updates for velocity: reduces control lag and improves dip detection
+   * Requests 100 Hz updates for voltage: makes applied volts more consistent
+   */
   private void configureStatusSignals() {
     velocitySig.setUpdateFrequency(100.0); // 100
     motorVoltageSig.setUpdateFrequency(100.0); // 50
     shooter.optimizeBusUtilization();
   }
 
+  /*
+   * Start building motor outpit settings, specifying coast/brake, motor inversions
+   * Applies specific current limits for configuration, based on Constants values
+   */
   private void configureHardware() {
     MotorOutputConfigs out = new MotorOutputConfigs()
         .withNeutralMode(
@@ -115,6 +131,7 @@ public class ShooterSubsystem extends SubsystemBase {
         .withStatorCurrentLimitEnable(true)
         .withStatorCurrentLimit(Constants.OperatorConstants.Shooter.STATOR_CURRENT_LIMIT_A);
 
+    // pid characterization for Slot 0 group
     Slot0Configs slot0 = new Slot0Configs()
         .withKP(Constants.OperatorConstants.Shooter.kP)
         .withKI(Constants.OperatorConstants.Shooter.kI)
@@ -123,6 +140,7 @@ public class ShooterSubsystem extends SubsystemBase {
         .withKV(Constants.OperatorConstants.Shooter.kV)
         .withKA(Constants.OperatorConstants.Shooter.kA);
 
+    /*Creates a top-level config object and attaches motor output + current limits and sends config to controller */
     TalonFXConfiguration cfg = new TalonFXConfiguration().withMotorOutput(out).withCurrentLimits(limits)
         .withSlot0(slot0);
 
@@ -131,7 +149,11 @@ public class ShooterSubsystem extends SubsystemBase {
 
   // ---------------- Public API ----------------
 
-  /** Target shooter speed (RPM). Uses hardware velocity control. */
+  /** Target shooter speed (RPM). Uses hardware velocity control.
+   * Clamps negative rpm to 0, makes dipDetected false, resets readiness timer, resets readiness state
+   * Converts rpm to rps because Phoenix velocity setpoint expects rotations/sec
+   * Sends hardware velocity closed-loop command
+   */
   public void setTargetRpm(double rpm) {
     targetRpm = Math.max(0.0, rpm);
     dipDetected = false;
@@ -142,7 +164,9 @@ public class ShooterSubsystem extends SubsystemBase {
     shooter.setControl(velocityRequest.withVelocity(targetRps));
   }
 
-  /** Open-loop duty-cycle (for quick tests). */
+  /** Open-loop duty-cycle (for quick tests). 
+   * Clears targetRPM so readiness logic won't claim it's ready
+  */
   public void setDutyCycle(double duty) {
     duty = clamp(
         duty,
@@ -152,29 +176,37 @@ public class ShooterSubsystem extends SubsystemBase {
     shooter.setControl(dutyRequest.withOutput(duty));
   }
 
+  /*Stop shooter and reset targetRpm to 0 */
   public void stop() {
     targetRpm = 0.0;
     shooter.stopMotor();
   }
 
+  /*Getter method for targetRpm */
   public double getTargetRpm() {
     return targetRpm;
   }
 
-  /** Shooter velocity in rotations/sec. */
+  /** Shooter velocity in rotations/sec. 
+   * Reads signal's stored value
+  */
   public double getVelocityRps() {
     return velocitySig.getValueAsDouble();
   }
 
+  /*Converts rps to rpm for shooter velocity */
   public double getVelocityRpm() {
     return getVelocityRps() * 60.0;
   }
 
+  /*Reads stored applied motor volts */
   public double getAppliedVolts() {
     return motorVoltageSig.getValueAsDouble();
   }
 
-  /** "Power" as a duty-cycle estimate (applied volts / battery volts). */
+  /** "Power" as a duty-cycle estimate (applied volts / battery volts). 
+   * Estimates percent output
+  */
   public double getAppliedDuty() {
     double batt = RobotController.getBatteryVoltage();
     if (batt <= 1e-6)
@@ -195,6 +227,10 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   // ---------------- SysId factory commands ----------------
+  /* Gives caller a command to run sysid quasistatic test
+   * If disabled, return a do-nothing command
+   * Otherwise return real sysid command
+   */
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
     if (!isSysIdEnabled())
       return new edu.wpi.first.wpilibj2.command.InstantCommand();
@@ -208,6 +244,11 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   // ---------------- SysId callbacks ----------------
+  /* Called repeatedly by SysId to drive at requested voltage
+   * Extra safety: stop if sysid disabled mid-run
+   * Clamp to max duty
+   * Apply open-loop output
+   */
   private void sysIdVoltageDrive(edu.wpi.first.units.measure.Voltage volts) {
     if (!isSysIdEnabled()) {
       stop();
@@ -224,6 +265,10 @@ public class ShooterSubsystem extends SubsystemBase {
     shooter.setControl(dutyRequest.withOutput(duty));
   }
 
+  /*Called to log telemetry
+   * Creates motor log channel "shooter"
+   * Log applied volts, position, and velocity
+   */
   private void sysIdLog(SysIdRoutineLog log) {
     if (!isSysIdEnabled())
       return;
@@ -236,6 +281,10 @@ public class ShooterSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     // refresh fast signals as a batch
+
+    /*Forces both signals to update now (important for accurate rpm+ volts in this loop)
+     * Converts current velocity to rpm
+     */
     BaseStatusSignal.refreshAll(velocitySig, motorVoltageSig);
 
     double rpm = getVelocityRpm();
@@ -263,6 +312,9 @@ public class ShooterSubsystem extends SubsystemBase {
     // Ready logic (windowed mean/stddev)
     updateReadinessStats(rpm);
 
+    /* Only consider logic if you're actually commanding a target
+     * Mean must be close to target and variability must be low
+     */
     boolean readyNow = targetRpm > 1.0
         && Math.abs(rpmMean - targetRpm) <= Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE
         && rpmStdDev <= Constants.OperatorConstants.Shooter.READY_STDDEV_MAX;
@@ -270,6 +322,11 @@ public class ShooterSubsystem extends SubsystemBase {
     // Optional: keep your existing READY_MIN_TIME_S behavior *on top* of windowed
     // ready
     double now = Timer.getFPGATimestamp();
+
+    /* If conditions are good right now, starting timing the "ready" duration
+     * If not set to ready and it has been stable long enough, make ready
+     * Otherwise, reset timer and clear latch
+     */
     if (readyNow) {
       if (readySince <= 0.0)
         readySince = now;
@@ -282,6 +339,9 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     // Dip detection
+    /* If we haven't flagged a dip and we were ready and rpm dropped by at least threshold since last sample,
+       set dipDetected to true
+     */
     if (!dipDetected && wasReady && (lastRpm - rpm) >= Constants.OperatorConstants.Shooter.DIP_DETECT_DROP_RPM) {
       dipDetected = true;
     }
@@ -298,12 +358,22 @@ public class ShooterSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Shooter/BatteryVolts", RobotController.getBatteryVoltage());
   }
 
+  //
   private void updateReadinessStats(double rpm) {
+    /*Put newest rpm into a circular buffer, where new data wraps around to the beginning */
     rpmWindow[rpmWindowIndex] = rpm;
+
+    /*Advance index and wrap around when reaching end
+     * Increase count until bugger is full
+     */
     rpmWindowIndex = (rpmWindowIndex + 1) % rpmWindow.length;
     if (rpmWindowCount < rpmWindow.length)
       rpmWindowCount++;
 
+    /*If buffer is not full
+     * Use current rpm as mean (placeholder), force "not ready" by making stdev high
+     * Make wasReady false and stop here until enough samples collected
+     */
     if (rpmWindowCount < rpmWindow.length) {
       rpmMean = rpm;
       rpmStdDev = 999.0;
@@ -311,11 +381,13 @@ public class ShooterSubsystem extends SubsystemBase {
       return;
     }
 
+    /*Sum all samples and find the mean rpm from samples */
     double sum = 0.0;
     for (double v : rpmWindow)
       sum += v;
     rpmMean = sum / rpmWindow.length;
 
+    /* Iterate samples, find deviation from mean, and sum squared deviation */
     double var = 0.0;
     for (double v : rpmWindow) {
       double d = v - rpmMean;
@@ -328,6 +400,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   }
 
+  /*Create sim object for Talon, feed voltage into flywheel model and advance simulation */
   @Override
   public void simulationPeriodic() {
     if (!isSim)
