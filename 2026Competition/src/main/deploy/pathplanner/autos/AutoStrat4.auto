@@ -1,0 +1,37 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Strat4RightBumpToNeutral"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Strat4NeutralTopToDown"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Strat4NeutralDownToDepot"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Strat4DepotToClimb"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": null,
+  "choreoAuto": false
+}

@@ -1,0 +1,31 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Strat2RightTrenchtoNeutral"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Strat2NeutralUpToNeutralDown"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Strat2NeutralToClimb"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": null,
+  "choreoAuto": false
+}
