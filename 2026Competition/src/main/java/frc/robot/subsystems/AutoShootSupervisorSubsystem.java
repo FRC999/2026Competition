@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.RobotContainer;
 import frc.robot.lib.TurretHelpers;
 
 /**
@@ -42,12 +43,6 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     EMPTY          // no balls remaining
   }
 
-  private final DriveSubsystem drive;
-  private final TurretSubsystem turret;
-  private final ShooterSubsystem shooter;
-  private final SpindexerSubsystem spindexer;
-  private final TransferSubsystem transfer;
-
   private final TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle table;
 
   // Driver request flag
@@ -74,18 +69,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   // Cached solver output
   private TurretHelpers.Solution lastSolution = TurretHelpers.makeInvalidSolution();
 
-  public AutoShootSupervisorSubsystem(
-      DriveSubsystem drive,
-      TurretSubsystem turret,
-      ShooterSubsystem shooter,
-      SpindexerSubsystem spindexer,
-      TransferSubsystem transfer
-  ) {
-    this.drive = drive;
-    this.turret = turret;
-    this.shooter = shooter;
-    this.spindexer = spindexer;
-    this.transfer = transfer;
+  public AutoShootSupervisorSubsystem() {
 
     // Load artillery table once. If missing/empty, hasAnyData() will be false and solver will return invalid.
     this.table = TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle
@@ -104,9 +88,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     shootRequested = requested;
     if (!shootRequested) {
       // Drop everything safely; keep aiming if ALWAYS_AIM is enabled.
-      transfer.stop();
-      spindexer.stop();
-      shooter.stopFeederRelatedOutputs(); // placeholder method (no-op if you don't need it)
+      RobotContainer.transferSubsystem.stop();
+      RobotContainer.spindexerSubsystem.stop();
+      RobotContainer.shooterSubsystem.stopFeederRelatedOutputs(); // placeholder method (no-op if you don't need it)
     }
   }
 
@@ -142,7 +126,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         Constants.OperatorConstants.FieldGeometry.HUB_OPENING_CENTER_Z_METERS);
 
     // --- 2) Read drive state and estimate field velocity + acceleration ---
-    var driveState = drive.getState();
+    var driveState = RobotContainer.driveSubsystem.getState();
     var poseField = driveState.Pose;
 
     // CTRE state.Speeds is robot-relative chassis speeds; convert to FIELD frame.
@@ -188,7 +172,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     // Always aim if enabled OR if shooting is requested.
     boolean aimEnabled = Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || shootRequested;
     if (aimEnabled && Double.isFinite(desiredTurretDeg)) {
-      turret.goToAngleDeg(desiredTurretDeg);
+      RobotContainer.turretSubsystem.goToAngleDeg(desiredTurretDeg);
     }
 
     // --- 4) Decide state machine ---
@@ -198,8 +182,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     boolean suppress = now < suppressShootUntilTs;
 
     boolean turretAimed = isTurretAimed(desiredTurretDeg);
-    boolean shooterReady = shooter.isReadyToShoot();
-    boolean ballAtThroat = transfer.hasBallAtThroat();
+    boolean shooterReady = RobotContainer.shooterSubsystem.isReadyToShoot();
+    boolean ballAtThroat = RobotContainer.transferSubsystem.hasBallAtThroat();
 
     SmartDashboard.putBoolean("AutoShoot/SolutionValid", solutionValid);
     SmartDashboard.putBoolean("AutoShoot/TurretAimed", turretAimed);
@@ -211,19 +195,19 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     if (!shootRequested) {
       state = VolleyState.IDLE;
       // Keep stage gentle only if you explicitly want pre-staging without a shoot request.
-      transfer.stop();
-      spindexer.stop();
+      RobotContainer.transferSubsystem.stop();
+      RobotContainer.spindexerSubsystem.stop();
       // Shooter can remain off when not requested.
-      shooter.stop();
+      RobotContainer.shooterSubsystem.stop();
       publishTelemetry();
       return;
     }
 
     if (empty) {
       state = VolleyState.EMPTY;
-      transfer.stop();
-      spindexer.stop();
-      shooter.stop();
+      RobotContainer.transferSubsystem.stop();
+      RobotContainer.spindexerSubsystem.stop();
+      RobotContainer.shooterSubsystem.stop();
       publishTelemetry();
       return;
     }
@@ -231,24 +215,24 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     if (!solutionValid) {
       state = VolleyState.NO_SOLUTION;
       // Keep staging and aiming but do not feed into shooter.
-      spindexer.runBase();
-      transfer.runStage();
-      shooter.stop(); // don't spin blindly if you don't have a solution
+      RobotContainer.spindexerSubsystem.runBase();
+      RobotContainer.transferSubsystem.runStage();
+      RobotContainer.shooterSubsystem.stop(); // don't spin blindly if you don't have a solution
       publishTelemetry();
       return;
     }
 
     // We have a solution: command shooter + hood.
-    shooter.setTargetRpm(lastSolution.shooterRpmCommand);
-    turret.setHoodAngleRad(lastSolution.hoodCommandAngleRad); // placeholder if hood lives elsewhere
+    RobotContainer.shooterSubsystem.setTargetRpm(lastSolution.shooterRpmCommand);
+    RobotContainer.turretSubsystem.setHoodAngleRad(lastSolution.hoodCommandAngleRad); // placeholder if hood lives elsewhere
 
     // Concurrent staging: keep a ball at throat as much as possible.
-    spindexer.runSupply();
+    RobotContainer.spindexerSubsystem.runSupply();
 
     // If suppressing due to flip/unwrap, do NOT fire.
     if (suppress) {
       state = VolleyState.ARMING;
-      transfer.runStage();
+      RobotContainer.transferSubsystem.runStage();
       publishTelemetry();
       return;
     }
@@ -258,18 +242,18 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     if (okToFire) {
       state = VolleyState.FIRING;
-      transfer.runFeed();
+      RobotContainer.transferSubsystem.runFeed();
     } else {
       state = VolleyState.ARMING;
       // Keep staged; if ball not at throat yet, keep moving it.
-      transfer.runStage();
+      RobotContainer.transferSubsystem.runStage();
     }
 
     // If we just detected a dip, move to recovering (prevents double-feeding).
-    if (state == VolleyState.FIRING && shooter.wasDipDetected()) {
+    if (state == VolleyState.FIRING && RobotContainer.shooterSubsystem.wasDipDetected()) {
       state = VolleyState.RECOVERING;
-      transfer.stop(); // stop feeding while RPM recovers
-      shooter.clearDipDetected();
+      RobotContainer.transferSubsystem.stop(); // stop feeding while RPM recovers
+      RobotContainer.shooterSubsystem.clearDipDetected();
       lastDipTs = now;
     }
 
@@ -278,7 +262,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       if (shooterReady) {
         state = VolleyState.ARMING;
       } else {
-        transfer.stop();
+        RobotContainer.transferSubsystem.stop();
       }
     }
 
@@ -304,7 +288,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private void updateBallCountFromShooterDip(double now) {
     if (!shootRequested) return;
 
-    if (shooter.wasDipDetected()) {
+    if (RobotContainer.shooterSubsystem.wasDipDetected()) {
       if (lastDipTs < 0 || (now - lastDipTs) >= Constants.OperatorConstants.AutoShoot.DIP_DEBOUNCE_S) {
         ballsRemaining = Math.max(0, ballsRemaining - 1);
         SmartDashboard.putNumber("Hopper/BallsEstimate", ballsRemaining);
@@ -312,7 +296,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       }
       // Do not clear here; state machine may clear depending on firing behavior.
       // But clear anyway so we don't double-count.
-      shooter.clearDipDetected();
+      RobotContainer.shooterSubsystem.clearDipDetected();
     }
   }
 
@@ -352,7 +336,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   /** Simple aim check: compare current continuous turret angle to desired. */
   private boolean isTurretAimed(double desiredDeg) {
     if (!Double.isFinite(desiredDeg)) return false;
-    double err = Math.abs(desiredDeg - turret.getContinuousAngleDeg());
+    double err = Math.abs(desiredDeg - RobotContainer.turretSubsystem.getContinuousAngleDeg());
     return err <= Constants.OperatorConstants.Turret.AIM_TOLERANCE_DEG;
   }
 
@@ -365,7 +349,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     double soft = Constants.OperatorConstants.Turret.SOFT_AIM_LIMIT_DEG;
     double margin = Constants.OperatorConstants.Turret.LIMIT_MARGIN_DEG;
 
-    double currentDeg = turret.getContinuousAngleDeg();
+    double currentDeg = RobotContainer.turretSubsystem.getContinuousAngleDeg();
 
     double[] cands = new double[] { desiredDeg, desiredDeg + 360.0, desiredDeg - 360.0 };
     double best = Double.NaN;
