@@ -27,9 +27,8 @@ public class AutoStrategyOne extends SequentialCommandGroup {
                 RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
                 TrajectoryHelper.AutoDesiredPoses.BlueDepot,
                 false)
-            .alongWith(new AutoShootUntilEmpty()),
-      new StartIntake()
-      .raceWith(new WaitCommand(3)),
+            .alongWith(new AutoShootUntilEmpty())
+            .alongWith(new WaitCommand(1).andThen(new StartIntake())),
       new StopIntake(),
       RobotContainer.runTrajectory2Poses(
                 RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
