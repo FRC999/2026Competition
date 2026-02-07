@@ -35,9 +35,13 @@ public class AutoStrategyTwo extends SequentialCommandGroup {
       new StopIntake(),
       RobotContainer.runTrajectory2Poses(
                 RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
+                TrajectoryHelper.AutoDesiredPoses.BlueBumpRight,
+                false),
+      RobotContainer.runTrajectory2Poses(
+                RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
                 TrajectoryHelper.AutoDesiredPoses.BlueTower,
                 false)
-            .alongWith(new AutoShootUntilEmpty())
+                .alongWith(new AutoShootUntilEmpty())
     );
   }
 }
