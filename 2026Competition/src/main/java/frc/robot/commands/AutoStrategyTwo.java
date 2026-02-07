@@ -4,6 +4,10 @@
 
 package frc.robot.commands;
 
+import org.opencv.core.RotatedRect;
+
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
@@ -18,18 +22,26 @@ public class AutoStrategyTwo extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
+      new AutoShootUntilEmpty(),
       RobotContainer.runTrajectory2Poses(
                 RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-                TrajectoryHelper.AutoDesiredPoses.BlueDepot,
+                new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueNeurtralMiddle.getTranslation(), new Rotation2d(Math.toRadians(-90))),
+                false),
+      RobotContainer.runTrajectory2Poses(
+                RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
+                new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueNeutralRight.getTranslation(), new Rotation2d(Math.toRadians(90))),
                 false)
-            .alongWith(new AutoShootUntilEmpty())
-            .alongWith(new WaitCommand(1).andThen(new StartIntake())),
+                .alongWith(new StartIntake()),
       new StopIntake(),
+      RobotContainer.runTrajectory2Poses(
+                RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
+                TrajectoryHelper.AutoDesiredPoses.BlueBumpRight,
+                false),
       RobotContainer.runTrajectory2Poses(
                 RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
                 TrajectoryHelper.AutoDesiredPoses.BlueTower,
                 false)
-            .alongWith(new AutoShootUntilEmpty())
+                .alongWith(new AutoShootUntilEmpty())
     );
   }
 }
