@@ -68,7 +68,7 @@ public class IntakeSubsystem extends SubsystemBase {
     configureMotionMagicDutyCycle(pidPivotConfig);
      StatusCode statusPivot = StatusCode.StatusCodeNotInitialized;
     for (int i = 0; i < 5; ++i) {
-      statusPivot = talonFXPivotConfigurator.apply(pidRollerConfig);
+      statusPivot = talonFXPivotConfigurator.apply(pidPivotConfig);
       if (statusPivot.isOK())
         break;
     }

@@ -456,6 +456,22 @@ public final class Constants {
       }
     }
 
+    public static class ClimbConstants {
+      public static final int climbMotorLeftID = 50;
+      public static final int climbMotorRightID = 51;
+
+      public static class ClimbMotionMagicDutyCycleConstants {
+					public static final int slot = 0;
+					public static final double climb_kP = 0.64; //0.64
+					public static final double climb_kI = 0.0;
+					public static final double climb_kD = 0.0;
+					public static final double MotionMagicCruiseVelocity = 50.0; //75.0
+					public static final double motionMagicAcceleration = 100.0; //150.0
+					public static final double motionMagicJerk = 1000.0; //1500.0
+				}
+
+    }
+
   }
 
   public static final class PathPlannerConstants{
