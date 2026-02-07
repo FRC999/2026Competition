@@ -2,6 +2,7 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.RobotContainer;
 import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 import frc.robot.subsystems.SpindexerSubsystem;
 import frc.robot.subsystems.TransferSubsystem;
@@ -20,32 +21,23 @@ import frc.robot.subsystems.TurretSubsystem;
  */
 public class AutoShootUntilEmpty extends Command {
 
-  private final AutoShootSupervisorSubsystem autoShoot;
-
-  public AutoShootUntilEmpty(
-      AutoShootSupervisorSubsystem autoShoot,
-      TurretSubsystem turret,
-      ShooterSubsystem shooter,
-      SpindexerSubsystem spindexer,
-      TransferSubsystem transfer
-  ) {
-    this.autoShoot = autoShoot;
-    addRequirements(autoShoot, turret, shooter, spindexer, transfer);
+  public AutoShootUntilEmpty() {
+    addRequirements(RobotContainer.autoShootSupervisorSubsystem);
   }
 
   @Override
   public void initialize() {
-    autoShoot.setShootRequested(true);
+    RobotContainer.autoShootSupervisorSubsystem.setShootRequested(true);
   }
 
   @Override
   public void execute() {
-    autoShoot.setShootRequested(true);
+    RobotContainer.autoShootSupervisorSubsystem.setShootRequested(true);
   }
 
   @Override
   public void end(boolean interrupted) {
-    autoShoot.setShootRequested(false);
+    RobotContainer.autoShootSupervisorSubsystem.setShootRequested(false);
   }
 
   @Override
