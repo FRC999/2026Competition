@@ -39,6 +39,8 @@ public class TrajectoryHelper {
         public static final Pose2d BlueNeutralRight = new Pose2d(7.85, 2.6, new Rotation2d(0));
         public static final Pose2d BlueNeutralLeft = new Pose2d(7.85, 5.95, new Rotation2d(0));
         public static final Pose2d BlueNeurtralMiddle = new Pose2d(7.85, 4.02, new Rotation2d(0));
+        public static final Pose2d BlueBumpRight = new Pose2d(4.466, 2.372, new Rotation2d());
+        public static final Pose2d BlueBumpLeft = new Pose2d(4.466, 5.568, new Rotation2d());
         public static final Pose2d BlueTower = new Pose2d(1.425, 3.75, new Rotation2d(0));
     }
 }
