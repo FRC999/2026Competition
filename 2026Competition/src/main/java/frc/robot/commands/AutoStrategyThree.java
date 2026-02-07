@@ -5,7 +5,9 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
+import frc.robot.lib.TrajectoryHelper.AutoDesiredPoses;
 
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
@@ -16,7 +18,11 @@ public class AutoStrategyThree extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      RobotContainer.runTrajectory2Poses(null, null, isScheduled())
+      RobotContainer.runTrajectory2Poses(RobotContainer.questNavSubsystem.getQuestRobotPose2d(), AutoDesiredPoses.BlueOutpost, false)
+        .alongWith(new AutoShootUntilEmpty()),
+      new WaitCommand(3)
+        .alongWith(new AutoShootUntilEmpty()),
+      RobotContainer.runTrajectory2Poses(RobotContainer.questNavSubsystem.getQuestRobotPose2d(), AutoDesiredPoses.BlueTower, false)
     );
   }
 }
