@@ -41,10 +41,14 @@ import frc.robot.commands.StopRobot;
 import frc.robot.commands.TurretJogCommand;
 import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
+import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 import frc.robot.subsystems.DriveSubsystem;
+import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.SmartDashboardSubsystem;
+import frc.robot.subsystems.SpindexerSubsystem;
+import frc.robot.subsystems.TransferSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 
 public class RobotContainer {
@@ -68,6 +72,10 @@ public class RobotContainer {
   public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
   public static TurretSubsystem turretSubsystem = new TurretSubsystem();
   public static ShooterSubsystem shooterSubsystem = new ShooterSubsystem();
+  public static HopperSubsystem hopperSubsystem = new HopperSubsystem();
+  public static TransferSubsystem transferSubsystem = new TransferSubsystem();
+  public static SpindexerSubsystem spindexerSubsystem = new SpindexerSubsystem();
+  public static AutoShootSupervisorSubsystem autoShootSupervisorSubsystem = new AutoShootSupervisorSubsystem();
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
