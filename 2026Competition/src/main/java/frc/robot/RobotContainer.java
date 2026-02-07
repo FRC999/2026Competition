@@ -75,7 +75,7 @@ public class RobotContainer {
   public static HopperSubsystem hopperSubsystem = new HopperSubsystem();
   public static TransferSubsystem transferSubsystem = new TransferSubsystem();
   public static SpindexerSubsystem spindexerSubsystem = new SpindexerSubsystem();
-  public static AutoShootSupervisorSubsystem autoShootSupervisorSubsystem = new AutoShootSupervisorSubsystem(driveSubsystem, turretSubsystem, shooterSubsystem, null, transferSubsystem)
+  public static AutoShootSupervisorSubsystem autoShootSupervisorSubsystem = new AutoShootSupervisorSubsystem();
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
