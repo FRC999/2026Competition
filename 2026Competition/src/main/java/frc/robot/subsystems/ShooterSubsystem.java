@@ -194,6 +194,16 @@ public class ShooterSubsystem extends SubsystemBase {
     return dipDetected;
   }
 
+  /**
+   * Clear the dip-detected latch without resetting the target RPM.
+   *
+   * The auto-shoot command uses dip detection as a "ball fired" event and then
+   * clears it so the next ball can be detected.
+   */
+  public void clearDipDetected() {
+    dipDetected = false;
+  }
+
   // ---------------- SysId factory commands ----------------
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
     if (!isSysIdEnabled())
@@ -352,4 +362,16 @@ public class ShooterSubsystem extends SubsystemBase {
   private static double clamp(double v, double lo, double hi) {
     return Math.max(lo, Math.min(hi, v));
   }
+
+  /**
+   * Placeholder hook for any feeder-coupled outputs.
+   *
+   * <p>In your current architecture, feeder motors live in TransferSubsystem/SpindexerSubsystem.
+   * This method is intentionally a no-op, but keeping it here lets AutoShootSupervisorSubsystem
+   * shut down anything shooter-adjacent without needing to know wiring details.
+   */
+  public void stopFeederRelatedOutputs() {
+    // no-op
+  }
+
 }

@@ -46,6 +46,18 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
  */
 public final class Constants {
 
+  /**
+   * Field targets (meters in WPILib field coordinates).
+   *
+   * You indicated you'll provide these experimentally (HUB_BLUE_X/Y, HUB_RED_X/Y).
+   */
+  public static final class FieldTargets {
+    public static final double HUB_BLUE_X = 0.0; // TODO set
+    public static final double HUB_BLUE_Y = 0.0; // TODO set
+    public static final double HUB_RED_X  = 0.0; // TODO set
+    public static final double HUB_RED_Y  = 0.0; // TODO set
+  }
+
   public static final class EnabledSubsystems {
 
 		public static final boolean chasis = true;
@@ -85,7 +97,6 @@ public final class Constants {
 			//
 
 		}
-		public static final double panReefTolerance = 0.02; // tolerance in meters for reef panning
 	}
 
   public static class OperatorConstants {
@@ -316,11 +327,24 @@ public final class Constants {
       /** Mechanical safe range relative to forward (degrees). */
       public static final double MIN_ANGLE_DEG = -340.0;
       public static final double MAX_ANGLE_DEG = 340.0;
+
+      /**
+       * "Soft" limit for auto-aiming (degrees from your turret ZERO). Your notes indicate ~±200°.
+       *
+       * This does NOT replace the hard umbilical safety (MIN_ANGLE_DEG/MAX_ANGLE_DEG). It is used
+       * only by the auto-aim / auto-shoot logic to prefer flipping before you reach the edge.
+       */
+      public static final double SOFT_AIM_LIMIT_DEG = 200.0;
+
+      /** True if your turret "ZERO" (and ABS_FORWARD_TICKS reference) points toward the ROBOT BACK. */
+      public static final boolean ZERO_POINTS_ROBOT_BACK = true;
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
        */
       public static final double LIMIT_MARGIN_DEG = 10.0;
+
+      public static final double AIM_TOLERANCE_DEG = 2.0;
 
       /**
        * Control direction conventions: CCW is positive. Start with false; adjust as
@@ -394,8 +418,108 @@ public final class Constants {
 
     }
 
+    /**
+     * Auto-shoot orchestration constants.
+     *
+     * These are used by the one-button "shoot until empty" command.
+     */
+    public static final class AutoShoot {
+      /** If true, turret aims at target continuously even when not shooting. */
+      public static final boolean ALWAYS_AIM = true;
+
+      /** Default RPM used if you have not yet integrated the artillery table / hood. */
+      public static final double DEFAULT_SHOOT_RPM = Shooter.DEFAULT_RPM;
+
+      /** Intake/indexer feed duty while firing (replace with your real feeder/indexer subsystem). */
+      public static final double FEED_DUTY = 0.55;
+
+      /** Minimum time between "dip" events to avoid double-counting (seconds). */
+      public static final double DIP_DEBOUNCE_S = 0.10;
+
+      /**
+       * If you don't have beam breaks yet, the command can use an operator-provided
+       * estimate of balls remaining. This is the default value placed on SmartDashboard.
+       */
+      public static final int DEFAULT_BALLS_ESTIMATE = 5;
+
+      /**
+       * Release prediction horizon (seconds). This compensates for rotation while shooting.
+       * Tune by observing misses while rotating.
+       */
+      public static final double DT_RELEASE_SEC = 0.12;
+
+      /** Suppress feeding/shooting for this long after a flip decision (seconds). */
+      public static final double FLIP_SUPPRESS_SEC = 0.35;
+    }
+
     /** SysId gating + default parameters. */
-    public static final class SysId {
+    
+
+/** Spindexer motor + tuning. */
+public static final class Spindexer {
+  public static final int MOTOR_ID = 30; // TODO set
+  public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+  /** Low duty for circulation / keeping balls flowing. */
+  public static final double BASE_DUTY = 0.25;
+  /** Higher duty for supplying transfer while shooting. */
+  public static final double SUPPLY_DUTY = 0.45;
+}
+
+/** Transfer motor + sensors + tuning. */
+public static final class Transfer {
+  public static final int MOTOR_ID = 31; // TODO set
+  public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+
+  /** Sensor at transfer entry (just AFTER the spindexer handoff). */
+  public static final int ENTRY_SENSOR_DIO = 0; // TODO set
+  public static final boolean ENTRY_SENSOR_INVERTED = true; // common for beam breaks
+
+  /** Sensor at shooter throat (exit of transfer). */
+  public static final int THROAT_SENSOR_DIO = 1; // TODO set
+  public static final boolean THROAT_SENSOR_INVERTED = true;
+
+  /** Slow speed to keep balls staged without slamming them into the shooter. */
+  public static final double STAGE_DUTY = 0.20;
+  /** Fast speed to inject a ball into the shooter. */
+  public static final double FEED_DUTY = 0.85;
+}
+
+/** Where the artillery table CSV lives under src/main/deploy. */
+public static final class ArtilleryTable {
+  /** Example: "artillery/rebuilt_shots.csv" */
+  public static final String DEPLOY_CSV_PATH = "artillery/rebuilt_shots.csv";
+}
+
+/** Solver tuning and physics constants. */
+public static final class ArtillerySolver {
+  public static final double TOF_MIN_SEC = 0.10;
+  public static final double TOF_MAX_SEC = 1.10;
+  public static final double TOF_STEP_SEC = 0.01;
+
+  /** Use 9.80665 unless you have a reason to change. */
+  public static final double GRAVITY_MPS2 = 9.80665;
+
+  /** Weighting between matching angle vs speed in your measured table inverse lookup. */
+  public static final double ANGLE_WEIGHT = 1.0;
+  public static final double SPEED_WEIGHT = 0.25;
+}
+
+/** Field geometry values needed by the solver. You said you'll supply HUB X/Y experimentally. */
+public static final class FieldGeometry {
+  /** Height of HUB opening center above the field, meters. TODO: set from manual measurement. */
+  public static final double HUB_OPENING_CENTER_Z_METERS = 0.0;
+}
+
+/** Turret geometry needed by the solver. */
+public static final class TurretGeometry {
+  /** Turret pivot position relative to robot origin, in the ROBOT frame (meters). */
+  public static final edu.wpi.first.math.geometry.Translation2d TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS =
+      new edu.wpi.first.math.geometry.Translation2d(0.0, 0.0); // TODO set
+
+  /** Ball release height above field when leaving shooter, meters. TODO set. */
+  public static final double BALL_RELEASE_HEIGHT_METERS = 0.0;
+}
+public static final class SysId {
       /** Safety gate: characterization only runs if true. */
       public static final boolean ENABLE_SYSID = false;
 

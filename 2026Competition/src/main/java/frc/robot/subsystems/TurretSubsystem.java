@@ -428,6 +428,16 @@ public class TurretSubsystem extends SubsystemBase {
     turret.stopMotor();
   }
 
+  /** Current continuous turret angle in degrees in this subsystem's reference frame (0 = "forward" per ABS_FORWARD_TICKS, CCW+). */
+  public double getContinuousAngleDeg() {
+    return continuousDeg;
+  }
+
+  /** Estimated turret angular velocity in deg/sec (sign matches getContinuousAngleDeg convention). */
+  public double getEstimatedVelocityDegPerSec() {
+    return estVelDegPerSec;
+  }
+
   /**
    * Command turret to desired angle (deg) relative to forward.
    *
@@ -662,4 +672,28 @@ public class TurretSubsystem extends SubsystemBase {
     if (d < 0) d += 360.0;
     return d - 180.0;
   }
+
+
+// ---------------------------------------------------------------------------
+// Hood placeholders (your hood hardware is not yet implemented in this repo)
+// ---------------------------------------------------------------------------
+/** Last hood command (rad). This is a placeholder until the hood motor/encoder is implemented. */
+private double hoodCommandRad = 0.0;
+
+/**
+ * Command the hood to an angle (radians).
+ *
+ * <p>Placeholder:
+ * - Store the setpoint for telemetry and for solver "closest solution" heuristics.
+ * - Implement motor control + encoder feedback later.
+ */
+public void setHoodAngleRad(double hoodAngleRad) {
+  hoodCommandRad = hoodAngleRad;
+}
+
+/** @return last hood setpoint in radians (placeholder). */
+public double getHoodCommandRad() {
+  return hoodCommandRad;
+}
+
 }
