@@ -34,11 +34,12 @@ public class TrajectoryHelper {
     }
 
     public static final class AutoDesiredPoses {
-        public static final Pose2d BlueOutpost = new Pose2d(0.50, 0.65, new Rotation2d(90));
+        public static final Pose2d BlueOutpost = new Pose2d(0.50, 0.65, new Rotation2d(Math.toRadians(90)));
         public static final Pose2d BlueDepot = new Pose2d(0.55, 5.95, new Rotation2d(0));
-        public static final Pose2d BlueNeutralRight = new Pose2d(7.85, 2.6, new Rotation2d(0));
-        public static final Pose2d BlueNeutralLeft = new Pose2d(7.85, 5.95, new Rotation2d(0));
-        public static final Pose2d BlueNeurtralMiddle = new Pose2d(7.85, 4.02, new Rotation2d(0));
         public static final Pose2d BlueTower = new Pose2d(1.425, 3.75, new Rotation2d(0));
+        
+        public static final Pose2d BlueNeutralRight = new Pose2d(7.8, 1.1, new Rotation2d(90));
+        public static final Pose2d BlueNeutralLeft = new Pose2d(7.8, 6.9, new Rotation2d(-90));
+        public static final Pose2d BlueNeurtralMiddle = new Pose2d(7.85, 4.02, new Rotation2d(0));
     }
 }

@@ -20,9 +20,11 @@ public class AutoStrategyThree extends SequentialCommandGroup {
     addCommands(
       RobotContainer.runTrajectory2Poses(RobotContainer.questNavSubsystem.getQuestRobotPose2d(), AutoDesiredPoses.BlueOutpost, false)
         .alongWith(new AutoShootUntilEmpty()),
-      new WaitCommand(3)
+      new WaitCommand(5)
         .alongWith(new AutoShootUntilEmpty()),
       RobotContainer.runTrajectory2Poses(RobotContainer.questNavSubsystem.getQuestRobotPose2d(), AutoDesiredPoses.BlueTower, false)
+        .alongWith(new AutoShootUntilEmpty()),
+      new AutoShootUntilEmpty() //TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }
 }

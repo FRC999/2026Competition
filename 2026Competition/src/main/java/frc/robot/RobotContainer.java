@@ -34,6 +34,10 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
 import frc.robot.OdometryUpdates.QuestNavSubsystem;
+import frc.robot.commands.AutoStrategyFour;
+import frc.robot.commands.AutoStrategyOne;
+import frc.robot.commands.AutoStrategyThree;
+import frc.robot.commands.AutoStrategyTwo;
 import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
@@ -93,6 +97,9 @@ public class RobotContainer {
     FollowPathCommand.warmupCommand().schedule();
 
     AutonomousConfigure();
+    /*if (RobotBase.isSimulation()) {
+      configureSimulation();
+    }*/
     testTurretShooter();
   }
 
@@ -100,6 +107,10 @@ public class RobotContainer {
     // port autonomous routines as commands
     // sets the default option of the SendableChooser to the simplest autonomous
     // command. (from touching the hub, drive until outside the tarmac zone)
+    autoChooser.addOption("Auto Strategy One", new AutoStrategyOne());
+    autoChooser.addOption("Auto Strategy Two", new AutoStrategyTwo());
+    autoChooser.addOption("Auto Strategy Three", new AutoStrategyThree());
+    autoChooser.addOption("Auto Strategy Four", new AutoStrategyFour());
     SmartDashboard.putData(autoChooser);
   }
 
