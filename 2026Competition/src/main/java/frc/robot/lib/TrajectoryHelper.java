@@ -8,6 +8,7 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.FlippingUtil;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import frc.robot.Constants.PathPlannerConstants;
 
 public class TrajectoryHelper {
@@ -30,5 +31,9 @@ public class TrajectoryHelper {
         return (PathPlannerConstants.shouldFlipTrajectoryOnRed) ? 
             FlippingUtil.flipFieldPose(pose) :
             pose;
+    }
+
+    public static final class AutoDesiredPoses {
+        public static final Pose2d Outpost = new Pose2d(0.50, 0.65, new Rotation2d(0));
     }
 }
