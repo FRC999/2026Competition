@@ -48,6 +48,7 @@ import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import frc.robot.Constants;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.Constants.OperatorConstants.Turret;
 
@@ -70,11 +71,10 @@ import frc.robot.Constants.OperatorConstants.Turret;
 public class TurretSubsystem extends SubsystemBase {
 
   // Turret motor controller on the specified CAN bus.
-  private final TalonFXS turret =
-      new TalonFXS(Turret.MOTOR_ID, Turret.CANBUS_NAME);
+  private TalonFXS turret;
 
   // Absolute encoder (CAN Through-Bore / CANcoder) on the same CAN bus.
-  private final CANcoder throughboreCANcoder = new CANcoder(Turret.CAN_ENCODER_ID, Turret.CANBUS_NAME);
+  private CANcoder throughboreCANcoder = new CANcoder(Turret.CAN_ENCODER_ID, Turret.CANBUS_NAME);
 
   // Open-loop duty request (used for manual and SysId drive).
   private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
@@ -87,7 +87,7 @@ public class TurretSubsystem extends SubsystemBase {
   private final StatusSignal<Angle> absPosSig = throughboreCANcoder.getAbsolutePosition();
 																				 
   // Motor voltage is used for telemetry and SysId logging.
-  private final StatusSignal<Voltage> motorVoltageSig = turret.getMotorVoltage();
+  private StatusSignal<Voltage> motorVoltageSig;
 
   // Used to guard sim-only code paths.
   private final boolean isSim = RobotBase.isSimulation();
@@ -164,7 +164,9 @@ public class TurretSubsystem extends SubsystemBase {
     if(!EnabledSubsystems.turret){
       return;
     }
-    
+   turret = new TalonFXS(Constants.OperatorConstants.Turret.MOTOR_ID,
+        Constants.OperatorConstants.Turret.CANBUS_NAME);
+
     // Hardware config: motor output + current limits + feedback + gains.
     configureHardware();
 
@@ -177,6 +179,8 @@ public class TurretSubsystem extends SubsystemBase {
     // Dashboard defaults.
     SmartDashboard.putBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
     SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
+
+     motorVoltageSig = turret.getMotorVoltage();
   }
 
   private void configureStatusSignals() {			  
@@ -607,15 +611,16 @@ public class TurretSubsystem extends SubsystemBase {
   public void periodic() {
     // Update continuous (multi-turn) angle state every loop.
     updateContinuousAngle();
-
+    if(DebugTelemetrySubsystems.turret){
     // Telemetry block: expose key state for debugging and tuning.
-    SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
-    SmartDashboard.putNumber("Turret/VelDegPerSec", getVelocityDegPerSec());
-    SmartDashboard.putNumber("Turret/AppliedVolts", getAppliedVolts());
-    SmartDashboard.putNumber("Turret/AbsTicks", getAbsoluteTicks());
-    SmartDashboard.putNumber("Turret/AbsDegWrapped", lastAbsDegWrapped);
-    SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
-    SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
+      SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
+      SmartDashboard.putNumber("Turret/VelDegPerSec", getVelocityDegPerSec());
+      SmartDashboard.putNumber("Turret/AppliedVolts", getAppliedVolts());
+      SmartDashboard.putNumber("Turret/AbsTicks", getAbsoluteTicks());
+      SmartDashboard.putNumber("Turret/AbsDegWrapped", lastAbsDegWrapped);
+      SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
+      SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
+    } 
   }
 
   @Override

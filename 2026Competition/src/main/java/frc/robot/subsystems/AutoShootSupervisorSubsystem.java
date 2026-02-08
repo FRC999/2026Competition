@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.RobotContainer;
 import frc.robot.lib.TurretHelpers;
 
@@ -43,10 +44,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     EMPTY          // no balls remaining
   }
 
-  private final TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle table;
+  private TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle table;
 
   // Driver request flag
-  private boolean shootRequested = false;
+  private boolean shootRequested = true;
 
   private VolleyState state = VolleyState.IDLE;
 
@@ -70,6 +71,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private TurretHelpers.Solution lastSolution = TurretHelpers.makeInvalidSolution();
 
   public AutoShootSupervisorSubsystem() {
+
+    if(!EnabledSubsystems.supervisor){
+      return;
+    }
 
     // Load artillery table once. If missing/empty, hasAnyData() will be false and solver will return invalid.
     this.table = TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle
@@ -116,6 +121,11 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
+
+    if (! EnabledSubsystems.supervisor) {
+      return;
+    }
+    
     final double now = Timer.getFPGATimestamp();
 
     // --- 1) Compute target position ---
@@ -156,7 +166,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         Constants.OperatorConstants.ArtillerySolver.SPEED_WEIGHT
     );
 
-    boolean solutionValid = lastSolution.valid;
+    boolean solutionValid = true; //lastSolution.valid;
 
     // Compute desired turret angle now (deg in turret-forward frame) using predicted robot heading at release time.
     desiredTurretDeg = computeDesiredTurretDeg(
@@ -203,7 +213,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       return;
     }
 
-    if (empty) {
+    if (!shootRequested) {
       state = VolleyState.EMPTY;
       RobotContainer.transferSubsystem.stop();
       RobotContainer.spindexerSubsystem.stop();

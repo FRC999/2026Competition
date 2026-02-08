@@ -25,8 +25,8 @@ import frc.robot.Constants.OperatorConstants.ClimbConstants.ClimbMotionMagicDuty
 
 public class ClimbSubsystem extends SubsystemBase {
 
-  private final TalonFX climbMotorLeft = new TalonFX(ClimbConstants.climbMotorLeftID);
-  private final TalonFX climbMotorRight = new TalonFX(ClimbConstants.climbMotorRightID);
+  private TalonFX climbMotorLeft; 
+  private TalonFX climbMotorRight;
 
   // Motion Magic request (position is in rotations per Phoenix 6)
   private final MotionMagicDutyCycle motMagDutyCycle = new MotionMagicDutyCycle(0);
@@ -48,6 +48,9 @@ public class ClimbSubsystem extends SubsystemBase {
     if(!EnabledSubsystems.climber){
       return;
     }
+
+    climbMotorLeft = new TalonFX(ClimbConstants.climbMotorLeftID);
+    climbMotorRight = new TalonFX(ClimbConstants.climbMotorRightID);
 
     climbMotorLeft.setSafetyEnabled(false);
     climbMotorRight.setSafetyEnabled(false);

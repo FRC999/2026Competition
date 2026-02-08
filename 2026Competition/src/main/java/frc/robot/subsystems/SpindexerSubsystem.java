@@ -22,7 +22,7 @@ import frc.robot.Constants.EnabledSubsystems;
  */
 public class SpindexerSubsystem extends SubsystemBase {
 
-  private final TalonFX motor = new TalonFX(Constants.OperatorConstants.Spindexer.MOTOR_ID, Constants.OperatorConstants.Spindexer.CANBUS_NAME);
+  private TalonFX motor;
   private final DutyCycleOut duty = new DutyCycleOut(0.0);
 
   private double commandedDuty = 0.0;
@@ -31,6 +31,7 @@ public class SpindexerSubsystem extends SubsystemBase {
     if(!EnabledSubsystems.spindexer){
       return;
     }
+    motor = new TalonFX(Constants.OperatorConstants.Spindexer.MOTOR_ID, Constants.OperatorConstants.Spindexer.CANBUS_NAME);
     // TODO: configure current limits, neutral mode, inversion, etc.
   }
 

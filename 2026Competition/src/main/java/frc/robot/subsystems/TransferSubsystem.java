@@ -27,8 +27,8 @@ import frc.robot.Constants.EnabledSubsystems;
  */
 public class TransferSubsystem extends SubsystemBase {
 
-  private final TalonFX motor = new TalonFX(Constants.OperatorConstants.Transfer.MOTOR_ID, Constants.OperatorConstants.Transfer.CANBUS_NAME);
-  private final DutyCycleOut duty = new DutyCycleOut(0.0);
+  private TalonFX motor;
+  private DutyCycleOut duty;
 
   // Sensors (beam breaks are typical). Wiring convention varies; we invert using constants.
   // TODO: motor inversion/current limits/etc.
@@ -41,9 +41,12 @@ public class TransferSubsystem extends SubsystemBase {
     if(!EnabledSubsystems.transfer){
       return;
     }
+    duty = new DutyCycleOut(0.0);
+    motor = new TalonFX(Constants.OperatorConstants.Transfer.MOTOR_ID, Constants.OperatorConstants.Transfer.CANBUS_NAME);
   }
 
   /** Run transfer at a raw duty cycle in [-1, +1]. */
+  
   public void runDuty(double dutyCycle) {
     commandedDuty = dutyCycle;
     motor.setControl(duty.withOutput(dutyCycle));

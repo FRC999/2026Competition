@@ -33,7 +33,7 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants;
  * TODO: implement the actuator hardware (motor/pneumatic) once finalized.
  */
 public class HopperSubsystem extends SubsystemBase {
-  private TalonFX hopperMotor = new TalonFX(Hopper.MOTOR_ID);
+  private TalonFX hopperMotor;
   
   private boolean extended = false;
   private final DutyCycleOut dutyCycle = new DutyCycleOut(0.0);
@@ -42,6 +42,11 @@ public class HopperSubsystem extends SubsystemBase {
   
 
   public HopperSubsystem() {
+    if(!Constants.EnabledSubsystems.hopper){
+      return;
+    }
+    hopperMotor = new TalonFX(Hopper.MOTOR_ID, Hopper.CANBUS_NAME);
+
     configureMotors();
   }
 

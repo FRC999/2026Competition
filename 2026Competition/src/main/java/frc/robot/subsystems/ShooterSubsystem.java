@@ -40,11 +40,10 @@ import frc.robot.Constants.EnabledSubsystems;
 /** Kraken X60 shooter prototype (TalonFX, Phoenix 6). */
 public class ShooterSubsystem extends SubsystemBase {
 
-  private final TalonFX shooter = new TalonFX(Constants.OperatorConstants.Shooter.CAN_ID,
-      Constants.OperatorConstants.Shooter.CANBUS_NAME);
+  private TalonFX shooter;
 
-  private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withSlot(0);
-  private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
+  private VelocityVoltage velocityRequest;
+  private DutyCycleOut dutyRequest;
 
   private double targetRpm = 0.0;
   private double lastRpm = 0.0;
@@ -71,8 +70,8 @@ public class ShooterSubsystem extends SubsystemBase {
       DCMotor.getKrakenX60(1));
 
   // Phoenix 6 typed signals
-  private final StatusSignal<AngularVelocity> velocitySig = shooter.getVelocity();
-  private final StatusSignal<Voltage> motorVoltageSig = shooter.getMotorVoltage();
+  private StatusSignal<AngularVelocity> velocitySig;
+  private StatusSignal<Voltage> motorVoltageSig;
 
   // ---------------- SysId Characterization ----------------
   private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
@@ -92,8 +91,15 @@ public class ShooterSubsystem extends SubsystemBase {
     if(!EnabledSubsystems.shooter){
       return;
     }
+
+    shooter = new TalonFX(Constants.OperatorConstants.Shooter.CAN_ID,
+      Constants.OperatorConstants.Shooter.CANBUS_NAME);
     configureHardware();
     configureStatusSignals();
+    velocitySig = shooter.getVelocity();
+    motorVoltageSig = shooter.getMotorVoltage();
+    dutyRequest = new DutyCycleOut(0);
+    velocityRequest = new VelocityVoltage(0).withSlot(0);
   }
 
   private void configureStatusSignals() {
@@ -249,6 +255,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
+    if (!EnabledSubsystems.shooter){
+      return;
+    }
+      
     // refresh fast signals as a batch
     BaseStatusSignal.refreshAll(velocitySig, motorVoltageSig);
 

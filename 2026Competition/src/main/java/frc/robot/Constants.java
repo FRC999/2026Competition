@@ -72,6 +72,7 @@ public final class Constants {
     public static final boolean spindexer = false;
     public static final boolean transfer = false;
     public static final boolean climber = false;
+    public static final boolean supervisor = false;
 	}
 
 	public static final class DebugTelemetrySubsystems {
@@ -80,6 +81,14 @@ public final class Constants {
 		public static final boolean chassis = true;
 		public static final boolean ll = false;
 		public static final boolean questnav = false;
+    public static final boolean intake = false;
+    public static final boolean shooter = false;
+    public static final boolean turret = false;
+    public static final boolean hopper = false;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
+    public static final boolean climber = false;
+    public static final boolean supervisor = false;
 	}
   
   public static final class AutoConstants {
@@ -144,7 +153,7 @@ public final class Constants {
 
       public static final boolean CTR_ODOMETRY_UPDATE_FROM_QUEST = true;
 
-      public static final double MaxSpeed = 5.21; // m/s
+      public static final double MaxSpeed = 5.85; // m/s
       public static final double MaxAngularRate = 4.71238898038469; // rad/s
       public static final double maxAngularAcceleration = 37.6992; // this is max angular acceleration units:
 																		// rad/s^2
@@ -158,7 +167,7 @@ public final class Constants {
       public static final Pigeon2Configuration pigeonConfigs = null;
       public static final Slot0Configs steerGains = new Slot0Configs()
           .withKP(100).withKI(0).withKD(0.5)
-          .withKS(0.1).withKV(2.66).withKA(0)
+          .withKS(0.1).withKV(2.49).withKA(0)
           .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
       public static final Slot0Configs driveGains = new Slot0Configs()
           .withKP(0.1).withKI(0).withKD(0)
@@ -180,7 +189,7 @@ public final class Constants {
       public static final double kCoupleRatio = 3.0;
       public static final ClosedLoopOutputType kDriveClosedLoopOutput = ClosedLoopOutputType.Voltage;
       public static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
-      public static final double kDriveGearRatio =  5.142857142857142*(5.02/4.93)*(3.03/3.1);
+      public static final double kDriveGearRatio =  5.2734375;
       public static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.01);
       public static final DriveMotorArrangement kDriveMotorType = DriveMotorArrangement.TalonFX_Integrated;
       
@@ -188,14 +197,14 @@ public final class Constants {
       //public static final int kPigeonId = 15; // 2024
       
       public static final Current kSlipCurrent = Amps.of(120.0);
-      public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.21);
+      public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.85);
       public static final ClosedLoopOutputType kSteerClosedLoopOutput = ClosedLoopOutputType.Voltage;
       public static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.FusedCANcoder;
       public static final Voltage kSteerFrictionVoltage = Volts.of(0.2);
-      public static final double kSteerGearRatio = 12.8;
+      public static final double kSteerGearRatio = 26.09090909090909;
       public static final MomentOfInertia kSteerInertia = KilogramSquareMeters.of(0.01);
       public static final SteerMotorArrangement kSteerMotorType = SteerMotorArrangement.TalonFX_Integrated;
-      public static final Distance kWheelRadius = Inches.of(2);
+      public static final Distance kWheelRadius = Inches.of(2 * 0.97883494);
 
       public static SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> ConstantCreator = new SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>()
           .withDriveMotorGearRatio(kDriveGearRatio)
@@ -346,7 +355,7 @@ public final class Constants {
 
     public static final class Turret {
       public static final int MOTOR_ID = 9;
-      public static final int CAN_ENCODER_ID = 11;
+      public static final int CAN_ENCODER_ID = 26;
 
       /** Use the same CAN bus as the drivetrain by default. */
       public static final String CANBUS_NAME = "";
@@ -418,7 +427,7 @@ public final class Constants {
 
         /** Shooter prototype (Kraken X60 on TalonFX, Phoenix 6). */
     public static final class Shooter {
-      public static final int CAN_ID = 10;
+      public static final int CAN_ID = 42;
       public static final String CANBUS_NAME = "";
 
       /** Shooter expels ball on negative output, so invert motor. */
@@ -580,7 +589,7 @@ public static final class SysId {
       public static final int intakeRollerMotorId = 10;
       public static final boolean IntakeRollerInverted = false;
 
-      public static final int intakePivotMotorId = 11;
+      public static final int intakePivotMotorId = 25;
       public static final boolean intakePivotMotorInverted = false;
       public static final double defaultSpeed = 0.3;
 
