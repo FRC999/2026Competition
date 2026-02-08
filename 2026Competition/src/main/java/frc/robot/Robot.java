@@ -27,18 +27,14 @@ public class Robot extends LoggedRobot {
     Logger.recordMetadata("Mode", "Competition");
 
     if (isReal()) {
-      // Log to roboRIO internal storage (NO USB required)
-      Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
-
-      // Allow live viewing in AdvantageScope
-      Logger.addDataReceiver(new NT4Publisher());
-    } else {
-      // Simulation / replay mode
-      setUseTiming(false);
-      String logPath = LogFileUtil.findReplayLog();
-      Logger.setReplaySource(new WPILOGReader(logPath));
-      Logger.addDataReceiver(new WPILOGWriter(logPath + "_sim"));
-    }
+    // Real robot logging
+    Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
+    Logger.addDataReceiver(new NT4Publisher());
+  } else {
+    // NORMAL SIMULATION (no replay, real timing)
+    Logger.addDataReceiver(new NT4Publisher());
+    Logger.addDataReceiver(new WPILOGWriter("logs/sim"));
+  }
 
     Logger.start();
     m_robotContainer = new RobotContainer();
@@ -57,6 +53,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run(); 
+    m_robotContainer.publishPoseToAdvantageScope();
   }
 
   @Override

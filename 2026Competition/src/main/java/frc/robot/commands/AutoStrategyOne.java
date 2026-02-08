@@ -24,16 +24,16 @@ public class AutoStrategyOne extends SequentialCommandGroup {
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
       RobotContainer.runTrajectory2Poses(
-                RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-                TrajectoryHelper.AutoDesiredPoses.BlueDepot,
-                false)
+                false,
+                RobotContainer.driveSubsystem.getPose(),
+                TrajectoryHelper.AutoDesiredPoses.BlueDepot)
             .alongWith(new AutoShootUntilEmpty())
             .alongWith(new WaitCommand(1).andThen(new StartIntake())),
       new StopIntake(),
       RobotContainer.runTrajectory2Poses(
-                RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-                TrajectoryHelper.AutoDesiredPoses.BlueTower,
-                false)
+                false,
+                RobotContainer.driveSubsystem.getPose(),
+                TrajectoryHelper.AutoDesiredPoses.BlueTower)
             .alongWith(new AutoShootUntilEmpty())
       
     );

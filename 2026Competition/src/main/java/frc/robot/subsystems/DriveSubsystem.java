@@ -584,4 +584,10 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         simNotifier.startPeriodic(kSimLoopPeriod);
     }
 
+    @Override
+    public void simulationPeriodic() {
+        // Advance CTRE swerve simulation so getState().Pose updates in sim
+        updateSimState(0.02, RobotController.getBatteryVoltage());
+    }
+
 }

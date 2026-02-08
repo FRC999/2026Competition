@@ -306,6 +306,33 @@ public final class Constants {
 
     }
 
+    public static final class Hopper { 
+      public static final int MOTOR_ID = 12;
+      public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+      public static final boolean MOTOR_INVERTED = false;
+      public static final boolean NEUTRAL_COAST = true;
+
+      public static final double MAX_DUTY_CYCLE = 0.8;
+      public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
+      public static final double STATOR_CURRENT_LIMIT_A = 40.0;
+
+      /** Placeholder gains (Position control). Tune after SysId. */
+      public static final double kP = 40.0;
+      public static final double kI = 0.0;
+      public static final double kD = 2.0;
+      public static final double kS = 0.0;
+      public static final double kV = 0.0;
+      public static final double kA = 0.0;
+
+       /** MotionMagic placeholders (rotations-based). */
+       public static final double MM_CRUISE_VEL_RPS = 1.0;
+       public static final double MM_ACCEL_RPS2 = 2.0;
+
+       /** Simulation placeholders. */
+       public static final double SIM_GEAR_RATIO = 1.0;
+       public static final double SIM_J_KGM2 = 0.02;
+    }
+
     public static final class Turret {
       public static final int MOTOR_ID = 9;
       public static final int CAN_ENCODER_ID = 11;

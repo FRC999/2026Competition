@@ -22,17 +22,25 @@ public class AutoStrategyFour extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-        RobotContainer.runTrajectory2Poses(RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-            AutoDesiredPoses.BlueNeutralLeft, false),
+        RobotContainer.runTrajectory2Poses(
+            true,
+            RobotContainer.driveSubsystem.getPose(),
+            AutoDesiredPoses.BlueNeutralLeft),
         new StartIntake(),
         RobotContainer.runTrajectory2Poses(
-            RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-            new Pose2d(AutoDesiredPoses.BlueNeurtralMiddle.getTranslation(), new Rotation2d(Math.toRadians(-90))),
-            false),
+            false,
+            RobotContainer.driveSubsystem.getPose(),
+            new Pose2d(AutoDesiredPoses.BlueNeurtralMiddle.getTranslation(), new Rotation2d(Math.toRadians(-90)))),
+        RobotContainer.runTrajectory2Poses( 
+            false,
+            RobotContainer.driveSubsystem.getPose(),
+            AutoDesiredPoses.BlueDepot)
+              .alongWith(new WaitCommand(2).andThen(new AutoShootUntilEmpty().alongWith(new StopIntake()))),
         RobotContainer.runTrajectory2Poses(
-            RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-            AutoDesiredPoses.BlueNeutralRight, 
-            false),
+            false,
+            RobotContainer.driveSubsystem.getPose(),
+            AutoDesiredPoses.BlueTower)
+              .alongWith(new WaitCommand(2).andThen(new AutoShootUntilEmpty())),
         new AutoShootUntilEmpty() // TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }
