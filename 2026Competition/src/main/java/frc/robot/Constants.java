@@ -16,6 +16,8 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.ClosedLoopOutputType;
@@ -315,8 +317,11 @@ public final class Constants {
     public static final class Hopper { 
       public static final int MOTOR_ID = 12;
       public static final String CANBUS_NAME = "";
-      public static final boolean MOTOR_INVERTED = false;
-      public static final boolean NEUTRAL_COAST = true;
+      public static final InvertedValue MOTOR_INVERTED = InvertedValue.Clockwise_Positive;
+      public static final NeutralModeValue NEUTRAL_COAST = NeutralModeValue.Coast;
+      public static final boolean ENABLE_CURRENT_LIMIT = true;
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.0;
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = 40.0;
 
       public static final double MAX_DUTY_CYCLE = 0.8;
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
