@@ -19,14 +19,14 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
+import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.Constants.OperatorConstants.ClimbConstants;
 import frc.robot.Constants.OperatorConstants.ClimbConstants.ClimbMotionMagicDutyCycleConstants;
 
 public class ClimbSubsystem extends SubsystemBase {
 
-  private final TalonFX climbMotorLeft;
-  private final TalonFX climbMotorRight;
+  private final TalonFX climbMotorLeft = new TalonFX(ClimbConstants.climbMotorLeftID);
+  private final TalonFX climbMotorRight = new TalonFX(ClimbConstants.climbMotorRightID);
 
   // Motion Magic request (position is in rotations per Phoenix 6)
   private final MotionMagicDutyCycle motMagDutyCycle = new MotionMagicDutyCycle(0);
@@ -45,8 +45,9 @@ public class ClimbSubsystem extends SubsystemBase {
 
   /** Creates a new ClimbSubsystem. */
   public ClimbSubsystem() {
-    climbMotorLeft = new TalonFX(ClimbConstants.climbMotorLeftID);
-    climbMotorRight = new TalonFX(ClimbConstants.climbMotorRightID);
+    if(!EnabledSubsystems.climber){
+      return;
+    }
 
     climbMotorLeft.setSafetyEnabled(false);
     climbMotorRight.setSafetyEnabled(false);

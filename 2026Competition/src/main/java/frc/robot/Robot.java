@@ -26,7 +26,7 @@ public class Robot extends LoggedRobot {
     Logger.recordMetadata("Project", "2026Competition");
     Logger.recordMetadata("Mode", "Competition");
 
-    if (isReal()) {
+    if (isReal()) { // THE ### #####... IS REAL
     // Real robot logging
     Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
     Logger.addDataReceiver(new NT4Publisher());

@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants;
+import frc.robot.Constants.EnabledSubsystems;
 
 /**
  * TransferSubsystem
@@ -26,21 +27,20 @@ import frc.robot.Constants;
  */
 public class TransferSubsystem extends SubsystemBase {
 
-  private final TalonFX motor;
+  private final TalonFX motor = new TalonFX(Constants.OperatorConstants.Transfer.MOTOR_ID, Constants.OperatorConstants.Transfer.CANBUS_NAME);
   private final DutyCycleOut duty = new DutyCycleOut(0.0);
 
   // Sensors (beam breaks are typical). Wiring convention varies; we invert using constants.
-  private final DigitalInput entrySensor;
-  private final DigitalInput throatSensor;
+  // TODO: motor inversion/current limits/etc.
+  private final DigitalInput entrySensor = new DigitalInput(Constants.OperatorConstants.Transfer.ENTRY_SENSOR_DIO);
+  private final DigitalInput throatSensor = new DigitalInput(Constants.OperatorConstants.Transfer.THROAT_SENSOR_DIO);
 
   private double commandedDuty = 0.0;
 
   public TransferSubsystem() {
-    motor = new TalonFX(Constants.OperatorConstants.Transfer.MOTOR_ID, Constants.OperatorConstants.Transfer.CANBUS_NAME);
-    // TODO: motor inversion/current limits/etc.
-
-    entrySensor = new DigitalInput(Constants.OperatorConstants.Transfer.ENTRY_SENSOR_DIO);
-    throatSensor = new DigitalInput(Constants.OperatorConstants.Transfer.THROAT_SENSOR_DIO);
+    if(!EnabledSubsystems.transfer){
+      return;
+    }
   }
 
   /** Run transfer at a raw duty cycle in [-1, +1]. */

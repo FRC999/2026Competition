@@ -43,6 +43,7 @@ import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
 import frc.robot.commands.StopRobot;
+import frc.robot.commands.TestAuto;
 import frc.robot.commands.TurretJogCommand;
 import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
@@ -101,7 +102,7 @@ public class RobotContainer {
 
     AutonomousConfigure();
     if (RobotBase.isSimulation()) {
-      configureSimulation();
+      //configureSimulation();
     }
     testTurretShooter();
   }
@@ -123,7 +124,7 @@ public class RobotContainer {
     autoChooser.addOption("Auto Strategy Two", new AutoStrategyTwo());
     autoChooser.addOption("Auto Strategy Three", new AutoStrategyThree());
     autoChooser.addOption("Auto Strategy Four", new AutoStrategyFour());
-    
+    autoChooser.addOption("Test Auto", new TestAuto());
   }
 
   
@@ -263,21 +264,23 @@ public class RobotContainer {
       if (!shouldResetOdometryToStartingPose) {
         PathPlannerPath path = new PathPlannerPath(
           pathWaypoints,
-          AutoConstants.pathCconstraints,
+          AutoConstants.pathConstraints,
           null,
           new GoalEndState(0, endPose.getRotation()));
-      path.preventFlipping = true;
+        path.preventFlipping = true;
         System.out.println("== Driving from "+startPose+" to "+endPose);
         return AutoBuilder.followPath(path);
       } else { // reset odometry the right way
+        driveSubsystem.resetCTREPose(startPose);
         PathPlannerPath path = new PathPlannerPath(
           pathWaypoints,
-          AutoConstants.pathCconstraints,
+          AutoConstants.pathConstraints,
           new IdealStartingState(0, startPose.getRotation()),
           new GoalEndState(0, endPose.getRotation()));
-      path.preventFlipping = true;
+        path.preventFlipping = true;
         System.out.println("== Driving from "+startPose+" to "+endPose);
-        return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
+        //return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
+        return AutoBuilder.resetOdom(startPose);
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());

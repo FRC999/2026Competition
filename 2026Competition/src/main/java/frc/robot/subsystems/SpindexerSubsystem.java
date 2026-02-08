@@ -6,6 +6,7 @@ import com.ctre.phoenix6.controls.DutyCycleOut;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants;
+import frc.robot.Constants.EnabledSubsystems;
 
 /**
  * SpindexerSubsystem
@@ -21,13 +22,15 @@ import frc.robot.Constants;
  */
 public class SpindexerSubsystem extends SubsystemBase {
 
-  private final TalonFX motor;
+  private final TalonFX motor = new TalonFX(Constants.OperatorConstants.Spindexer.MOTOR_ID, Constants.OperatorConstants.Spindexer.CANBUS_NAME);
   private final DutyCycleOut duty = new DutyCycleOut(0.0);
 
   private double commandedDuty = 0.0;
 
   public SpindexerSubsystem() {
-    motor = new TalonFX(Constants.OperatorConstants.Spindexer.MOTOR_ID, Constants.OperatorConstants.Spindexer.CANBUS_NAME);
+    if(!EnabledSubsystems.spindexer){
+      return;
+    }
     // TODO: configure current limits, neutral mode, inversion, etc.
   }
 

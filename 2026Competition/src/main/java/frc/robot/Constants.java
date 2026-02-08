@@ -63,10 +63,17 @@ public final class Constants {
 		public static final boolean chasis = true;
 		public static final boolean ll = true;
 		public static final boolean questnav = true;
+    public static final boolean intake = false;
+    public static final boolean shooter = false;
+    public static final boolean turret = false;
+    public static final boolean hopper = false;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
+    public static final boolean climber = false;
 	}
 
 	public static final class DebugTelemetrySubsystems {
-		public static final boolean odometry = false;
+		public static final boolean odometry = true;
 		public static final boolean imu = true;
 		public static final boolean chassis = true;
 		public static final boolean ll = false;
@@ -74,7 +81,7 @@ public final class Constants {
 	}
   
   public static final class AutoConstants {
-		public static PathConstraints pathCconstraints = new PathConstraints(
+		public static PathConstraints pathConstraints = new PathConstraints(
 			SwerveConstants.MaxSpeed,
 			SwerveConstants.maxAcceleration,
 			SwerveConstants.MaxAngularRate,
@@ -143,7 +150,7 @@ public final class Constants {
       public static final double DeadbandRatioLinear = 0.05; //determined by calibration method 
       public static final double DeadbandRatioAngular =  0.05; //determined by calibration method
 
-      public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot"); // 2025
+      public static final CANBus kCANBus = new CANBus("can", "./logs/example.hoot"); // 2025
       //public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot"); // 2024 no canivore
 
       public static final Pigeon2Configuration pigeonConfigs = null;
@@ -257,47 +264,46 @@ public final class Constants {
           false); 
         */
 
-          // 2025 Constants
-          
-          public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
-						3, // driveMotorID
-						4, // angleMotorID
+          // 2026 Constants
+        
+        public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
+						11, // driveMotorID
+						12, // angleMotorID
 						31, // CanCoder Id
 						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						0.022582890625, // angleOffset of cancoder to mark zero-position
+						-0.474365, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
 				);
        
         public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord( // Front Right
-						1, // driveMotorID
-						2, // angleMotorID
-						30, // CanCoder Id
-						// 0.041015625, // angleOffset of cancoder to mark zero-position
-						-0.3797604921875, // angleOffset of cancoder to mark zero-position
+						13, // driveMotorID
+						14, // angleMotorID
+						21, // CanCoder ID						// 0.041015625, // angleOffset of cancoder to mark zero-position
+						-0.498047, // angleOffset of cancoder to mark zero-position
 						true, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
 				);
 
         public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord( // Back Left
-						7, // driveMotorID
-						8, // angleMotorID
-						33, // CanCoder Id
+						15, // driveMotorID
+						16, // angleMotorID
+						34, // CanCoder ID
 						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						0.421386796875, // angleOffset of cancoder to mark zero-position
+						0.003174, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
 				);
         public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord( // Back Right
-						5, // driveMotorID
-						6, // angleMotorID
-						32, // CanCoder Id
+						17, // driveMotorID
+						18, // angleMotorID
+						23, // CanCoder ID
 						// 0.326171875, // angleOffset of cancoder to mark zero-position
 						//0.0576171875, // angleOffset of cancoder to mark zero-position
-						0.088256890625, // angleOffset of cancoder to mark zero-position
+						0.001953, // angleOffset of cancoder to mark zero-position
 						true, // Inversion for drive motor
 						false, // Inversion for angle motor
 						false // inversion for CANcoder
@@ -308,7 +314,7 @@ public final class Constants {
 
     public static final class Hopper { 
       public static final int MOTOR_ID = 12;
-      public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+      public static final String CANBUS_NAME = "";
       public static final boolean MOTOR_INVERTED = false;
       public static final boolean NEUTRAL_COAST = true;
 
@@ -338,7 +344,7 @@ public final class Constants {
       public static final int CAN_ENCODER_ID = 11;
 
       /** Use the same CAN bus as the drivetrain by default. */
-      public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+      public static final String CANBUS_NAME = "";
 
       /** Absolute PWM encoder reference (PulseWidth 0-4095 equivalent). */
       public static final int ABS_TICKS_PER_REV = 4096;
@@ -408,7 +414,7 @@ public final class Constants {
         /** Shooter prototype (Kraken X60 on TalonFX, Phoenix 6). */
     public static final class Shooter {
       public static final int CAN_ID = 10;
-      public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+      public static final String CANBUS_NAME = "";
 
       /** Shooter expels ball on negative output, so invert motor. */
       public static final boolean MOTOR_INVERTED = false;
@@ -485,7 +491,7 @@ public final class Constants {
 /** Spindexer motor + tuning. */
 public static final class Spindexer {
   public static final int MOTOR_ID = 30; // TODO set
-  public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+  public static final String CANBUS_NAME = "";
   /** Low duty for circulation / keeping balls flowing. */
   public static final double BASE_DUTY = 0.25;
   /** Higher duty for supplying transfer while shooting. */
@@ -495,7 +501,7 @@ public static final class Spindexer {
 /** Transfer motor + sensors + tuning. */
 public static final class Transfer {
   public static final int MOTOR_ID = 31; // TODO set
-  public static final String CANBUS_NAME = OperatorConstants.SwerveConstants.kCANBus.getName();
+  public static final String CANBUS_NAME = "";
 
   /** Sensor at transfer entry (just AFTER the spindexer handoff). */
   public static final int ENTRY_SENSOR_DIO = 0; // TODO set

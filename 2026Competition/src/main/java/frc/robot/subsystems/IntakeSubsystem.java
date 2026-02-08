@@ -15,6 +15,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.MotionMagicDutyCycleConstants;
@@ -29,6 +30,10 @@ public class IntakeSubsystem extends SubsystemBase {
   private double intakePivotEncoderZero = 0;
   /** Creates a new IntakeSubsystem. */
   public IntakeSubsystem() {
+    if(!EnabledSubsystems.intake){
+      return;
+    }
+    
     intakeRollerMotor = new TalonFX(IntakeConstants.intakeRollerMotorId);
     intakePivotMotor = new TalonFX(IntakeConstants.intakePivotMotorId);
 

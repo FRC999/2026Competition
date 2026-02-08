@@ -35,6 +35,7 @@ import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import frc.robot.Constants;
+import frc.robot.Constants.EnabledSubsystems;
 
 /** Kraken X60 shooter prototype (TalonFX, Phoenix 6). */
 public class ShooterSubsystem extends SubsystemBase {
@@ -88,6 +89,9 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public ShooterSubsystem() {
+    if(!EnabledSubsystems.shooter){
+      return;
+    }
     configureHardware();
     configureStatusSignals();
   }

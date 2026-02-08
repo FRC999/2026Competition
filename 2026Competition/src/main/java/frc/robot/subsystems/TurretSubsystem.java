@@ -48,6 +48,7 @@ import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import frc.robot.Constants;
+import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.Constants.OperatorConstants.Turret;
 
 /**
@@ -160,6 +161,10 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   public TurretSubsystem() {
+    if(!EnabledSubsystems.turret){
+      return;
+    }
+    
     // Hardware config: motor output + current limits + feedback + gains.
     configureHardware();
 
