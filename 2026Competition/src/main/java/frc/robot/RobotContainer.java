@@ -171,7 +171,8 @@ public class RobotContainer {
   private double getDriverYAxis() {
     // return -xboxController.getLeftStickX();
     // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
-    return -xboxDriveController.getRightStickX();
+    //return -xboxDriveController.getRightStickX();
+    return 0;
   }
 
   private double getDriverOmegaAxis() {
