@@ -20,6 +20,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -86,6 +87,8 @@ public class RobotContainer {
 
   public RobotContainer() {
     configureBindings();
+    driveSubsystem.registerTelemetry(logger::telemeterize);
+
     setYaws();
     
 
@@ -97,21 +100,30 @@ public class RobotContainer {
     FollowPathCommand.warmupCommand().schedule();
 
     AutonomousConfigure();
-    /*if (RobotBase.isSimulation()) {
+    if (RobotBase.isSimulation()) {
       configureSimulation();
-    }*/
+    }
     testTurretShooter();
+  }
+
+  private static void configureSimulation() {
+    // This method is for any simulation-specific configuration, such as setting up
+    // simulated sensors or adjusting subsystem parameters for simulation.
+    // For example, you might want to set up a simulated gyro or adjust the drive
+    // subsystem's max speed for testing.
+    driveSubsystem.resetCTREPose(new Pose2d(3.5,5.7, new Rotation2d(0)));
   }
 
   public static void AutonomousConfigure() {
     // port autonomous routines as commands
     // sets the default option of the SendableChooser to the simplest autonomous
     // command. (from touching the hub, drive until outside the tarmac zone)
+    SmartDashboard.putData(autoChooser);
     autoChooser.addOption("Auto Strategy One", new AutoStrategyOne());
     autoChooser.addOption("Auto Strategy Two", new AutoStrategyTwo());
     autoChooser.addOption("Auto Strategy Three", new AutoStrategyThree());
     autoChooser.addOption("Auto Strategy Four", new AutoStrategyFour());
-    SmartDashboard.putData(autoChooser);
+    
   }
 
   
@@ -244,21 +256,26 @@ public class RobotContainer {
     }
   }
 
-    public static Command runTrajectory2Poses(Pose2d startPose, Pose2d endPose,
-      boolean shouldResetOdometryToStartingPose) {
+  public static Command runTrajectory2Poses(boolean shouldResetOdometryToStartingPose,Pose2d startPose, Pose2d endPose) {
     try {
-      List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
+      List<Waypoint> pathWaypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
 
-      PathPlannerPath path = new PathPlannerPath(
-          waypoints,
+      if (!shouldResetOdometryToStartingPose) {
+        PathPlannerPath path = new PathPlannerPath(
+          pathWaypoints,
+          AutoConstants.pathCconstraints,
+          null,
+          new GoalEndState(0, endPose.getRotation()));
+      path.preventFlipping = true;
+        System.out.println("== Driving from "+startPose+" to "+endPose);
+        return AutoBuilder.followPath(path);
+      } else { // reset odometry the right way
+        PathPlannerPath path = new PathPlannerPath(
+          pathWaypoints,
           AutoConstants.pathCconstraints,
           new IdealStartingState(0, startPose.getRotation()),
           new GoalEndState(0, endPose.getRotation()));
       path.preventFlipping = true;
-      driveSubsystem.setOdometryPoseToSpecificPose(startPose); // reset odometry, as PP may not do so
-      if (!shouldResetOdometryToStartingPose) {
-        return AutoBuilder.followPath(path);
-      } else { // reset odometry the right way
         System.out.println("== Driving from "+startPose+" to "+endPose);
         return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
       }
@@ -309,4 +326,9 @@ public class RobotContainer {
     new JoystickButton(turretStick, 5).whileTrue(new TurretJogCommand(turretSubsystem, -0.25));
     new JoystickButton(turretStick, 6).whileTrue(new TurretJogCommand(turretSubsystem, 0.25));
   }
+
+  public void publishPoseToAdvantageScope() {
+    logger.telemeterize(driveSubsystem.getState());
+  }
+
 }

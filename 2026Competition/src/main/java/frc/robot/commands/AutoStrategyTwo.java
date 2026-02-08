@@ -22,25 +22,24 @@ public class AutoStrategyTwo extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      new AutoShootUntilEmpty(),
       RobotContainer.runTrajectory2Poses(
-                RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-                new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueNeurtralMiddle.getTranslation(), new Rotation2d(Math.toRadians(-90))),
-                false),
+                false,
+                RobotContainer.driveSubsystem.getPose(),
+                new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueNeurtralMiddle.getTranslation(), new Rotation2d(Math.toRadians(-90)))),
       RobotContainer.runTrajectory2Poses(
-                RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-                new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueNeutralRight.getTranslation(), new Rotation2d(Math.toRadians(90))),
-                false)
+                false,
+                RobotContainer.driveSubsystem.getPose(),
+                new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueNeutralRight.getTranslation(), new Rotation2d(Math.toRadians(90))))
                 .alongWith(new StartIntake()),
       new StopIntake(),
       RobotContainer.runTrajectory2Poses(
-                RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-                TrajectoryHelper.AutoDesiredPoses.BlueBumpRight,
-                false),
+                false,
+                RobotContainer.driveSubsystem.getPose(),
+                TrajectoryHelper.AutoDesiredPoses.BlueBumpRight),
       RobotContainer.runTrajectory2Poses(
-                RobotContainer.questNavSubsystem.getQuestRobotPose2d(),
-                TrajectoryHelper.AutoDesiredPoses.BlueTower,
-                false)
+                false,
+                RobotContainer.driveSubsystem.getPose(),
+                TrajectoryHelper.AutoDesiredPoses.BlueTower)
                 .alongWith(new AutoShootUntilEmpty())
     );
   }

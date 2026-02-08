@@ -16,6 +16,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -260,6 +261,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   public void periodic() {
     // This method will be called once per scheduler run
     // System.out.println(Timer.getFPGATimestamp());
+
+    if(RobotBase.isSimulation()){
+      return;
+    }
 
     if (DebugTelemetrySubsystems.odometry) {
       // Telemetry for the state machine
