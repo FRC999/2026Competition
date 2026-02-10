@@ -4,7 +4,7 @@ package frc.robot.subsystems;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
-import com.ctre.phoenix6.configs.CommutationConfigs;
+													
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.ExternalFeedbackConfigs;
 													
@@ -16,11 +16,11 @@ import com.ctre.phoenix6.controls.DutyCycleOut;
 													 
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
-import com.ctre.phoenix6.hardware.TalonFXS;
-import com.ctre.phoenix6.signals.BrushedMotorWiringValue;
+import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.signals.ExternalFeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
-import com.ctre.phoenix6.signals.MotorArrangementValue;
+													   
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorPhaseValue;
 
@@ -71,7 +71,7 @@ import frc.robot.Constants.OperatorConstants.Turret;
 public class TurretSubsystem extends SubsystemBase {
 
   // Turret motor controller on the specified CAN bus.
-  private TalonFXS turret;
+  private TalonFX turret;
 
   // Absolute encoder (CAN Through-Bore / CANcoder) on the same CAN bus.
   private CANcoder throughboreCANcoder = new CANcoder(Turret.CAN_ENCODER_ID, Turret.CANBUS_NAME);
@@ -88,6 +88,9 @@ public class TurretSubsystem extends SubsystemBase {
 																				 
   // Motor voltage is used for telemetry and SysId logging.
   private StatusSignal<Voltage> motorVoltageSig;
+
+  // Integrated (relative) position from the TalonFX (multi-turn, does not wrap).
+  private StatusSignal<Angle> motorPosSig;
 
   // Used to guard sim-only code paths.
   private final boolean isSim = RobotBase.isSimulation();
@@ -132,10 +135,10 @@ public class TurretSubsystem extends SubsystemBase {
   private final FlywheelSim turretSim =
       new FlywheelSim(
           LinearSystemId.createFlywheelSystem(
-              DCMotor.getVex775Pro(1),
+              DCMotor.getKrakenX60(1),
               Constants.OperatorConstants.Turret.SIM_GEAR_RATIO,
               Constants.OperatorConstants.Turret.SIM_TURRET_J_KGM2),
-          DCMotor.getVex775Pro(1));
+          DCMotor.getKrakenX60(1));
 
   // Integrated simulated position in rotations.
   private double simPosRot = 0.0;
@@ -164,10 +167,14 @@ public class TurretSubsystem extends SubsystemBase {
     if(!EnabledSubsystems.turret){
       return;
     }
-   turret = new TalonFXS(Constants.OperatorConstants.Turret.MOTOR_ID,
+   turret = new TalonFX(Constants.OperatorConstants.Turret.MOTOR_ID,
         Constants.OperatorConstants.Turret.CANBUS_NAME);
 
-    // Hardware config: motor output + current limits + feedback + gains.
+    motorVoltageSig = turret.getMotorVoltage();
+
+    motorPosSig = turret.getPosition();
+
+    // Hardware config: motor output + current limits + gains.
     configureHardware();
 
     // CAN signal update rates (reduces bus load but keeps control inputs fresh).
@@ -180,12 +187,16 @@ public class TurretSubsystem extends SubsystemBase {
     SmartDashboard.putBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
     SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
 
-     motorVoltageSig = turret.getMotorVoltage();
+
+												
   }
 
   private void configureStatusSignals() {			  
     // We want absolute angle to update quickly for unwrap math + control decisions.
     absPosSig.setUpdateFrequency(100.0);
+
+    // Integrated motor position (used for continuous angle tracking once seeded).
+    motorPosSig.setUpdateFrequency(100.0);
 
     // Motor voltage can be slower; mostly for telemetry and SysId.
     motorVoltageSig.setUpdateFrequency(50.0);
@@ -210,65 +221,48 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   private void configureHardware() {
-    // Motor output (brake + inversion)
-							
-    MotorOutputConfigs out = new MotorOutputConfigs()
-        .withNeutralMode(NeutralModeValue.Brake)
-        .withInverted(motorInvertedValue());
+  // Motor output (brake + inversion)
+  MotorOutputConfigs out = new MotorOutputConfigs()
+      .withNeutralMode(NeutralModeValue.Brake)
+      .withInverted(motorInvertedValue());
 
-    // Brushed commutation (you factory reset)
-    CommutationConfigs commutation = new CommutationConfigs()
-								
-        .withMotorArrangement(MotorArrangementValue.Brushed_DC)
-        .withBrushedMotorWiring(BrushedMotorWiringValue.Leads_A_and_B);
+  // Current limits
+  CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
+      .withSupplyCurrentLimitEnable(true)
+      .withSupplyCurrentLimit(Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LIMIT_A)
+      .withStatorCurrentLimitEnable(true)
+      .withStatorCurrentLimit(Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A);
 
-    // Current limits
-    CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
-								  
-        .withSupplyCurrentLimitEnable(true)
-        .withSupplyCurrentLimit(Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LIMIT_A)
-        .withStatorCurrentLimitEnable(true)
-        .withStatorCurrentLimit(Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A);									   
+  // Slot0 gains for hardware position loop (voltage-based in Phoenix 6)
+  Slot0Configs slot0 = new Slot0Configs()
+      .withKP(Constants.OperatorConstants.Turret.kP)
+      .withKI(Constants.OperatorConstants.Turret.kI)
+      .withKD(Constants.OperatorConstants.Turret.kD)
+      .withKS(Constants.OperatorConstants.Turret.kS)
+      .withKV(Constants.OperatorConstants.Turret.kV)
+      .withKA(Constants.OperatorConstants.Turret.kA);
 
-    // Absolute Through-Bore via CAN (Remote CANcoder)
-    // IMPORTANT: the sensor source must be RemoteCANcoder, and the CANcoder device must be assigned.
-    ExternalFeedbackConfigs feedback = new ExternalFeedbackConfigs()
-        .withExternalFeedbackSensorSource(ExternalFeedbackSensorSourceValue.RemoteCANcoder)
-        .withRemoteCANcoder(throughboreCANcoder)
-												  
-        .withSensorPhase(sensorPhaseValue());
+  // IMPORTANT: Turret closed-loop uses the TalonFX integrated (relative) sensor.
+  // The CANcoder/ThroughBore is used ONLY to seed the integrated sensor at boot.
+  TalonFXConfiguration cfg = new TalonFXConfiguration()
+      .withMotorOutput(out)
+      .withCurrentLimits(limits)
+      .withSlot0(slot0);
 
-    // Slot0 gains for hardware position loop (voltage-based in Phoenix 6)
-    Slot0Configs slot0 = new Slot0Configs()
-						  
-        .withKP(Constants.OperatorConstants.Turret.kP)
-        .withKI(Constants.OperatorConstants.Turret.kI)
-        .withKD(Constants.OperatorConstants.Turret.kD)
-        .withKS(Constants.OperatorConstants.Turret.kS)
-        .withKV(Constants.OperatorConstants.Turret.kV)
-        .withKA(Constants.OperatorConstants.Turret.kA);
-
-    // Apply configs (each apply pushes config to the motor controller).
-    turret.getConfigurator().apply(out);
-    turret.getConfigurator().apply(commutation);
-    turret.getConfigurator().apply(limits);
-    turret.getConfigurator().apply(feedback);
-    turret.getConfigurator().apply(slot0);								   
-
-    // Default to wrap ON, and switch off when we must force long-way
-    turret.getConfigurator().apply(clWrapOn);
-    continuousWrapEnabled = true;
-  }						 
-											   
-	public final double getAbsolutePosition() {
-    // Absolute position from CANcoder in rotations [0,1) (wraps each revolution).
-    return throughboreCANcoder.getAbsolutePosition().getValueAsDouble();
-  }			  
+  turret.getConfigurator().apply(cfg);
+}			  
 
   public final double getRelativePosition() {
     // Integrated/relative position from CANcoder in rotations (does not wrap in the same way).
     return throughboreCANcoder.getPosition().getValueAsDouble();
   }
+
+    /** Absolute throughbore position for telemetry (wraps every 1 rotation). */
+  public final double getAbsolutePosition() {
+    // Returns [0, 1) rotations, wraps at 1.0
+    return throughboreCANcoder.getAbsolutePosition().getValueAsDouble();
+  }
+
 								
   private void setContinuousWrap(boolean enable) {
     // If we're already in the desired wrap mode, do nothing (avoid CAN config spam).
@@ -336,6 +330,10 @@ public class TurretSubsystem extends SubsystemBase {
     // Initialize continuous turret position in your forward-relative frame.
     continuousDeg = deltaDeg;
 
+    // Seed the TalonFX integrated position so closed-loop uses relative sensor from this point.
+    // TalonFX position units are rotations; we keep continuousDeg in degrees.
+    turret.setPosition(continuousDeg / 360.0);
+
     // Initialize velocity bookkeeping.
     lastContinuousDeg = continuousDeg;
 														 
@@ -359,14 +357,11 @@ public class TurretSubsystem extends SubsystemBase {
     double now = Timer.getFPGATimestamp();
     double dt = Math.max(1e-3, now - lastUpdateTs); // guard dt to avoid divide-by-zero
 
-    // Current wrapped absolute angle.
-    double absDeg = getAbsDegWrapped();
-
-    // Smallest signed delta between successive wrapped absolute angles.
-    double delta = ANGLE_SIGN * wrapToPlusMinus180(absDeg - lastAbsDegWrapped);
-
-    // Apply delta to the multi-turn estimate.
-    double nextContinuous = continuousDeg + delta;			
+    // Integrated TalonFX position is multi-turn and does not wrap.
+    // Convert rotations -> degrees in our forward-relative frame.
+    // NOTE: We seeded motorPosSig at boot so that 0 deg corresponds to turret forward.
+    double motorRot = motorPosSig.getValueAsDouble();
+    double nextContinuous = motorRot * 360.0;
 
     // Hard safety clamp to +/- MAX (umbilical protection).
     nextContinuous = clamp(
@@ -374,14 +369,17 @@ public class TurretSubsystem extends SubsystemBase {
         Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
         Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
 
-    // Compute deg/s based on change in continuous position.
-    estVelDegPerSec = (nextContinuous - lastContinuousDeg) / dt;
+    // Velocity estimate (deg/s) based on change in continuous position.
+    double prev = continuousDeg;
+    estVelDegPerSec = (nextContinuous - prev) / dt;
 
-    // Commit state for next loop iteration.
+    // Commit state.
+    lastContinuousDeg = prev;
     continuousDeg = nextContinuous;
-    lastContinuousDeg = continuousDeg;
-    lastAbsDegWrapped = absDeg;
     lastUpdateTs = now;
+
+    // Keep abs wrapped for telemetry/diagnostics (not used for closed-loop after boot).
+    lastAbsDegWrapped = getAbsDegWrapped();
   }
 
   // ---------------- Public API ----------------

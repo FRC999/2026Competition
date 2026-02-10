@@ -33,9 +33,10 @@ public class IntakeSubsystem extends SubsystemBase {
     if(!EnabledSubsystems.intake){
       return;
     }
-    
-    intakeRollerMotor = new TalonFX(IntakeConstants.intakeRollerMotorId);
-    intakePivotMotor = new TalonFX(IntakeConstants.intakePivotMotorId);
+
+    intakeRollerMotor = new TalonFX(IntakeConstants.intakeRollerMotorId, IntakeConstants.CANBUS_NAME);
+    intakePivotMotor = new TalonFX(IntakeConstants.intakePivotMotorId, IntakeConstants.CANBUS_NAME);
+
 
     configureMotors();
   }

@@ -7,10 +7,12 @@ import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
@@ -40,7 +42,8 @@ import frc.robot.Constants.EnabledSubsystems;
 /** Kraken X60 shooter prototype (TalonFX, Phoenix 6). */
 public class ShooterSubsystem extends SubsystemBase {
 
-  private TalonFX shooter;
+  private TalonFX shooterLeader;
+  private TalonFX shooterFollower;
 
   private VelocityVoltage velocityRequest;
   private DutyCycleOut dutyRequest;
@@ -92,12 +95,15 @@ public class ShooterSubsystem extends SubsystemBase {
       return;
     }
 
-    shooter = new TalonFX(Constants.OperatorConstants.Shooter.CAN_ID,
+    shooterLeader = new TalonFX(Constants.OperatorConstants.Shooter.LEADER_CAN_ID,
+      Constants.OperatorConstants.Shooter.CANBUS_NAME);
+    shooterFollower = new TalonFX(Constants.OperatorConstants.Shooter.FOLLOWER_CAN_ID,
       Constants.OperatorConstants.Shooter.CANBUS_NAME);
     configureHardware();
+
+    velocitySig = shooterLeader.getVelocity();
+    motorVoltageSig = shooterLeader.getMotorVoltage();
     configureStatusSignals();
-    velocitySig = shooter.getVelocity();
-    motorVoltageSig = shooter.getMotorVoltage();
     dutyRequest = new DutyCycleOut(0);
     velocityRequest = new VelocityVoltage(0).withSlot(0);
   }
@@ -105,7 +111,8 @@ public class ShooterSubsystem extends SubsystemBase {
   private void configureStatusSignals() {
     velocitySig.setUpdateFrequency(100.0); // 100
     motorVoltageSig.setUpdateFrequency(100.0); // 50
-    shooter.optimizeBusUtilization();
+    shooterLeader.optimizeBusUtilization();
+    shooterFollower.optimizeBusUtilization();
   }
 
   private void configureHardware() {
@@ -136,8 +143,17 @@ public class ShooterSubsystem extends SubsystemBase {
     TalonFXConfiguration cfg = new TalonFXConfiguration().withMotorOutput(out).withCurrentLimits(limits)
         .withSlot0(slot0);
 
-    shooter.getConfigurator().apply(cfg);
-  }
+    shooterLeader.getConfigurator().apply(cfg);
+
+    // Follower: mechanically linked by equal sprockets; may require opposing direction.
+    MotorAlignmentValue alignment = Constants.OperatorConstants.Shooter.FOLLOWER_OPPOSE_MASTER
+        ? MotorAlignmentValue.Opposed
+        : MotorAlignmentValue.Aligned;
+
+    shooterFollower.setControl(new Follower(
+        Constants.OperatorConstants.Shooter.LEADER_CAN_ID,
+        alignment));
+}
 
   // ---------------- Public API ----------------
 
@@ -149,7 +165,7 @@ public class ShooterSubsystem extends SubsystemBase {
     wasReady = false;
 
     double targetRps = targetRpm / 60.0; // Phoenix 6 uses rotations/sec
-    shooter.setControl(velocityRequest.withVelocity(targetRps));
+    shooterLeader.setControl(velocityRequest.withVelocity(targetRps));
   }
 
   /** Open-loop duty-cycle (for quick tests). */
@@ -159,12 +175,13 @@ public class ShooterSubsystem extends SubsystemBase {
         -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
         Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
     targetRpm = 0.0;
-    shooter.setControl(dutyRequest.withOutput(duty));
+    shooterLeader.setControl(dutyRequest.withOutput(duty));
   }
 
   public void stop() {
     targetRpm = 0.0;
-    shooter.stopMotor();
+    shooterLeader.stopMotor();
+    shooterFollower.stopMotor();
   }
 
   public double getTargetRpm() {
@@ -241,7 +258,7 @@ public class ShooterSubsystem extends SubsystemBase {
         -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
         Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
 
-    shooter.setControl(dutyRequest.withOutput(duty));
+    shooterLeader.setControl(dutyRequest.withOutput(duty));
   }
 
   private void sysIdLog(SysIdRoutineLog log) {
@@ -359,7 +376,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     final double dt = 0.02;
 
-    var simState = shooter.getSimState();
+    var simState = shooterLeader.getSimState();
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
 
     double appliedV = simState.getMotorVoltage();

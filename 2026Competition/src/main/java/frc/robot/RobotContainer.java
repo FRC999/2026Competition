@@ -56,6 +56,7 @@ import frc.robot.subsystems.SmartDashboardSubsystem;
 import frc.robot.subsystems.SpindexerSubsystem;
 import frc.robot.subsystems.TransferSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
+import frc.robot.subsystems.HoodSubsystem;
 
 public class RobotContainer {
 
@@ -81,6 +82,7 @@ public class RobotContainer {
   public static HopperSubsystem hopperSubsystem = new HopperSubsystem();
   public static TransferSubsystem transferSubsystem = new TransferSubsystem();
   public static SpindexerSubsystem spindexerSubsystem = new SpindexerSubsystem();
+  public static HoodSubsystem hoodSubsystem = new HoodSubsystem();
   public static AutoShootSupervisorSubsystem autoShootSupervisorSubsystem = new AutoShootSupervisorSubsystem();
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
 

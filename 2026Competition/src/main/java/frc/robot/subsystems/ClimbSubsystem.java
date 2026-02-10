@@ -49,8 +49,8 @@ public class ClimbSubsystem extends SubsystemBase {
       return;
     }
 
-    climbMotorLeft = new TalonFX(ClimbConstants.climbMotorLeftID);
-    climbMotorRight = new TalonFX(ClimbConstants.climbMotorRightID);
+    climbMotorLeft = new TalonFX(ClimbConstants.climbMotorLeftID, ClimbConstants.CANBUS_NAME);
+    climbMotorRight = new TalonFX(ClimbConstants.climbMotorRightID, ClimbConstants.CANBUS_NAME);
 
     climbMotorLeft.setSafetyEnabled(false);
     climbMotorRight.setSafetyEnabled(false);

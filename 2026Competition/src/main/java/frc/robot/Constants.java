@@ -60,20 +60,22 @@ public final class Constants {
     public static final double HUB_RED_Y  = 0.0; // TODO set
   }
 
-  public static final class EnabledSubsystems {
+public static final class EnabledSubsystems {
 
-		public static final boolean chasis = true;
-		public static final boolean ll = true;
-		public static final boolean questnav = true;
-    public static final boolean intake = false;
-    public static final boolean shooter = false;
-    public static final boolean turret = false;
-    public static final boolean hopper = false;
-    public static final boolean spindexer = false;
-    public static final boolean transfer = false;
-    public static final boolean climber = false;
-    public static final boolean supervisor = false;
-	}
+  public static final boolean chasis = true;
+  public static final boolean ll = true;
+  public static final boolean questnav = true;
+  public static final boolean intake = false;
+  public static final boolean shooter = false;
+  public static final boolean turret = false;
+  public static final boolean hood = false;
+  public static final boolean hopper = false;
+  public static final boolean spindexer = false;
+  public static final boolean transfer = false;
+  public static final boolean climber = false;
+  public static final boolean supervisor = false;
+}
+
 
 	public static final class DebugTelemetrySubsystems {
 		public static final boolean odometry = true;
@@ -84,6 +86,7 @@ public final class Constants {
     public static final boolean intake = false;
     public static final boolean shooter = false;
     public static final boolean turret = false;
+    public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
     public static final boolean transfer = false;
@@ -118,6 +121,9 @@ public final class Constants {
 	}
 
   public static class OperatorConstants {
+    /** CTRE Phoenix CAN bus name for roboRIO CAN. */
+    public static final String RIO_CANBUS_NAME = "rio";
+
     public static final int kDriverControllerPort = 0;
 
     public static class OIContants {
@@ -324,8 +330,8 @@ public final class Constants {
     }
 
     public static final class Hopper { 
-      public static final int MOTOR_ID = 12;
-      public static final String CANBUS_NAME = "";
+      public static final int MOTOR_ID = 53;
+      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
       public static final InvertedValue MOTOR_INVERTED = InvertedValue.Clockwise_Positive;
       public static final NeutralModeValue NEUTRAL_COAST = NeutralModeValue.Coast;
       public static final boolean ENABLE_CURRENT_LIMIT = true;
@@ -354,11 +360,11 @@ public final class Constants {
     }
 
     public static final class Turret {
-      public static final int MOTOR_ID = 9;
-      public static final int CAN_ENCODER_ID = 26;
+      public static final int MOTOR_ID = 41;
+      public static final int CAN_ENCODER_ID = 45;
 
-      /** Use the same CAN bus as the drivetrain by default. */
-      public static final String CANBUS_NAME = "";
+      /** Turret is NOT drivetrain; it lives on the roboRIO CAN bus. */
+      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
 
       /** Absolute PWM encoder reference (PulseWidth 0-4095 equivalent). */
       public static final int ABS_TICKS_PER_REV = 4096;
@@ -425,45 +431,87 @@ public final class Constants {
       public static final double SIM_TURRET_J_KGM2 = 0.02;
     }
 
+
+/** Hood (pitch) motor. Hardware TBD; reserved ID for future implementation. */
+public static final class Hood {
+  public static final int MOTOR_ID = 42;
+  public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+
+  /** Set true/false once the hood is installed and tested. */
+  public static final boolean MOTOR_INVERTED = false;
+
+  public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
+  public static final double STATOR_CURRENT_LIMIT_A = 40.0;
+
+  /** Placeholder gains (Position control). Tune after SysId. */
+  public static final double kP = 40.0;
+  public static final double kI = 0.0;
+  public static final double kD = 2.0;
+  public static final double kS = 0.0;
+  public static final double kV = 0.0;
+  public static final double kA = 0.0;
+
+  /** MotionMagic placeholders (rotations-based). */
+  public static final double MM_CRUISE_VEL_RPS = 1.0;
+  public static final double MM_ACCEL_RPS2 = 2.0;
+
+  /** Simulation placeholders. */
+  public static final double SIM_GEAR_RATIO = 1.0;
+  public static final double SIM_HOOD_J_KGM2 = 0.02;
+}
+
+
         /** Shooter prototype (Kraken X60 on TalonFX, Phoenix 6). */
-    public static final class Shooter {
-      public static final int CAN_ID = 42;
-      public static final String CANBUS_NAME = "";
+    /** Shooter (2x Kraken X60 on TalonFX, Phoenix 6). */
+public static final class Shooter {
+  public static final int LEADER_CAN_ID = 43;
+  public static final int FOLLOWER_CAN_ID = 44;
+  public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
 
-      /** Shooter expels ball on negative output, so invert motor. */
-      public static final boolean MOTOR_INVERTED = false;
-      public static final boolean NEUTRAL_COAST = true;
+  /**
+   * Shooter motors are linked by equal sprockets.
+   * Set this true if the follower must spin opposite the leader due to mirrored mounting.
+   */
+  public static final boolean FOLLOWER_OPPOSE_MASTER = true;
 
-      public static final double MAX_DUTY_CYCLE = 0.8;
-      public static final double SUPPLY_CURRENT_LIMIT_A = 60.0;
-      public static final double STATOR_CURRENT_LIMIT_A = 60.0;
+  /** Shooter expels ball on negative output, so invert motor. */
+  public static final boolean MOTOR_INVERTED = false;
+  public static final boolean NEUTRAL_COAST = true;
 
-      /** Velocity control gains (placeholders). */
-      public static final double kP = 0.155; //0.165
-      public static final double kI = 0.0;
-      public static final double kD = 0.0007; //0.0008
-      public static final double kS = 0.18; //0.18
-      public static final double kV = 0.121; // Try this tomorrow: 0.123
-      public static final double kA = 0.004; //0.001
+												   
+  public static final double MAX_DUTY_CYCLE = 0.8;
+  public static final double SUPPLY_CURRENT_LIMIT_A = 60.0;
+  public static final double STATOR_CURRENT_LIMIT_A = 60.0;
+												  
+																		
+													
 
-      /** Setpoint logic. */
-      public static final double DEFAULT_RPM = 3000.0;
-      public static final double RPM_STEP = 50.0;
-      public static final double READY_TOLERANCE_RPM = 75.0;
-      public static final double READY_MIN_TIME_S = 0.20;
-      public static final double DIP_DETECT_DROP_RPM = 250.0;
+  /** Velocity control gains (placeholders). */
+  public static final double kP = 0.155; //0.165
+  public static final double kI = 0.0;
+  public static final double kD = 0.0007; //0.0008
+  public static final double kS = 0.18; //0.18
+  public static final double kV = 0.121; // Try this tomorrow: 0.123
+  public static final double kA = 0.004; //0.001
 
-      /** Simulation placeholders (combined wheel+flywheel inertia). */
-      /** Simulation: motor rotations / wheel rotations. 1.0 for your 1:1 belt. */
-      public static final double SIM_GEAR_RATIO = 1.0;
-      public static final double SIM_J_KGM2 = 0.02;
+  /** Setpoint logic. */
+  public static final double DEFAULT_RPM = 3000.0;
+  public static final double RPM_STEP = 50.0;
+  public static final double READY_TOLERANCE_RPM = 75.0;
+  public static final double READY_MIN_TIME_S = 0.20;
+  public static final double DIP_DETECT_DROP_RPM = 250.0;
 
-      // ChatGPT constants for updated readiness logic
-      public static final int READY_WINDOW_SAMPLES = 10;     // 200ms @ 20ms loop
-      public static final double READY_RPM_TOLERANCE = 40.0;
-      public static final double READY_STDDEV_MAX = 30.0;
+  /** Simulation: motor rotations / wheel rotations. 1.0 for your 1:1 belt. */
+																				 
+  public static final double SIM_GEAR_RATIO = 1.0;
+  public static final double SIM_J_KGM2 = 0.02;
 
-    }
+  // ChatGPT constants for updated readiness logic
+  public static final int READY_WINDOW_SAMPLES = 10;     // 200ms @ 20ms loop
+  public static final double READY_RPM_TOLERANCE = 40.0;
+  public static final double READY_STDDEV_MAX = 30.0;
+
+}
 
     /**
      * Auto-shoot orchestration constants.
@@ -504,8 +552,8 @@ public final class Constants {
 
 /** Spindexer motor + tuning. */
 public static final class Spindexer {
-  public static final int MOTOR_ID = 30; // TODO set
-  public static final String CANBUS_NAME = "";
+  public static final int MOTOR_ID = 50; // TODO set
+  public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
   /** Low duty for circulation / keeping balls flowing. */
   public static final double BASE_DUTY = 0.25;
   /** Higher duty for supplying transfer while shooting. */
@@ -514,8 +562,9 @@ public static final class Spindexer {
 
 /** Transfer motor + sensors + tuning. */
 public static final class Transfer {
-  public static final int MOTOR_ID = 31; // TODO set
-  public static final String CANBUS_NAME = "";
+  public static final int MOTOR_ID = 51; // TODO set
+  public static final int MOTOR2_ID = 52; // reserved optional second transfer motor
+  public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
 
   /** Sensor at transfer entry (just AFTER the spindexer handoff). */
   public static final int ENTRY_SENSOR_DIO = 0; // TODO set
@@ -586,10 +635,12 @@ public static final class SysId {
     }
 
     public static final class IntakeConstants {
-      public static final int intakeRollerMotorId = 10;
+      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+
+      public static final int intakeRollerMotorId = 55;
       public static final boolean IntakeRollerInverted = false;
 
-      public static final int intakePivotMotorId = 25;
+      public static final int intakePivotMotorId = 56;
       public static final boolean intakePivotMotorInverted = false;
       public static final double defaultSpeed = 0.3;
 
@@ -629,8 +680,10 @@ public static final class SysId {
 
     public static final class ClimbConstants {
 
-      public static final int climbMotorLeftID = 50;
-      public static final int climbMotorRightID = 51;
+      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+
+      public static final int climbMotorLeftID = 60;
+      public static final int climbMotorRightID = 61;
 
 
       public static class ClimbMotionMagicDutyCycleConstants {
@@ -649,7 +702,5 @@ public static final class SysId {
   public static final class PathPlannerConstants{
     public static final boolean shouldFlipTrajectoryOnRed = true;
   }
-
-  
 
 }
