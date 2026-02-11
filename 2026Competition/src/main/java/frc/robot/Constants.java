@@ -650,6 +650,10 @@ public static final class SysId {
       public static final double SHOOTER_RAMP_RATE_V_PER_S = 1.0;
       public static final double SHOOTER_STEP_V = 4.0;
       public static final double SHOOTER_TIMEOUT_S = 10.0;
+
+      public static final double HOOD_RAMP_RATE_V_PER_S = 1.0;
+      public static final double HOOD_STEP_V = 4.0;
+      public static final double HOOD_TIMEOUT_S = 10.0;
     }
 
     public static final class IntakeConstants {
