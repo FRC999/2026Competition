@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 
 /**
  * TransferSubsystem
@@ -85,6 +86,12 @@ public class TransferSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+    if (!DebugTelemetrySubsystems.transfer) {
+      return;
+    }
     SmartDashboard.putNumber("Transfer/DutyCmd", commandedDuty);
     SmartDashboard.putBoolean("Transfer/BallAtEntry", hasBallAtEntry());
     SmartDashboard.putBoolean("Transfer/BallAtThroat", hasBallAtThroat());

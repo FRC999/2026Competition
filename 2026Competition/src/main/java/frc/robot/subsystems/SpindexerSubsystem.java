@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 
 /**
  * SpindexerSubsystem
@@ -63,6 +64,11 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    SmartDashboard.putNumber("Spindexer/DutyCmd", commandedDuty);
+    if (!EnabledSubsystems.spindexer) {
+      return;
+    }
+    if (DebugTelemetrySubsystems.spindexer) {
+      SmartDashboard.putNumber("Spindexer/DutyCmd", commandedDuty);
+    }
   }
 }

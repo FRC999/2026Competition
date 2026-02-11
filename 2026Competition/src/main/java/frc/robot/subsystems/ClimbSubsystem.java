@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.OperatorConstants.ClimbConstants;
 import frc.robot.Constants.OperatorConstants.ClimbConstants.ClimbMotionMagicDutyCycleConstants;
 
@@ -291,6 +292,11 @@ public class ClimbSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    publishTelemetry();
+    if (!EnabledSubsystems.climber) {
+      return;
+    }
+    if (DebugTelemetrySubsystems.climber) {
+      publishTelemetry();
+    }
   }
 }

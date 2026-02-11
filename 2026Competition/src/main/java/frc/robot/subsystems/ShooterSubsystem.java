@@ -38,6 +38,7 @@ import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import frc.robot.Constants;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 
 /** Kraken X60 shooter prototype (TalonFX, Phoenix 6). */
 public class ShooterSubsystem extends SubsystemBase {
@@ -329,14 +330,17 @@ public class ShooterSubsystem extends SubsystemBase {
     lastRpm = rpm;
 
     // Dashboard
-    SmartDashboard.putNumber("Shooter/TargetRPM", targetRpm);
-    SmartDashboard.putNumber("Shooter/RPM", rpm);
-    SmartDashboard.putBoolean("Shooter/Ready", wasReady);
-    SmartDashboard.putBoolean("Shooter/DipDetected", dipDetected);
+    if (DebugTelemetrySubsystems.shooter) {
+      SmartDashboard.putNumber("Shooter/TargetRPM", targetRpm);
+      SmartDashboard.putNumber("Shooter/RPM", rpm);
+      SmartDashboard.putBoolean("Shooter/Ready", wasReady);
+      SmartDashboard.putBoolean("Shooter/DipDetected", dipDetected);
 
-    SmartDashboard.putNumber("Shooter/AppliedVolts", getAppliedVolts());
-    SmartDashboard.putNumber("Shooter/AppliedDuty", getAppliedDuty());
-    SmartDashboard.putNumber("Shooter/BatteryVolts", RobotController.getBatteryVoltage());
+      SmartDashboard.putNumber("Shooter/AppliedVolts", getAppliedVolts());
+      SmartDashboard.putNumber("Shooter/AppliedDuty", getAppliedDuty());
+      SmartDashboard.putNumber("Shooter/BatteryVolts", RobotController.getBatteryVoltage());
+    }
+
   }
 
   private void updateReadinessStats(double rpm) {
@@ -364,8 +368,10 @@ public class ShooterSubsystem extends SubsystemBase {
     }
     rpmStdDev = Math.sqrt(var / rpmWindow.length);
 
-    SmartDashboard.putNumber("Shooter/RPM_Mean200ms", rpmMean);
-    SmartDashboard.putNumber("Shooter/RPM_StdDev200ms", rpmStdDev);
+    if (DebugTelemetrySubsystems.shooter) {
+      SmartDashboard.putNumber("Shooter/RPM_Mean200ms", rpmMean);
+      SmartDashboard.putNumber("Shooter/RPM_StdDev200ms", rpmStdDev);
+    }
 
   }
 

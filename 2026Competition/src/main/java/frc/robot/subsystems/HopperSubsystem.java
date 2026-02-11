@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.motorcontrol.Talon;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.OperatorConstants.Hopper;
 import frc.robot.Constants.OperatorConstants.IntakeConstants;
 
@@ -129,6 +130,9 @@ public class HopperSubsystem extends SubsystemBase {
   @Override
    
   public void simulationPeriodic() {
+    if (!Constants.EnabledSubsystems.hopper) {
+      return;
+    }
     var sim = hopperMotor.getSimState();
 
     double batteryV = RoboRioSim.getVInVoltage();
@@ -140,6 +144,11 @@ public class HopperSubsystem extends SubsystemBase {
 
    
   public void periodic() {
+    if (!Constants.EnabledSubsystems.hopper) {
+      return;
+    }
+    if (DebugTelemetrySubsystems.hopper) {
     SmartDashboard.putBoolean("Hopper/Extended", extended);
+    }
   }
 }
