@@ -596,6 +596,11 @@ public static final class Transfer {
   public static final double STAGE_DUTY = 0.20;
   /** Fast speed to inject a ball into the shooter. */
   public static final double FEED_DUTY = 0.85;
+
+
+  /** Simulation placeholders. */
+  public static final double SIM_GEAR_RATIO = 1.0;
+  public static final double SIM_J_KGM2 = 0.02;
 }
 
 /** Where the artillery table CSV lives under src/main/deploy. */
@@ -654,6 +659,11 @@ public static final class SysId {
       public static final double HOOD_RAMP_RATE_V_PER_S = 1.0;
       public static final double HOOD_STEP_V = 4.0;
       public static final double HOOD_TIMEOUT_S = 10.0;
+
+
+      public static final double TRANSFER_RAMP_RATE_V_PER_S = 1.0;
+      public static final double TRANSFER_STEP_V = 4.0;
+      public static final double TRANSFER_TIMEOUT_S = 10.0;
     }
 
     public static final class IntakeConstants {

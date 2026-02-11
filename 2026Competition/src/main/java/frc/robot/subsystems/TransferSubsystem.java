@@ -1,15 +1,36 @@
-
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.simulation.BatterySim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj.simulation.FlywheelSim;
+
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
+
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.units.Units.Volts;
+
 import frc.robot.Constants;
-import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.Constants.DebugTelemetrySubsystems;
+import frc.robot.Constants.EnabledSubsystems;
 
 /**
  * TransferSubsystem
@@ -24,7 +45,7 @@ import frc.robot.Constants.DebugTelemetrySubsystems;
  * - THROAT sensor: placed at the exit of transfer (right before the shooter/turret throat).
  *
  * Hardware:
- * - One or more motors. Start with one motor; add a second if your transfer needs it.
+ * - One motor today. You reserved IDs for a second motor later.
  */
 public class TransferSubsystem extends SubsystemBase {
 
@@ -32,22 +53,69 @@ public class TransferSubsystem extends SubsystemBase {
   private DutyCycleOut duty;
 
   // Sensors (beam breaks are typical). Wiring convention varies; we invert using constants.
-  // TODO: motor inversion/current limits/etc.
-  private final DigitalInput entrySensor = new DigitalInput(Constants.OperatorConstants.Transfer.ENTRY_SENSOR_DIO);
-  private final DigitalInput throatSensor = new DigitalInput(Constants.OperatorConstants.Transfer.THROAT_SENSOR_DIO);
+  private final DigitalInput entrySensor =
+      new DigitalInput(Constants.OperatorConstants.Transfer.ENTRY_SENSOR_DIO);
+  private final DigitalInput throatSensor =
+      new DigitalInput(Constants.OperatorConstants.Transfer.THROAT_SENSOR_DIO);
 
   private double commandedDuty = 0.0;
 
+  // Status signals (for telemetry + SysId logs)
+  private StatusSignal<Angle> positionSig;
+  private StatusSignal<AngularVelocity> velocitySig;
+  private StatusSignal<Voltage> motorVoltageSig;
+
+  private double posRot = 0.0;
+  private double velRps = 0.0;
+
+  // ---------------- SysId Characterization ----------------
+  private final SysIdRoutine sysIdRoutine =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              Volts.per(Seconds).of(Constants.OperatorConstants.SysId.TRANSFER_RAMP_RATE_V_PER_S),
+              Volts.of(Constants.OperatorConstants.SysId.TRANSFER_STEP_V),
+              Seconds.of(Constants.OperatorConstants.SysId.TRANSFER_TIMEOUT_S)),
+          new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "transfer"));
+
+  private boolean isSysIdEnabled() {
+    if (!Constants.OperatorConstants.SysId.ENABLE_SYSID) {
+      return false;
+    }
+    return SmartDashboard.getBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
+  }
+
+  // ---------------- Simulation ----------------
+  private final boolean isSim = RobotBase.isSimulation();
+  private final FlywheelSim transferSim =
+      new FlywheelSim(
+          LinearSystemId.createFlywheelSystem(
+              DCMotor.getKrakenX60(1),
+              Constants.OperatorConstants.Transfer.SIM_GEAR_RATIO,
+              Constants.OperatorConstants.Transfer.SIM_J_KGM2),
+          DCMotor.getKrakenX60(1));
+  private double simPosRot = 0.0;
+
   public TransferSubsystem() {
-    if(!EnabledSubsystems.transfer){
+    if (!EnabledSubsystems.transfer) {
       return;
     }
     duty = new DutyCycleOut(0.0);
-    motor = new TalonFX(Constants.OperatorConstants.Transfer.MOTOR_ID, Constants.OperatorConstants.Transfer.CANBUS_NAME);
+    motor =
+        new TalonFX(
+            Constants.OperatorConstants.Transfer.MOTOR_ID,
+            Constants.OperatorConstants.Transfer.CANBUS_NAME);
+
+    positionSig = motor.getPosition();
+    velocitySig = motor.getVelocity();
+    motorVoltageSig = motor.getMotorVoltage();
+
+    positionSig.setUpdateFrequency(50.0);
+    velocitySig.setUpdateFrequency(50.0);
+    motorVoltageSig.setUpdateFrequency(50.0);
+    motor.optimizeBusUtilization();
   }
 
   /** Run transfer at a raw duty cycle in [-1, +1]. */
-  
   public void runDuty(double dutyCycle) {
     commandedDuty = dutyCycle;
     motor.setControl(duty.withOutput(dutyCycle));
@@ -84,16 +152,107 @@ public class TransferSubsystem extends SubsystemBase {
     return commandedDuty;
   }
 
+  public double getPosRot() {
+    return posRot;
+  }
+
+  public double getVelRps() {
+    return velRps;
+  }
+
+  // ---------------- SysId factory commands ----------------
+  public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+    if (!isSysIdEnabled()) {
+      return new edu.wpi.first.wpilibj2.command.InstantCommand();
+    }
+    return sysIdRoutine.quasistatic(direction);
+  }
+
+  public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+    if (!isSysIdEnabled()) {
+      return new edu.wpi.first.wpilibj2.command.InstantCommand();
+    }
+    return sysIdRoutine.dynamic(direction);
+  }
+
+  // ---------------- SysId callbacks ----------------
+  private void sysIdVoltageDrive(edu.wpi.first.units.measure.Voltage volts) {
+    if (!isSysIdEnabled()) {
+      stop();
+      return;
+    }
+    double v = volts.in(Volts);
+    double batt = RobotController.getBatteryVoltage();
+    if (batt <= 1e-6) {
+      stop();
+      return;
+    }
+    double dutyOut = v / batt;
+    dutyOut = clamp(dutyOut, -1.0, 1.0);
+    runDuty(dutyOut);
+  }
+
+  private void sysIdLog(SysIdRoutineLog log) {
+    if (!isSysIdEnabled()) {
+      return;
+    }
+    log.motor("transfer")
+        .voltage(Volts.of(motorVoltageSig.getValueAsDouble()))
+        .angularPosition(Rotations.of(posRot))
+        .angularVelocity(RotationsPerSecond.of(velRps));
+  }
+
   @Override
   public void periodic() {
     if (!EnabledSubsystems.transfer) {
       return;
     }
+
+    BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
+    posRot = positionSig.getValueAsDouble();
+    velRps = velocitySig.getValueAsDouble();
+
     if (!DebugTelemetrySubsystems.transfer) {
       return;
     }
     SmartDashboard.putNumber("Transfer/DutyCmd", commandedDuty);
+    SmartDashboard.putNumber("Transfer/PosRot", posRot);
+    SmartDashboard.putNumber("Transfer/VelRps", velRps);
+    SmartDashboard.putNumber("Transfer/MotorVoltage", motorVoltageSig.getValueAsDouble());
     SmartDashboard.putBoolean("Transfer/BallAtEntry", hasBallAtEntry());
     SmartDashboard.putBoolean("Transfer/BallAtThroat", hasBallAtThroat());
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    if (!isSim) {
+      return;
+    }
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+
+    final double dt = 0.02;
+
+    var simState = motor.getSimState();
+    simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
+
+    double appliedV = simState.getMotorVoltage();
+
+    transferSim.setInputVoltage(appliedV);
+    transferSim.update(dt);
+
+    double rps = transferSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
+    simPosRot += rps * dt;
+
+    simState.setRawRotorPosition(simPosRot);
+    simState.setRotorVelocity(rps);
+
+    RoboRioSim.setVInVoltage(
+        BatterySim.calculateDefaultBatteryLoadedVoltage(transferSim.getCurrentDrawAmps()));
+  }
+
+  private static double clamp(double v, double lo, double hi) {
+    return Math.max(lo, Math.min(hi, v));
   }
 }
