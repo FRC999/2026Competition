@@ -122,7 +122,7 @@ public static final class EnabledSubsystems {
 
   public static class OperatorConstants {
     /** CTRE Phoenix CAN bus name for roboRIO CAN. */
-    public static final String RIO_CANBUS_NAME = "rio";
+    public static final CANBus RIO_CANBUS = CANBus.roboRIO();
 
     public static final int kDriverControllerPort = 0;
 
@@ -331,7 +331,7 @@ public static final class EnabledSubsystems {
 
     public static final class Hopper { 
       public static final int MOTOR_ID = 53;
-      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+      public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
       public static final InvertedValue MOTOR_INVERTED = InvertedValue.Clockwise_Positive;
       public static final NeutralModeValue NEUTRAL_COAST = NeutralModeValue.Coast;
       public static final boolean ENABLE_CURRENT_LIMIT = true;
@@ -364,7 +364,7 @@ public static final class EnabledSubsystems {
       public static final int CAN_ENCODER_ID = 45;
 
       /** Turret is NOT drivetrain; it lives on the roboRIO CAN bus. */
-      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+      public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       /** Absolute PWM encoder reference (PulseWidth 0-4095 equivalent). */
       public static final int ABS_TICKS_PER_REV = 4096;
@@ -435,7 +435,7 @@ public static final class EnabledSubsystems {
     /** Hood (pitch) motor. Hardware TBD; reserved ID for future implementation. */
     public static final class Hood {
       public static final int MOTOR_ID = 42;
-      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+      public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       /** Set true/false once the hood is installed and tested. */
       public static final boolean MOTOR_INVERTED = false;
@@ -484,7 +484,7 @@ public static final class EnabledSubsystems {
     public static final class Shooter {
       public static final int LEADER_CAN_ID = 43;
       public static final int FOLLOWER_CAN_ID = 44;
-      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+      public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       /**
        * Shooter motors are linked by equal sprockets.
@@ -571,7 +571,7 @@ public static final class EnabledSubsystems {
 /** Spindexer motor + tuning. */
 public static final class Spindexer {
   public static final int MOTOR_ID = 50; // TODO set
-  public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+  public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
   /** Low duty for circulation / keeping balls flowing. */
   public static final double BASE_DUTY = 0.25;
   /** Higher duty for supplying transfer while shooting. */
@@ -582,7 +582,7 @@ public static final class Spindexer {
 public static final class Transfer {
   public static final int MOTOR_ID = 51; // TODO set
   public static final int MOTOR2_ID = 52; // reserved optional second transfer motor
-  public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+  public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
   /** Sensor at transfer entry (just AFTER the spindexer handoff). */
   public static final int ENTRY_SENSOR_DIO = 0; // TODO set
@@ -653,7 +653,7 @@ public static final class SysId {
     }
 
     public static final class IntakeConstants {
-      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+      public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       public static final int intakeRollerMotorId = 55;
       public static final boolean IntakeRollerInverted = false;
@@ -698,7 +698,7 @@ public static final class SysId {
 
     public static final class ClimbConstants {
 
-      public static final String CANBUS_NAME = OperatorConstants.RIO_CANBUS_NAME;
+      public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       public static final int climbMotorLeftID = 60;
       public static final int climbMotorRightID = 61;
