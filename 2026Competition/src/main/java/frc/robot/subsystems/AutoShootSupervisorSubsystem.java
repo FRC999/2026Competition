@@ -234,7 +234,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     // We have a solution: command shooter + hood.
     RobotContainer.shooterSubsystem.setTargetRpm(lastSolution.shooterRpmCommand);
-    RobotContainer.turretSubsystem.setHoodAngleRad(lastSolution.hoodCommandAngleRad); // placeholder if hood lives elsewhere
+    RobotContainer.hoodSubsystem.setTargetAngleRad(lastSolution.hoodCommandAngleRad);
 
     // Concurrent staging: keep a ball at throat as much as possible.
     RobotContainer.spindexerSubsystem.runSupply();

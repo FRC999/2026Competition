@@ -13,58 +13,63 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.Voltage;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
-import edu.wpi.first.units.measure.Angle;
-
 import frc.robot.Constants;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
 
 /**
- * Hood mechanism driven by a single Kraken (TalonFX).
+ * Hood subsystem (pitch axis) driven by a single TalonFX (Kraken).
  *
- * <p>For now, "angle" is expressed in TalonFX internal rotations (same as the motor encoder),
- * because you said you will calibrate zero at the start of a match with the hood fully down.
+ * <p>Primary API is setTargetAngleRad(), where "angle" is the hood physical angle in radians.
+ * Internally we convert that to TalonFX integrated-sensor rotations using constants.
  *
- * <p>Future upgrade: add a CANcoder/Through-bore absolute sensor to seed/verify position.
+ * <p>At the beginning of the match, the team will start the hood fully down and we will seed
+ * the motor encoder to zero (position = 0 rotations).
  */
 public class HoodSubsystem extends SubsystemBase {
 
   private TalonFX hoodMotor;
 
-  private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
   private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0);
+  private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
 
   private StatusSignal<Angle> positionSig;
+  private StatusSignal<Voltage> motorVoltageSig;
 
-  // Stored target in rotations (motor units)
+  private double positionRot = 0.0;
   private double targetRot = 0.0;
+  private double targetAngleRad = 0.0;
 
   public HoodSubsystem() {
     if (!EnabledSubsystems.hood) {
       return;
     }
 
-    hoodMotor = new TalonFX(Constants.OperatorConstants.Hood.MOTOR_ID, Constants.OperatorConstants.Hood.CANBUS_NAME);
+    hoodMotor = new TalonFX(
+        Constants.OperatorConstants.Hood.MOTOR_ID,
+        Constants.OperatorConstants.Hood.CANBUS_NAME);
 
     configureHardware();
+    configureStatusSignals();
 
-    positionSig = hoodMotor.getPosition();
-    positionSig.setUpdateFrequency(100.0);
-    hoodMotor.optimizeBusUtilization();
-
-    seedZeroAtBoot();
+    // Seed: hood starts fully down at beginning of match
+    hoodMotor.setPosition(0.0);
+    positionRot = 0.0;
+    targetRot = 0.0;
+    targetAngleRad = 0.0;
   }
 
   private void configureHardware() {
     MotorOutputConfigs out = new MotorOutputConfigs()
         .withNeutralMode(NeutralModeValue.Brake)
         .withInverted(Constants.OperatorConstants.Hood.MOTOR_INVERTED
-            ? InvertedValue.CounterClockwise_Positive
-            : InvertedValue.Clockwise_Positive);
+            ? InvertedValue.Clockwise_Positive
+            : InvertedValue.CounterClockwise_Positive);
 
     CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
         .withSupplyCurrentLimitEnable(true)
@@ -80,72 +85,91 @@ public class HoodSubsystem extends SubsystemBase {
         .withKV(Constants.OperatorConstants.Hood.kV)
         .withKA(Constants.OperatorConstants.Hood.kA);
 
-    // Relative sensor => no wrap.
-    ClosedLoopGeneralConfigs cl = new ClosedLoopGeneralConfigs().withContinuousWrap(false);
+    ClosedLoopGeneralConfigs cl = new ClosedLoopGeneralConfigs()
+        .withContinuousWrap(false);
 
     TalonFXConfiguration cfg = new TalonFXConfiguration()
         .withMotorOutput(out)
         .withCurrentLimits(limits)
-        .withClosedLoopGeneral(cl)
-        .withSlot0(slot0);
+        .withSlot0(slot0)
+        .withClosedLoopGeneral(cl);
 
     hoodMotor.getConfigurator().apply(cfg);
   }
 
-  /**
-   * Seed hood position to 0 rotations at boot.
-   *
-   * <p>This matches your stated procedure: at the beginning of a match, hood is fully down,
-   * so we can treat that as an accurate zero reference.
-   *
-   * <p>If you later add an absolute sensor, this should be replaced with a seed-from-absolute routine.
-   */
-  private void seedZeroAtBoot() {
-    Timer.delay(0.05);
-    hoodMotor.setPosition(0.0);
-    targetRot = 0.0;
+  private void configureStatusSignals() {
+    positionSig = hoodMotor.getPosition();
+    motorVoltageSig = hoodMotor.getMotorVoltage();
 
-    SmartDashboard.putNumber("Hood/SeedPosRot", 0.0);
+    positionSig.setUpdateFrequency(100.0);
+    motorVoltageSig.setUpdateFrequency(50.0);
+
+    hoodMotor.optimizeBusUtilization();
   }
 
-  // ---------------- Public API ----------------
-
-  /** Current hood position in motor rotations (relative). */
   public double getPositionRot() {
-    if (!EnabledSubsystems.hood) return 0.0;
-    positionSig.refresh();
-    return positionSig.getValue().in(edu.wpi.first.units.Units.Rotations);
+    return positionRot;
   }
 
-  /** Set hood target in motor rotations (relative). */
+  public double getTargetAngleRad() {
+    return targetAngleRad;
+  }
+
+  /**
+   * Command hood using a physical hood angle (radians).
+   * Internally converts to TalonFX integrated sensor rotations using Constants.OperatorConstants.Hood.MOTOR_ROT_PER_RAD.
+   */
+  public void setTargetAngleRad(double angleRad) {
+    // Clamp in hood-angle space
+    double clampedRad = clamp(
+        angleRad,
+        Constants.OperatorConstants.Hood.MIN_ANGLE_RAD,
+        Constants.OperatorConstants.Hood.MAX_ANGLE_RAD);
+
+    targetAngleRad = clampedRad;
+    targetRot = clampedRad * Constants.OperatorConstants.Hood.MOTOR_ROT_PER_RAD;
+  }
+
+  /** Direct motor-rotation target (kept for testing). */
   public void setTargetRot(double rot) {
-    if (!EnabledSubsystems.hood) return;
-
-    // Optional soft limits (if you have constants for them later).
-    // For now we just clamp to something reasonable if constants exist; else pass-through.
     targetRot = rot;
-    hoodMotor.setControl(positionRequest.withPosition(targetRot));
+    // Keep angle telemetry consistent with rotation target
+    targetAngleRad = rot / Constants.OperatorConstants.Hood.MOTOR_ROT_PER_RAD;
   }
 
-  /** Open-loop duty-cycle (manual tests only). */
   public void setDutyCycle(double duty) {
-    if (!EnabledSubsystems.hood) return;
-    duty = MathUtil.clamp(duty, -1.0, 1.0);
+    if (!EnabledSubsystems.hood) {
+      return;
+    }
     hoodMotor.setControl(dutyRequest.withOutput(duty));
   }
 
   public void stop() {
-    if (!EnabledSubsystems.hood) return;
-    hoodMotor.stopMotor();
+    if (!EnabledSubsystems.hood) {
+      return;
+    }
+    hoodMotor.setControl(dutyRequest.withOutput(0.0));
   }
 
   @Override
   public void periodic() {
-    if (!EnabledSubsystems.hood) return;
+    if (!EnabledSubsystems.hood) {
+      return;
+    }
 
-    BaseStatusSignal.refreshAll(positionSig);
+    positionRot = positionSig.getValueAsDouble();
 
-    SmartDashboard.putNumber("Hood/PosRot", getPositionRot());
-    SmartDashboard.putNumber("Hood/TargetRot", targetRot);
+    hoodMotor.setControl(positionRequest.withPosition(targetRot));
+
+    if (DebugTelemetrySubsystems.hood) {
+      SmartDashboard.putNumber("Hood/PosRot", getPositionRot());
+      SmartDashboard.putNumber("Hood/TargetRot", targetRot);
+      SmartDashboard.putNumber("Hood/TargetRad", targetAngleRad);
+      SmartDashboard.putNumber("Hood/MotorVoltage", motorVoltageSig.getValueAsDouble());
+    }
+  }
+
+  private static double clamp(double v, double lo, double hi) {
+    return Math.max(lo, Math.min(hi, v));
   }
 }

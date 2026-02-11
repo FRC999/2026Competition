@@ -681,27 +681,4 @@ public class TurretSubsystem extends SubsystemBase {
     return d - 180.0;
   }
 
-
-// ---------------------------------------------------------------------------
-// Hood placeholders (your hood hardware is not yet implemented in this repo)
-// ---------------------------------------------------------------------------
-/** Last hood command (rad). This is a placeholder until the hood motor/encoder is implemented. */
-private double hoodCommandRad = 0.0;
-
-/**
- * Command the hood to an angle (radians).
- *
- * <p>Placeholder:
- * - Store the setpoint for telemetry and for solver "closest solution" heuristics.
- * - Implement motor control + encoder feedback later.
- */
-public void setHoodAngleRad(double hoodAngleRad) {
-  hoodCommandRad = hoodAngleRad;
-}
-
-/** @return last hood setpoint in radians (placeholder). */
-public double getHoodCommandRad() {
-  return hoodCommandRad;
-}
-
 }
