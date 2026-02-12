@@ -672,6 +672,14 @@ public static final class SysId {
       public static final double SPINDEXER_RAMP_RATE_V_PER_S = 1.0;
       public static final double SPINDEXER_STEP_V = 4.0;
       public static final double SPINDEXER_TIMEOUT_S = 10.0;
+
+      public static final double INTAKE_ROLLER_RAMP_RATE_V_PER_S = 1.0;
+      public static final double INTAKE_ROLLER_STEP_V = 4.0;
+      public static final double INTAKE_ROLLER_TIMEOUT_S = 10.0;
+
+      public static final double INTAKE_PIVOT_RAMP_RATE_V_PER_S = 1.0;
+      public static final double INTAKE_PIVOT_STEP_V = 4.0;
+      public static final double INTAKE_PIVOT_TIMEOUT_S = 10.0;
     }
 
     public static final class IntakeConstants {
@@ -716,6 +724,13 @@ public static final class SysId {
 
         public static final double tolerance = 3.0;
       }
+
+      /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */
+      public static final double SIM_ROLLER_GEAR_RATIO = 1.0;
+      public static final double SIM_ROLLER_J_KGM2 = 0.002;
+
+      public static final double SIM_PIVOT_GEAR_RATIO = 1.0;
+      public static final double SIM_PIVOT_J_KGM2 = 0.01;
     }
 
     public static final class ClimbConstants {
