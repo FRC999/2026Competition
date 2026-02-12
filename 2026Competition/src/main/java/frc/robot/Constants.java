@@ -576,6 +576,10 @@ public static final class Spindexer {
   public static final double BASE_DUTY = 0.25;
   /** Higher duty for supplying transfer while shooting. */
   public static final double SUPPLY_DUTY = 0.45;
+
+  /** Simulation placeholders. */
+  public static final double SIM_GEAR_RATIO = 1.0;
+  public static final double SIM_J_KGM2 = 0.02;
 }
 
 /** Transfer motor + sensors + tuning. */
@@ -664,6 +668,10 @@ public static final class SysId {
       public static final double TRANSFER_RAMP_RATE_V_PER_S = 1.0;
       public static final double TRANSFER_STEP_V = 4.0;
       public static final double TRANSFER_TIMEOUT_S = 10.0;
+
+      public static final double SPINDEXER_RAMP_RATE_V_PER_S = 1.0;
+      public static final double SPINDEXER_STEP_V = 4.0;
+      public static final double SPINDEXER_TIMEOUT_S = 10.0;
     }
 
     public static final class IntakeConstants {
