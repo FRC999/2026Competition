@@ -13,6 +13,7 @@ import com.pathplanner.lib.path.GoalEndState;
 import com.pathplanner.lib.path.IdealStartingState;
 import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.path.Waypoint;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -100,7 +101,7 @@ public class RobotContainer {
             () -> getDriverXAxis(),
             () -> getDriverYAxis(),
             () -> getDriverOmegaAxis()));
-    FollowPathCommand.warmupCommand().schedule();
+    CommandScheduler.getInstance().schedule(FollowPathCommand.warmupCommand());
 
     AutonomousConfigure();
     if (RobotBase.isSimulation()) {

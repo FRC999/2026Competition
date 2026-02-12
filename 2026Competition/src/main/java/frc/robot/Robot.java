@@ -11,7 +11,6 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.LogFileUtil;
 
-
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -27,14 +26,14 @@ public class Robot extends LoggedRobot {
     Logger.recordMetadata("Mode", "Competition");
 
     if (isReal()) { // THE ### #####... IS REAL
-    // Real robot logging
-    Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
-    Logger.addDataReceiver(new NT4Publisher());
-  } else {
-    // NORMAL SIMULATION (no replay, real timing)
-    Logger.addDataReceiver(new NT4Publisher());
-    Logger.addDataReceiver(new WPILOGWriter("logs/sim"));
-  }
+      // Real robot logging
+      Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
+      Logger.addDataReceiver(new NT4Publisher());
+    } else {
+      // NORMAL SIMULATION (no replay, real timing)
+      Logger.addDataReceiver(new NT4Publisher());
+      Logger.addDataReceiver(new WPILOGWriter("logs/sim"));
+    }
 
     Logger.start();
     m_robotContainer = new RobotContainer();
@@ -52,7 +51,7 @@ public class Robot extends LoggedRobot {
 
   @Override
   public void robotPeriodic() {
-    CommandScheduler.getInstance().run(); 
+    CommandScheduler.getInstance().run();
     m_robotContainer.publishPoseToAdvantageScope();
   }
 
@@ -70,7 +69,7 @@ public class Robot extends LoggedRobot {
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
     if (m_autonomousCommand != null) {
-      m_autonomousCommand.schedule();
+      CommandScheduler.getInstance().schedule(m_autonomousCommand);
     }
     RobotContainer.setIfAllianceRed();
   }
