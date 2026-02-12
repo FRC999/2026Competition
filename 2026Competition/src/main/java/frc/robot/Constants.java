@@ -680,6 +680,11 @@ public static final class SysId {
       public static final double INTAKE_PIVOT_RAMP_RATE_V_PER_S = 1.0;
       public static final double INTAKE_PIVOT_STEP_V = 4.0;
       public static final double INTAKE_PIVOT_TIMEOUT_S = 10.0;
+
+      public static final double HOPPER_RAMP_RATE_V_PER_S = 1.0;
+      public static final double HOPPER_STEP_V = 4.0;
+      public static final double HOPPER_TIMEOUT_S = 10.0;
+
     }
 
     public static final class IntakeConstants {
