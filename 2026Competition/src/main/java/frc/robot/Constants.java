@@ -685,6 +685,10 @@ public static final class SysId {
       public static final double HOPPER_STEP_V = 4.0;
       public static final double HOPPER_TIMEOUT_S = 10.0;
 
+      public static final double CLIMB_RAMP_RATE_V_PER_S = 1.0;
+      public static final double CLIMB_STEP_V = 4.0;
+      public static final double CLIMB_TIMEOUT_S = 10.0;
+
     }
 
     public static final class IntakeConstants {
@@ -744,6 +748,11 @@ public static final class SysId {
 
       public static final int climbMotorLeftID = 60;
       public static final int climbMotorRightID = 61;
+
+
+      /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */
+      public static final double SIM_GEAR_RATIO = 1.0;
+      public static final double SIM_J_KGM2 = 0.02;
 
 
       public static class ClimbMotionMagicDutyCycleConstants {

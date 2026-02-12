@@ -4,7 +4,9 @@
 
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -15,12 +17,32 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.simulation.BatterySim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.simulation.FlywheelSim;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants.EnabledSubsystems;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
+
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.units.Units.Volts;
+
+import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
+import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.Constants.OperatorConstants.ClimbConstants;
 import frc.robot.Constants.OperatorConstants.ClimbConstants.ClimbMotionMagicDutyCycleConstants;
 
@@ -41,6 +63,38 @@ public class ClimbSubsystem extends SubsystemBase {
   // Last requested target (for telemetry + hold)
   private double lastSetpointRot = 0.0;
 
+  // Status signals (for telemetry + SysId logs)
+  private StatusSignal<Angle> leftPositionSig;
+  private StatusSignal<AngularVelocity> leftVelocitySig;
+  private StatusSignal<Voltage> leftMotorVoltageSig;
+
+  // ---------------- SysId Characterization (Leader) ----------------
+  private final SysIdRoutine sysIdRoutine =
+      new SysIdRoutine(
+          new SysIdRoutine.Config(
+              Volts.per(Seconds).of(Constants.OperatorConstants.SysId.CLIMB_RAMP_RATE_V_PER_S),
+              Volts.of(Constants.OperatorConstants.SysId.CLIMB_STEP_V),
+              Seconds.of(Constants.OperatorConstants.SysId.CLIMB_TIMEOUT_S)),
+          new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "climb"));
+
+  private boolean isSysIdEnabled() {
+    if (!Constants.OperatorConstants.SysId.ENABLE_SYSID) {
+      return false;
+    }
+    return SmartDashboard.getBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
+  }
+
+  // ---------------- Simulation ----------------
+  private final boolean isSim = RobotBase.isSimulation();
+  private final FlywheelSim climbSim =
+      new FlywheelSim(
+          LinearSystemId.createFlywheelSystem(
+              DCMotor.getKrakenX60(2),
+              Constants.OperatorConstants.ClimbConstants.SIM_GEAR_RATIO,
+              Constants.OperatorConstants.ClimbConstants.SIM_J_KGM2),
+          DCMotor.getKrakenX60(2));
+  private double simPosRot = 0.0;
+
   // Only for dashboard readability; Phoenix 6 position is already rotations.
   private static final double TICKS_PER_ROT = 2048.0;
 
@@ -52,6 +106,17 @@ public class ClimbSubsystem extends SubsystemBase {
 
     climbMotorLeft = new TalonFX(ClimbConstants.climbMotorLeftID, ClimbConstants.CANBUS_NAME);
     climbMotorRight = new TalonFX(ClimbConstants.climbMotorRightID, ClimbConstants.CANBUS_NAME);
+
+    leftPositionSig = climbMotorLeft.getPosition();
+    leftVelocitySig = climbMotorLeft.getVelocity();
+    leftMotorVoltageSig = climbMotorLeft.getMotorVoltage();
+
+    leftPositionSig.setUpdateFrequency(50.0);
+    leftVelocitySig.setUpdateFrequency(50.0);
+    leftMotorVoltageSig.setUpdateFrequency(50.0);
+
+    climbMotorLeft.optimizeBusUtilization();
+    climbMotorRight.optimizeBusUtilization();
 
     climbMotorLeft.setSafetyEnabled(false);
     climbMotorRight.setSafetyEnabled(false);
@@ -262,6 +327,54 @@ public class ClimbSubsystem extends SubsystemBase {
         this);
   }
 
+
+  // ---------------------------------------------------------------------------
+  // SYSID (Characterization)
+  // ---------------------------------------------------------------------------
+
+  /** SysId: quasistatic routine (only runs if SysId gates are enabled). */
+  public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+    if (!isSysIdEnabled()) {
+      return Commands.none();
+    }
+    return sysIdRoutine.quasistatic(direction);
+  }
+
+  /** SysId: dynamic routine (only runs if SysId gates are enabled). */
+  public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+    if (!isSysIdEnabled()) {
+      return Commands.none();
+    }
+    return sysIdRoutine.dynamic(direction);
+  }
+
+  private void sysIdVoltageDrive(Voltage volts) {
+    if (!isSysIdEnabled()) {
+      stopMotors();
+      return;
+    }
+    double v = volts.in(Volts);
+    double batt = RobotController.getBatteryVoltage();
+    if (batt <= 1e-6) {
+      stopMotors();
+      return;
+    }
+    double dutyOut = v / batt;
+    dutyOut = Math.max(-1.0, Math.min(1.0, dutyOut));
+    climbMotorLeft.setControl(percentOut.withOutput(dutyOut));
+  }
+
+  private void sysIdLog(SysIdRoutineLog log) {
+    if (!isSysIdEnabled()) {
+      return;
+    }
+    BaseStatusSignal.refreshAll(leftPositionSig, leftVelocitySig, leftMotorVoltageSig);
+    log.motor("climb")
+        .voltage(Volts.of(leftMotorVoltageSig.getValueAsDouble()))
+        .angularPosition(Rotations.of(leftPositionSig.getValueAsDouble()))
+        .angularVelocity(RotationsPerSecond.of(leftVelocitySig.getValueAsDouble()));
+  }
+
   // ---------------------------------------------------------------------------
   // TELEMETRY
   // ---------------------------------------------------------------------------
@@ -298,5 +411,40 @@ public class ClimbSubsystem extends SubsystemBase {
     if (DebugTelemetrySubsystems.climber) {
       publishTelemetry();
     }
+  }
+
+
+  @Override
+  public void simulationPeriodic() {
+    if (!EnabledSubsystems.climber) {
+      return;
+    }
+    if (!isSim) {
+      return;
+    }
+
+    var leftSim = climbMotorLeft.getSimState();
+    var rightSim = climbMotorRight.getSimState();
+
+    double supplyV = RoboRioSim.getVInVoltage();
+    leftSim.setSupplyVoltage(supplyV);
+    rightSim.setSupplyVoltage(supplyV);
+
+    // Drive the mechanism model from the leader motor's commanded voltage.
+    climbSim.setInputVoltage(leftSim.getMotorVoltage());
+    climbSim.update(0.020);
+
+    double velRps = climbSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
+    simPosRot += velRps * 0.020;
+
+    leftSim.setRotorVelocity(velRps);
+    leftSim.setRawRotorPosition(simPosRot);
+
+    // Right motor follows left; in current code it is configured as Opposed.
+    rightSim.setRotorVelocity(-velRps);
+    rightSim.setRawRotorPosition(-simPosRot);
+
+    RoboRioSim.setVInVoltage(
+        BatterySim.calculateDefaultBatteryLoadedVoltage(climbSim.getCurrentDrawAmps()));
   }
 }
