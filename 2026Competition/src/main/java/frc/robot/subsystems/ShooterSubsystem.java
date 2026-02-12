@@ -73,6 +73,9 @@ public class ShooterSubsystem extends SubsystemBase {
           Constants.OperatorConstants.Shooter.SIM_J_KGM2),
       DCMotor.getKrakenX60(1));
 
+  // Integrated simulated rotor position in rotations.
+  private double simPosRot = 0.0;
+
   // Phoenix 6 typed signals
   private StatusSignal<AngularVelocity> velocitySig;
   private StatusSignal<Voltage> motorVoltageSig;
@@ -377,6 +380,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
+    if (!EnabledSubsystems.shooter) {
+      return;
+    }
+
     if (!isSim)
       return;
 
@@ -391,6 +398,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
     double rps = flywheelSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
     simState.setRotorVelocity(rps);
+
+
+    simPosRot += rps * dt;
+    simState.setRawRotorPosition(simPosRot);
 
     RoboRioSim.setVInVoltage(
         BatterySim.calculateDefaultBatteryLoadedVoltage(flywheelSim.getCurrentDrawAmps()));
