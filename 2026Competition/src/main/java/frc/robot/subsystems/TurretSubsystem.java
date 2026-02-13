@@ -608,6 +608,10 @@ public class TurretSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
+    if (!EnabledSubsystems.turret) {
+      return;
+    }
+
     // Update continuous (multi-turn) angle state every loop.
     updateContinuousAngle();
     if(DebugTelemetrySubsystems.turret){
@@ -624,6 +628,10 @@ public class TurretSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
+    if (!EnabledSubsystems.turret) {
+      return;
+    }
+
     // Only run simulation when in sim.
     if (!isSim) return;
 
@@ -648,6 +656,9 @@ public class TurretSubsystem extends SubsystemBase {
 									  
     // Integrate simulated position in rotations.
     simPosRot += rps * dt;					
+
+    simState.setRotorVelocity(rps);
+    simState.setRawRotorPosition(simPosRot);
 
     // Feed the simulated position/velocity into the CAN Through-Bore (CANcoder)
     var encoderSimState = throughboreCANcoder.getSimState();
