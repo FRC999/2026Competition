@@ -18,7 +18,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
-
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
@@ -188,7 +188,7 @@ public class TransferSubsystem extends SubsystemBase {
       return;
     }
     double dutyOut = v / batt;
-    dutyOut = clamp(dutyOut, -1.0, 1.0);
+    dutyOut = MathUtil.clamp(dutyOut, -1.0, 1.0);
     runDuty(dutyOut);
   }
 
@@ -252,7 +252,4 @@ public class TransferSubsystem extends SubsystemBase {
         BatterySim.calculateDefaultBatteryLoadedVoltage(transferSim.getCurrentDrawAmps()));
   }
 
-  private static double clamp(double v, double lo, double hi) {
-    return Math.max(lo, Math.min(hi, v));
-  }
 }

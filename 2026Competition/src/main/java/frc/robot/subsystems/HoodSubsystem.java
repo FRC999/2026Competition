@@ -30,7 +30,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
-
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -182,7 +182,7 @@ public class HoodSubsystem extends SubsystemBase {
 	 
   public void setTargetAngleRad(double angleRad) {
 								
-    double clampedRad = clamp(
+    double clampedRad = MathUtil.clamp(
         angleRad,
         Constants.OperatorConstants.Hood.MIN_ANGLE_RAD,
         Constants.OperatorConstants.Hood.MAX_ANGLE_RAD);
@@ -298,7 +298,4 @@ public class HoodSubsystem extends SubsystemBase {
         BatterySim.calculateDefaultBatteryLoadedVoltage(hoodSim.getCurrentDrawAmps()));
   }
 
-  private static double clamp(double v, double lo, double hi) {
-    return Math.max(lo, Math.min(hi, v));
-  }
 }

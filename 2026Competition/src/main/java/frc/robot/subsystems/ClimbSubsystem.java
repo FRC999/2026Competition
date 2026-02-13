@@ -16,7 +16,7 @@ import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -247,7 +247,7 @@ public class ClimbSubsystem extends SubsystemBase {
   /** Manual open-loop output (-1..1). Useful for testing / emergency moves. */
   public void setDutyCycle(double dutyCycle) {
     // Clamp for safety (commentary: avoids accidental >1 inputs)
-    double dc = Math.max(-1.0, Math.min(1.0, dutyCycle));
+    double dc = MathUtil.clamp(dutyCycle, -1.0, 1.0);
     climbMotorLeft.setControl(percentOut.withOutput(dc));
   }
 

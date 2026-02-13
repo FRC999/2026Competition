@@ -10,6 +10,7 @@ import edu.wpi.first.networktables.TimestampedDoubleArray;
 import frc.robot.lib.LimelightHelpers.LimelightResults;
 import frc.robot.lib.LimelightHelpers.PoseEstimate;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -42,17 +43,16 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class LimelightHelpers {
 
-    public static double clamp(double v, double lo, double hi) { return Math.max(lo, Math.min(hi, v)); }
-    public static double clampRad(double v, double lo, double hi) { return clamp(v, lo, hi); }
+    
 
     public static Matrix<N3, N1> llStdDev(double distMeters, int tagCount, double ambiguity) {
     double s = 0.08 + 0.03 * distMeters
              - 0.02 * Math.min(Math.max(tagCount - 1, 0), 3)
-             + 0.25 * clamp(ambiguity, 0.0, 1.0);
-    s = clamp(s, 0.05, 0.60);
+             + 0.25 * MathUtil.clamp(ambiguity, 0.0, 1.0);
+    s = MathUtil.clamp(s, 0.05, 0.60);
 
-    double yaw = clampRad(
-        Units.degreesToRadians(1.0 + 0.5 * distMeters + 10.0 * clamp(ambiguity, 0.0, 1.0)),
+    double yaw = MathUtil.clamp(
+        Units.degreesToRadians(1.0 + 0.5 * distMeters + 10.0 * MathUtil.clamp(ambiguity, 0.0, 1.0)),
         Units.degreesToRadians(1.0),
         Units.degreesToRadians(10.0));
 

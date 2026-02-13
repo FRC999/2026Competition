@@ -9,6 +9,7 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -25,7 +26,6 @@ import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
-
 import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.Seconds;
@@ -101,7 +101,7 @@ public class HopperSubsystem extends SubsystemBase {
       return;
     }
     double dutyOut = v / batt;
-    dutyOut = clamp(dutyOut, -1.0, 1.0);
+    dutyOut = MathUtil.clamp(dutyOut, -1.0, 1.0);
     setDutyCycle(dutyOut);
   }
 
@@ -189,18 +189,14 @@ public class HopperSubsystem extends SubsystemBase {
   }
 
   public void setDutyCycle(double percent) {
-    double p =
-        clamp(
+    double p = MathUtil.clamp(
             percent,
             -Constants.OperatorConstants.Hopper.MAX_DUTY_CYCLE,
             Constants.OperatorConstants.Hopper.MAX_DUTY_CYCLE);
     hopperMotor.setControl(dutyCycle.withOutput(p));
   }
 
-  private static double clamp(double v, double lo, double hi) {
-    return Math.max(lo, Math.min(hi, v));
-  }
-
+ 
   /** Extend the hopper (placeholder). */
   public void extend() {
     extended = true;

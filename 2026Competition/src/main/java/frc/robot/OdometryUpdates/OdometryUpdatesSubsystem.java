@@ -7,7 +7,7 @@ package frc.robot.OdometryUpdates;
 import java.awt.Robot;
 
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
-
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -192,7 +192,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       return;
     } // Already get NULL if pe.tagCount == 0
 
-    double ambiguity = LimelightHelpers.clamp(pe.rawFiducials[0].ambiguity, 0.0, 1.0); // if your Helpers expose it; else set from MT2 metrics
+    double ambiguity = MathUtil.clamp(pe.rawFiducials[0].ambiguity, 0.0, 1.0); // if your Helpers expose it; else set from MT2 metrics
     
     if ((pe.tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity) 
         || (pe.rawFiducials[0].distToCamera > LLVisionConstants.kMaxCameraToTargetDistance)) 

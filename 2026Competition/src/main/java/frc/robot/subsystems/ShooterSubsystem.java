@@ -30,7 +30,7 @@ import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
-
+import edu.wpi.first.math.MathUtil;
 import static edu.wpi.first.units.Units.Volts;
 import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.units.Units.Rotations;
@@ -171,7 +171,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Open-loop duty-cycle (for quick tests). */
   public void setDutyCycle(double duty) {
-    duty = clamp(
+    duty = MathUtil.clamp(
         duty,
         -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
         Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
@@ -254,7 +254,7 @@ public class ShooterSubsystem extends SubsystemBase {
     double v = volts.in(Volts);
 
     double duty = v / RobotController.getBatteryVoltage();
-    duty = clamp(
+    duty = MathUtil.clamp(
         duty,
         -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
         Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
@@ -394,10 +394,6 @@ public class ShooterSubsystem extends SubsystemBase {
 
     RoboRioSim.setVInVoltage(
         BatterySim.calculateDefaultBatteryLoadedVoltage(flywheelSim.getCurrentDrawAmps()));
-  }
-
-  private static double clamp(double v, double lo, double hi) {
-    return Math.max(lo, Math.min(hi, v));
   }
 
   /**

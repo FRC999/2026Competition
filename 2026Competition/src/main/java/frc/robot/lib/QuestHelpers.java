@@ -7,12 +7,12 @@ package frc.robot.lib;
 import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.Objects;
-
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.math.MathUtil;
 
 /**
  * This code is vibed via ChatGPT5
@@ -20,13 +20,14 @@ import edu.wpi.first.math.util.Units;
  */
 public final class QuestHelpers {
 
-    private static double clamp(double v, double lo, double hi) { return Math.max(lo, Math.min(hi, v)); }
-    private static double clampRad(double v, double lo, double hi) { return clamp(v, lo, hi); }
+    
 
     public static Matrix<N3, N1> questStdDev(double chassisSpeedMps) {
-        double s = clamp(0.05 + 0.02 * chassisSpeedMps, 0.05, 0.15); // meters
-        double yaw = clampRad(Units.degreesToRadians(1.0 + 0.5 * chassisSpeedMps),
-                Units.degreesToRadians(0.7), Units.degreesToRadians(2.5));
+        double s = MathUtil.clamp(0.05 + 0.02 * chassisSpeedMps, 0.05, 0.15); // meters
+        double yaw = MathUtil.clamp(
+            Units.degreesToRadians(1.0 + 0.5 * chassisSpeedMps),
+            Units.degreesToRadians(0.7), 
+            Units.degreesToRadians(2.5));
         return VecBuilder.fill(s, s, yaw);
     }
 

@@ -24,6 +24,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorPhaseValue;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -322,7 +323,7 @@ public class TurretSubsystem extends SubsystemBase {
     double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
 										 
     // Boot assumption: within +/-180 (or whatever BOOT_MAX_ABS_DEG is set to).
-    deltaDeg = clamp(
+    deltaDeg = MathUtil.clamp(
         deltaDeg,
         -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
         Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG);
@@ -364,7 +365,7 @@ public class TurretSubsystem extends SubsystemBase {
     double nextContinuous = motorRot * 360.0;
 
     // Hard safety clamp to +/- MAX (umbilical protection).
-    nextContinuous = clamp(
+    nextContinuous = MathUtil.clamp(
         nextContinuous,
         Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
         Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
@@ -420,7 +421,7 @@ public class TurretSubsystem extends SubsystemBase {
   /** Open-loop manual control with safety clamp. */
   public void setDutyCycle(double duty) {
     // Clamp duty to avoid commanding beyond your configured safe range.
-    duty = clamp(
+    duty = MathUtil.clamp(
 			  
         duty,
         -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
@@ -510,7 +511,7 @@ public class TurretSubsystem extends SubsystemBase {
     double max = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG;
 
     // Clamp requested target into legal range first (keeps intent sane).
-    desiredDeg = clamp(desiredDeg, min, max);
+    desiredDeg = MathUtil.clamp(desiredDeg, min, max);
 
     // Consider equivalent angles one revolution away.
     double[] candidates = new double[] { desiredDeg, desiredDeg + 360.0, desiredDeg - 360.0 };
@@ -584,7 +585,7 @@ public class TurretSubsystem extends SubsystemBase {
     double duty = v / RobotController.getBatteryVoltage();
 
     // Clamp duty to match your max output limits.
-    duty = clamp(
+    duty = MathUtil.clamp(
 			  
         duty,
         -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
@@ -660,11 +661,6 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   // ---------------- Helpers ----------------
-
-  private static double clamp(double v, double lo, double hi) {
-    // Clamp v into [lo, hi].
-    return Math.max(lo, Math.min(hi, v));
-  }
 
   private static double wrapTo0To360(double deg) {
     // Wrap any degrees into [0,360).

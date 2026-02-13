@@ -4,7 +4,7 @@ import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.hardware.TalonFX;
-
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -165,7 +165,7 @@ public class SpindexerSubsystem extends SubsystemBase {
       return;
     }
     double dutyOut = v / batt;
-    dutyOut = clamp(dutyOut, -1.0, 1.0);
+    dutyOut = MathUtil.clamp(dutyOut, -1.0, 1.0);
     runDuty(dutyOut);
   }
 
@@ -221,7 +221,4 @@ public class SpindexerSubsystem extends SubsystemBase {
         BatterySim.calculateDefaultBatteryLoadedVoltage(spindexerSim.getCurrentDrawAmps()));
   }
 
-  private static double clamp(double v, double lo, double hi) {
-    return Math.max(lo, Math.min(hi, v));
-  }
 }

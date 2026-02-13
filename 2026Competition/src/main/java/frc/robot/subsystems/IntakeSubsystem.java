@@ -16,7 +16,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.Units;
@@ -286,7 +286,7 @@ public class IntakeSubsystem extends SubsystemBase {
       return;
     }
     double duty = volts.in(Units.Volts) / RobotController.getBatteryVoltage();
-    duty = clamp(duty, -1.0, 1.0);
+    duty = MathUtil.clamp(duty, -1.0, 1.0);
     intakeRollerMotor.setControl(new DutyCycleOut(duty));
   }
 
@@ -306,7 +306,7 @@ public class IntakeSubsystem extends SubsystemBase {
       return;
     }
     double duty = volts.in(Units.Volts) / RobotController.getBatteryVoltage();
-    duty = clamp(duty, -1.0, 1.0);
+    duty = MathUtil.clamp(duty, -1.0, 1.0);
     intakePivotMotor.setControl(new DutyCycleOut(duty));
   }
 
@@ -382,8 +382,5 @@ public class IntakeSubsystem extends SubsystemBase {
         BatterySim.calculateDefaultBatteryLoadedVoltage(
             rollerSim.getCurrentDrawAmps() + pivotSim.getCurrentDrawAmps()));
   }
-
-  private static double clamp(double v, double lo, double hi) {
-    return Math.max(lo, Math.min(hi, v));
-  }
+  
 }
