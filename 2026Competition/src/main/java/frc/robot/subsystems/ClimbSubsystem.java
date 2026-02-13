@@ -360,7 +360,7 @@ public class ClimbSubsystem extends SubsystemBase {
       return;
     }
     double dutyOut = v / batt;
-    dutyOut = Math.max(-1.0, Math.min(1.0, dutyOut));
+    dutyOut = MathUtil.clamp(dutyOut, -1.0, 1.0);
     climbMotorLeft.setControl(percentOut.withOutput(dutyOut));
   }
 
