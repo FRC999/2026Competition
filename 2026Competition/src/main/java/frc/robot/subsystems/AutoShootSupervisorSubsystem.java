@@ -1,4 +1,3 @@
-
 package frc.robot.subsystems;
 
 import edu.wpi.first.math.MathUtil;
@@ -47,7 +46,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle table;
 
   // Driver request flag
-  private boolean shootRequested = true;
+  private boolean shootRequested = false;
 
   private VolleyState state = VolleyState.IDLE;
 
@@ -166,7 +165,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         Constants.OperatorConstants.ArtillerySolver.SPEED_WEIGHT
     );
 
-    boolean solutionValid = true; //lastSolution.valid;
+    boolean solutionValid = lastSolution.valid;
 
     // Compute desired turret angle now (deg in turret-forward frame) using predicted robot heading at release time.
     desiredTurretDeg = computeDesiredTurretDeg(
@@ -186,7 +185,6 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     }
 
     // --- 4) Decide state machine ---
-    updateBallCountFromShooterDip(now);
 
     boolean empty = ballsRemaining <= 0;
     boolean suppress = now < suppressShootUntilTs;
@@ -204,16 +202,15 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     // If not requested, keep system safe.
     if (!shootRequested) {
       state = VolleyState.IDLE;
-      // Keep stage gentle only if you explicitly want pre-staging without a shoot request.
       RobotContainer.transferSubsystem.stop();
       RobotContainer.spindexerSubsystem.stop();
-      // Shooter can remain off when not requested.
       RobotContainer.shooterSubsystem.stop();
       publishTelemetry();
       return;
     }
 
-    if (!shootRequested) {
+    // Requested, but no balls left.
+    if (empty) {
       state = VolleyState.EMPTY;
       RobotContainer.transferSubsystem.stop();
       RobotContainer.spindexerSubsystem.stop();
@@ -259,12 +256,23 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       RobotContainer.transferSubsystem.runStage();
     }
 
-    // If we just detected a dip, move to recovering (prevents double-feeding).
-    if (state == VolleyState.FIRING && RobotContainer.shooterSubsystem.wasDipDetected()) {
-      state = VolleyState.RECOVERING;
-      RobotContainer.transferSubsystem.stop(); // stop feeding while RPM recovers
+    // Dip handling: a dip indicates a ball has entered the shooter.
+    boolean dip = RobotContainer.shooterSubsystem.wasDipDetected();
+    if (dip) {
+      boolean debounceOk = (lastDipTs < 0)
+          || (now - lastDipTs) >= Constants.OperatorConstants.AutoShoot.DIP_DEBOUNCE_S;
+
+      if (state == VolleyState.FIRING && debounceOk) {
+        ballsRemaining = Math.max(0, ballsRemaining - 1);
+        SmartDashboard.putNumber("Hopper/BallsEstimate", ballsRemaining);
+        lastDipTs = now;
+
+        state = VolleyState.RECOVERING;
+        RobotContainer.transferSubsystem.stop(); // stop feeding while RPM recovers
+      }
+
+      // Clear dip exactly once per loop so it doesn't latch forever.
       RobotContainer.shooterSubsystem.clearDipDetected();
-      lastDipTs = now;
     }
 
     // Recovering: wait until shooter ready again, then resume staging/firing.
@@ -293,21 +301,6 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     lastVelXField = vField.getX();
     lastVelYField = vField.getY();
     return new Translation2d(ax, ay);
-  }
-
-  private void updateBallCountFromShooterDip(double now) {
-    if (!shootRequested) return;
-
-    if (RobotContainer.shooterSubsystem.wasDipDetected()) {
-      if (lastDipTs < 0 || (now - lastDipTs) >= Constants.OperatorConstants.AutoShoot.DIP_DEBOUNCE_S) {
-        ballsRemaining = Math.max(0, ballsRemaining - 1);
-        SmartDashboard.putNumber("Hopper/BallsEstimate", ballsRemaining);
-        lastDipTs = now;
-      }
-      // Do not clear here; state machine may clear depending on firing behavior.
-      // But clear anyway so we don't double-count.
-      RobotContainer.shooterSubsystem.clearDipDetected();
-    }
   }
 
   private static Translation2d getAllianceHubTarget() {
