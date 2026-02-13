@@ -20,22 +20,27 @@ import frc.robot.lib.TrajectoryHelper;
 public class AutoStrategyOne extends SequentialCommandGroup {
   /** Creates a new AutoStrategyOne. */
   public AutoStrategyOne() {
-    // Add your commands in the addCommands() call, e.g.
-    // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      RobotContainer.runTrajectory2Poses(
-                false,
-                RobotContainer.driveSubsystem.getPose(),
-                TrajectoryHelper.AutoDesiredPoses.BlueDepot)
-            .alongWith(new AutoShootUntilEmpty())
-            .alongWith(new WaitCommand(1).andThen(new StartIntake())),
-      new StopIntake(),
-      RobotContainer.runTrajectory2Poses(
-                false,
-                RobotContainer.driveSubsystem.getPose(),
-                TrajectoryHelper.AutoDesiredPoses.BlueTower)
-            .alongWith(new AutoShootUntilEmpty())
-      
+      // IMPORTANT: sample drive pose at schedule-time (dynamic start), not at auto construction time.
+      new DeferredCommand(
+          () -> RobotContainer.runTrajectory2Poses(
+              true,
+              new Pose2d(3.884, 6.966, new Rotation2d()),
+              //RobotContainer.driveSubsystem.getPose(),
+              TrajectoryHelper.AutoDesiredPoses.BlueDepot),
+          Set.of(RobotContainer.driveSubsystem)),
+       // .alongWith(new AutoShootUntilEmpty())
+        //.alongWith(new WaitCommand(1).andThen(new StartIntake())),
+
+      //new StopIntake(),
+
+      new DeferredCommand(
+          () -> RobotContainer.runTrajectory2Poses(
+              true,
+              RobotContainer.driveSubsystem.getPose(),
+              TrajectoryHelper.AutoDesiredPoses.BlueTower),
+          Set.of(RobotContainer.driveSubsystem))
+        //.alongWith(new AutoShootUntilEmpty())
     );
   }
 }

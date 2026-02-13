@@ -260,7 +260,7 @@ public class RobotContainer {
     }
   }
 
-  public static Command runTrajectory2Poses(boolean shouldResetOdometryToStartingPose,Pose2d startPose, Pose2d endPose) {
+   public static Command runTrajectory2Poses(boolean shouldResetOdometryToStartingPose, Pose2d startPose, Pose2d endPose) {
     try {
       List<Waypoint> pathWaypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
 
@@ -271,19 +271,24 @@ public class RobotContainer {
           null,
           new GoalEndState(0, endPose.getRotation()));
         path.preventFlipping = true;
-        System.out.println("== Driving from "+startPose+" to "+endPose);
+        System.out.println("== Driving from " + startPose + " to " + endPose);
         return AutoBuilder.followPath(path);
-      } else { // reset odometry the right way
-        driveSubsystem.resetCTREPose(startPose);
+      } else { // reset odometry, then follow the path
         PathPlannerPath path = new PathPlannerPath(
           pathWaypoints,
           AutoConstants.pathConstraints,
           new IdealStartingState(0, startPose.getRotation()),
           new GoalEndState(0, endPose.getRotation()));
         path.preventFlipping = true;
-        System.out.println("== Driving from "+startPose+" to "+endPose);
-        //return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
-        return AutoBuilder.resetOdom(startPose);
+        System.out.println("== Driving from " + startPose + " to " + endPose);
+
+        // Keep the original CTRE pose reset behavior, but perform it at schedule-time.
+        // AutoBuilder.resetOdom(startPose) is the PathPlanner-friendly reset; we run it too.
+        return Commands.sequence(
+            Commands.runOnce(() -> driveSubsystem.resetCTREPose(startPose), driveSubsystem),
+            AutoBuilder.resetOdom(startPose),
+            AutoBuilder.followPath(path)
+        );
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
