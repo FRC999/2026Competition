@@ -115,7 +115,11 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         "Hopper/BallsEstimate",
         Constants.OperatorConstants.AutoShoot.DEFAULT_BALLS_ESTIMATE);
     ballsRemaining = Math.max(0, fromDash);
-    SmartDashboard.putNumber("Hopper/BallsEstimate", ballsRemaining);
+
+    // Treat this as telemetry (not required for correct behavior) and gate it.
+    if (Constants.DebugTelemetrySubsystems.supervisor) {
+      SmartDashboard.putNumber("Hopper/BallsEstimate", ballsRemaining);
+    }
   }
 
   @Override
@@ -193,11 +197,13 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     boolean shooterReady = RobotContainer.shooterSubsystem.isReadyToShoot();
     boolean ballAtThroat = RobotContainer.transferSubsystem.hasBallAtThroat();
 
-    SmartDashboard.putBoolean("AutoShoot/SolutionValid", solutionValid);
-    SmartDashboard.putBoolean("AutoShoot/TurretAimed", turretAimed);
-    SmartDashboard.putBoolean("AutoShoot/ShooterReady", shooterReady);
-    SmartDashboard.putBoolean("AutoShoot/BallAtThroat", ballAtThroat);
-    SmartDashboard.putBoolean("AutoShoot/Suppress", suppress);
+    if (Constants.DebugTelemetrySubsystems.supervisor) {
+      SmartDashboard.putBoolean("AutoShoot/SolutionValid", solutionValid);
+      SmartDashboard.putBoolean("AutoShoot/TurretAimed", turretAimed);
+      SmartDashboard.putBoolean("AutoShoot/ShooterReady", shooterReady);
+      SmartDashboard.putBoolean("AutoShoot/BallAtThroat", ballAtThroat);
+      SmartDashboard.putBoolean("AutoShoot/Suppress", suppress);
+    }
 
     // If not requested, keep system safe.
     if (!shootRequested) {
@@ -264,7 +270,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
       if (state == VolleyState.FIRING && debounceOk) {
         ballsRemaining = Math.max(0, ballsRemaining - 1);
-        SmartDashboard.putNumber("Hopper/BallsEstimate", ballsRemaining);
+
+        if (Constants.DebugTelemetrySubsystems.supervisor) {
+          SmartDashboard.putNumber("Hopper/BallsEstimate", ballsRemaining);
+        }
         lastDipTs = now;
 
         state = VolleyState.RECOVERING;
@@ -399,6 +408,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   }
 
   private void publishTelemetry() {
+    if (!Constants.DebugTelemetrySubsystems.supervisor) {
+      return;
+    }
+
     SmartDashboard.putString("AutoShoot/State", state.toString());
     SmartDashboard.putNumber("AutoShoot/BallsRemaining", ballsRemaining);
     SmartDashboard.putNumber("AutoShoot/DesiredTurretDeg", desiredTurretDeg);
