@@ -60,7 +60,11 @@ public class Robot extends LoggedRobot {
   public void disabledInit() {}
 
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {
+    // Update auto-stitch dropdowns while disabled
+    frc.robot.lib.TrajectoryHelper.autoStitchUpdate();
+    frc.robot.RobotContainer.updateElasticAutoDropdowns();
+  }
 
   @Override
   public void disabledExit() {}

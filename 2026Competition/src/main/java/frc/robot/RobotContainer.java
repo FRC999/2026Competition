@@ -23,6 +23,9 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringArraySubscriber;
+import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -86,6 +89,19 @@ public class RobotContainer {
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
+  // Cached NT4 pubs/subs for Elastic auto UI mirroring (avoid subscriber leaks)
+  private static final edu.wpi.first.networktables.NetworkTable AUTO_NT_FOR_ELASTIC = NetworkTableInstance.getDefault().getTable("Autos");
+  private static final StringArraySubscriber SUB_FIRST_DEST_OPTIONS = AUTO_NT_FOR_ELASTIC.getStringArrayTopic("FirstDestinationOptions").subscribe(new String[0]);
+  private static final StringArraySubscriber SUB_NEXT_OPTIONS = AUTO_NT_FOR_ELASTIC.getStringArrayTopic("NextOptions").subscribe(new String[0]);
+  private static final StringPublisher PUB_FIRST_DEST = AUTO_NT_FOR_ELASTIC.getStringTopic("FirstDestination").publish();
+  private static final StringPublisher PUB_CHAIN = AUTO_NT_FOR_ELASTIC.getStringTopic("Chain").publish();
+  private static final edu.wpi.first.networktables.StringArrayPublisher PUB_SELECTED_SEGMENTS = AUTO_NT_FOR_ELASTIC.getStringArrayTopic("SelectedSegments").publish();
+  private static String sLastFirstDest = "";
+  private static String sLastPendingNext = "";
+  private static boolean sLastClearChain = false;
+
+
+
   public RobotContainer() {
     configureBindings();
     driveSubsystem.registerTelemetry(logger::telemeterize);
@@ -118,13 +134,33 @@ public class RobotContainer {
   public static void AutonomousConfigure() {
     // port autonomous routines as commands
     // sets the default option of the SendableChooser to the simplest autonomous
-    // command. (from touching the hub, drive until outside the tarmac zone)
+    // command. (from touching the hub, drive until outside the tarmac zone)    // Elastic auto-stitch UI keys (Elastic binds to SmartDashboard, we mirror to NT table "Autos")
+    SmartDashboard.putString("Autos/FirstDestination", "");
+    // Drivers select next path from dropdown; robot auto-appends it then clears it
+    SmartDashboard.putString("Autos/PendingNext", "");
+    // Read-only outputs (drivers should not type these)
+    SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
+    SmartDashboard.putString("Autos/ChainDisplay", "");
+    // Dropdown option sources
+    SmartDashboard.putStringArray("Autos/FirstDestinationOptions", new String[0]);
+    SmartDashboard.putStringArray("Autos/NextOptions", new String[0]);
+    // Optional: clear chain button
+    SmartDashboard.putBoolean("Autos/ClearChain", false);
+SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
+    SmartDashboard.putString("Autos/ChainDisplay", "");
+    SmartDashboard.putString("Autos/PendingNext", "");
+    SmartDashboard.putBoolean("Autos/AddSegment", false);
+    SmartDashboard.putBoolean("Autos/ClearChain", false);
+
+
     SmartDashboard.putData(autoChooser);
     autoChooser.addOption("Auto Strategy One", new AutoStrategyOne());
     autoChooser.addOption("Auto Strategy Two", new AutoStrategyTwo());
     autoChooser.addOption("Auto Strategy Three", new AutoStrategyThree());
     autoChooser.addOption("Auto Strategy Four", new AutoStrategyFour());
     autoChooser.addOption("Test Auto", new TestAuto());
+    // New: dynamic stitched auto (on-the-fly to first destination, then chained PP paths)
+    autoChooser.addOption("Stitched (FirstDest + Chain)", TrajectoryHelper.buildStitchedAutoCommand());
   }
 
   
@@ -332,6 +368,120 @@ public class RobotContainer {
 
   public void publishPoseToAdvantageScope() {
     logger.telemeterize(driveSubsystem.getState());
+  }
+
+
+
+  /**
+   * Mirrors NetworkTables table "Autos" <-> SmartDashboard keys under "Autos/...".
+   *
+   * Why: your Elastic workflow binds widgets to SmartDashboard keys, while the
+   * stitching logic (TrajectoryHelper / ElasticHelpers) reads from the NT table "Autos".
+   *
+   * - Robot publishes options to NT table "Autos": FirstDestinationOptions, NextOptions
+   * - Elastic writes selections to SmartDashboard: Autos/FirstDestination, Autos/Chain
+   * - This keeps both in sync.
+   */
+  public static void updateElasticAutoDropdowns() {
+    // Robot -> SmartDashboard (dropdown sources)
+    String[] firstOptions = SUB_FIRST_DEST_OPTIONS.get();
+    String[] nextOptions = SUB_NEXT_OPTIONS.get();
+
+    SmartDashboard.putStringArray("Autos/FirstDestinationOptions", firstOptions);
+    SmartDashboard.putStringArray("Autos/NextOptions", nextOptions);
+
+    // --- Dropdown-driven chain builder (no manual typing, no "Add Segment" button) ---
+    String firstDest = SmartDashboard.getString("Autos/FirstDestination", "").trim();
+
+    // If the first destination changed, reset chain state.
+    if (!firstDest.equals(sLastFirstDest)) {
+      sLastFirstDest = firstDest;
+      sLastPendingNext = "";
+      SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
+      SmartDashboard.putString("Autos/PendingNext", "");
+      SmartDashboard.putString("Autos/ChainDisplay", "");
+      // Reset clear latch as well
+      SmartDashboard.putBoolean("Autos/ClearChain", false);
+      sLastClearChain = false;
+    }
+
+    String[] selected = SmartDashboard.getStringArray("Autos/SelectedSegments", new String[0]);
+
+    // Optional clear button (recommended so drivers can reset quickly)
+    boolean clearPressedNow = SmartDashboard.getBoolean("Autos/ClearChain", false);
+    boolean clearRising = clearPressedNow && !sLastClearChain;
+    sLastClearChain = clearPressedNow;
+
+    if (clearRising) {
+      selected = new String[0];
+      SmartDashboard.putStringArray("Autos/SelectedSegments", selected);
+      SmartDashboard.putString("Autos/PendingNext", "");
+      sLastPendingNext = "";
+
+      SmartDashboard.putBoolean("Autos/ClearChain", false);
+      sLastClearChain = false;
+    }
+
+    // Driver chooses next path from dropdown; when it changes, we auto-append then clear it.
+    String pendingNext = SmartDashboard.getString("Autos/PendingNext", "").trim();
+    if (!pendingNext.isEmpty() && !pendingNext.equals(sLastPendingNext)) {
+      sLastPendingNext = pendingNext;
+
+      // Only append if it is one of the currently valid options
+      boolean isValid = false;
+      for (String opt : nextOptions) {
+        if (pendingNext.equals(opt)) {
+          isValid = true;
+          break;
+        }
+      }
+
+      if (isValid) {
+        // Append if not duplicate of last element
+        if (selected.length == 0 || !pendingNext.equals(selected[selected.length - 1])) {
+          String[] nextSel = java.util.Arrays.copyOf(selected, selected.length + 1);
+          nextSel[nextSel.length - 1] = pendingNext;
+          selected = nextSel;
+          SmartDashboard.putStringArray("Autos/SelectedSegments", selected);
+        }
+
+        // Clear pending so the dropdown is ready for the next pick
+        SmartDashboard.putString("Autos/PendingNext", "");
+        sLastPendingNext = "";
+      }
+    }
+
+    // Build a read-only display string for drivers (optional)
+    StringBuilder sb = new StringBuilder();
+    if (!firstDest.isEmpty()) {
+      sb.append(firstDest);
+      for (String seg : selected) {
+        if (seg == null) continue;
+        String s = seg.trim();
+        if (s.isEmpty()) continue;
+        sb.append(" → ").append(s);
+      }
+    }
+    String chainDisplay = sb.toString();
+    SmartDashboard.putString("Autos/ChainDisplay", chainDisplay);
+
+    // Publish to NT table "Autos" that TrajectoryHelper / ElasticHelpers read.
+    PUB_FIRST_DEST.set(firstDest);
+    PUB_SELECTED_SEGMENTS.set(selected);
+
+    // Keep legacy chain string updated for debugging only (NOT an input)
+    String legacyChain = "";
+    if (!firstDest.isEmpty()) {
+      StringBuilder sc = new StringBuilder(firstDest);
+      for (String seg : selected) {
+        if (seg == null) continue;
+        String s = seg.trim();
+        if (s.isEmpty()) continue;
+        sc.append(";").append(s);
+      }
+      legacyChain = sc.toString();
+    }
+    PUB_CHAIN.set(legacyChain);
   }
 
 }

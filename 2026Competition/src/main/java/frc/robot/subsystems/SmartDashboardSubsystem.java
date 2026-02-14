@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
 import frc.robot.lib.ElasticHelpers;
+import frc.robot.lib.TrajectoryHelper;
 
 public class SmartDashboardSubsystem extends SubsystemBase {
   /** Creates a new SmartDashboardSubsystem. */
@@ -41,11 +42,20 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Turret Relative Position: ", RobotContainer.turretSubsystem.getRelativePosition());
   }
 
-  @Override
+    @Override
   public void periodic() {
     // This method will be called once per scheduler run
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
     ElasticHelpers.updateRobotPose(robotPose);
+
+    // 1) Mirror SmartDashboard selections -> NT (and publish dropdown sources back to SmartDashboard)
+    RobotContainer.updateElasticAutoDropdowns();
+
+    // 2) Compute compatible next-path options based on current selection
+    TrajectoryHelper.autoStitchUpdate();
+
+    // 3) Draw the continuously-updating auto preview on the Field2d
+    ElasticHelpers.updateAutoPreviewRealtime();
 
     updateLLTelemetry();
     SystemsCheckTelemetry();
