@@ -13,22 +13,32 @@ import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.RobotContainer;
 import frc.robot.lib.ElasticHelpers;
 
+/**
+ * SmartDashboardSubsystem
+ *
+ * This subsystem is intentionally kept "global-only":
+ * - match / DS status
+ * - Field2d displays
+ *
+ * Subsystem-owned telemetry (turret, shooter, intake, etc.) should live inside the owning subsystem
+ * and be gated there, so SmartDashboardSubsystem can eventually be deleted if desired.
+ */
 public class SmartDashboardSubsystem extends SubsystemBase {
   /** Creates a new SmartDashboardSubsystem. */
   public SmartDashboardSubsystem() {}
 
   // Global / cross-cutting telemetry (allowed to remain here).
   private void systemsCheckTelemetry() {
-    SmartDashboard.putNumber("Battery-Voltage", RobotController.getBatteryVoltage());
-    SmartDashboard.putString("Alliance-Side", ElasticHelpers.getAllianceSide());
-    SmartDashboard.putString("Auto-Selected", ElasticHelpers.getAutoSelectedColor());
-    SmartDashboard.putNumber("Match Time", DriverStation.getMatchTime());
+    SmartDashboard.putNumber("Power/BatteryVoltage", RobotController.getBatteryVoltage());
+    SmartDashboard.putString("Match/AllianceSide", ElasticHelpers.getAllianceSide());
+    SmartDashboard.putString("Auto/Selected", ElasticHelpers.getAutoSelectedColor());
+    SmartDashboard.putNumber("Match/TimeSec", DriverStation.getMatchTime());
   }
 
   private void teleopTelemetry() {
-    SmartDashboard.putData("Field", ElasticHelpers.getRobotonfield());
-    SmartDashboard.putData("Auto Field", ElasticHelpers.getAutoDisplayField());
-    SmartDashboard.putString("Lock in to End Game", ElasticHelpers.shouldEndGameColor());
+    SmartDashboard.putData("Field/Robot", ElasticHelpers.getRobotonfield());
+    SmartDashboard.putData("Field/Auto", ElasticHelpers.getAutoDisplayField());
+    SmartDashboard.putString("Match/EndgameLock", ElasticHelpers.shouldEndGameColor());
   }
 
   @Override
