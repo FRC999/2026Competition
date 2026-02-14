@@ -362,16 +362,16 @@ public class QuestNavSubsystem extends SubsystemBase {
 
       // QuestNav telemetry
       if (DebugTelemetrySubsystems.questnav) {
-        SmartDashboard.putString("qTranformedPose3dTranslation: ", getQuestRobotPose3d().getTranslation().toString());
-        SmartDashboard.putNumber("qTranformedPose3dRotation: ", (getQuestRobotPose3d().getRotation().getMeasureZ().magnitude()*180/Math.PI));
-        SmartDashboard.putString("qTruePose3dTranslation: ", getQuestPose3d().getTranslation().toString());
-        SmartDashboard.putNumber("qTruePose3dRotation: ", (getQuestPose3d().getRotation().getMeasureZ().magnitude()*180/Math.PI));
-        SmartDashboard.putNumber("TimeStamp: ", getQTimeStamp());
-        SmartDashboard.putNumber("TimeStampA: ", getQAppTimeStamp());
-        SmartDashboard.putNumber("TimeStampFPGS: ", Utils.fpgaToCurrentTime(getQTimeStamp()));
-        SmartDashboard.putNumber("Time FPGA: ", Timer.getFPGATimestamp());
+        SmartDashboard.putString("QuestNav/RobotPose/Translation", getQuestRobotPose3d().getTranslation().toString());
+        SmartDashboard.putNumber("QuestNav/RobotPose/YawDeg", (getQuestRobotPose3d().getRotation().getMeasureZ().magnitude()*180/Math.PI));
+        SmartDashboard.putString("QuestNav/QuestPose/Translation", getQuestPose3d().getTranslation().toString());
+        SmartDashboard.putNumber("QuestNav/QuestPose/YawDeg", (getQuestPose3d().getRotation().getMeasureZ().magnitude()*180/Math.PI));
+        SmartDashboard.putNumber("QuestNav/Timestamp/DataSec", getQTimeStamp());
+        SmartDashboard.putNumber("QuestNav/Timestamp/AppSec", getQAppTimeStamp());
+        SmartDashboard.putNumber("QuestNav/Timestamp/FPGASecConverted", Utils.fpgaToCurrentTime(getQTimeStamp()));
+        SmartDashboard.putNumber("QuestNav/FPGA/TimeSec", Timer.getFPGATimestamp());
         if(poseFrames != null) {
-          SmartDashboard.putNumber("qFrames", poseFrames.length);
+          SmartDashboard.putNumber("QuestNav/FramesCount", poseFrames.length);
         }
       }
 

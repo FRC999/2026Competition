@@ -177,11 +177,11 @@ public class LLAprilTagSubsystem extends SubsystemBase {
 
     if (DebugTelemetrySubsystems.ll) { // Telemetry for the best Pose selected
       if (bestPose != null) {
-        SmartDashboard.putNumber("LL Best PoseEst TagCount", bestPose.tagCount);
-        SmartDashboard.putNumber("LL Best PoseEst Ambiguity", bestPose.rawFiducials[0].ambiguity);
+        SmartDashboard.putNumber("Vision/BestPoseEst/TagCount", bestPose.tagCount);
+        SmartDashboard.putNumber("Vision/BestPoseEst/Ambiguity", bestPose.rawFiducials[0].ambiguity);
       } else {
-        SmartDashboard.putNumber("LL Best PoseEst TagCount", 0);
-        SmartDashboard.putNumber("LL Best PoseEst Ambiguity", 10);
+        SmartDashboard.putNumber("Vision/BestPoseEst/TagCount", 0);
+        SmartDashboard.putNumber("Vision/BestPoseEst/Ambiguity", 10);
       }
   }
 

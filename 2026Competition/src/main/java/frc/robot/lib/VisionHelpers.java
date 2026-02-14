@@ -342,13 +342,13 @@ public class VisionHelpers {
     public static void updateLLTelemetry(PoseEstimate pe, String cn) {
         try { // Errors in tag determination can kill robot
           if (DebugTelemetrySubsystems.ll) { // Telemetry for LL AT recognition
-            SmartDashboard.putNumber("LL " + cn + " PoseEst TagCount", pe.tagCount);
-            SmartDashboard.putNumber("LL " + cn + " PoseEst Ambiguity", pe.rawFiducials[0].ambiguity);
-            SmartDashboard.putNumber("LL " + cn + " Tag Number", pe.rawFiducials[0].id);
-            SmartDashboard.putString("LL " + cn + " Tag Pose",
+            SmartDashboard.putNumber("Vision/LL/" + cn + "/PoseEst/TagCount", pe.tagCount);
+            SmartDashboard.putNumber("Vision/LL/" + cn + "/PoseEst/Ambiguity", pe.rawFiducials[0].ambiguity);
+            SmartDashboard.putNumber("Vision/LL/" + cn + "/Tag/Id", pe.rawFiducials[0].id);
+            SmartDashboard.putString("Vision/LL/" + cn + "/Tag/Pose",
                 VisionHelpers.getTagPose(pe.rawFiducials[0].id).toString());
             System.out.println("LL " + cn + " Robot Pose " + pe.pose.toString());
-            SmartDashboard.putString("LL " + cn + " Robot Pose", pe.pose.toString());
+            SmartDashboard.putString("Vision/LL/" + cn + "/RobotPose", pe.pose.toString());
           }
         } catch (Exception e) {
 
@@ -357,10 +357,10 @@ public class VisionHelpers {
 
     public static void clearLLTelemetry(String cn) {
         if (DebugTelemetrySubsystems.ll) {
-            SmartDashboard.putNumber("LL " + cn + " PoseEst TagCount", 0);
-            SmartDashboard.putNumber("LL " + cn + " PoseEst Ambiguity", 10);
-            SmartDashboard.putNumber("LL " + cn + " Tag Number", 0);
-            SmartDashboard.putString("LL " + cn + " Tag Pose", "");
+            SmartDashboard.putNumber("Vision/LL/" + cn + "/PoseEst/TagCount", 0);
+            SmartDashboard.putNumber("Vision/LL/" + cn + "/PoseEst/Ambiguity", 10);
+            SmartDashboard.putNumber("Vision/LL/" + cn + "/Tag/Id", 0);
+            SmartDashboard.putString("Vision/LL/" + cn + "/Tag/Pose", "");
         }
     }
 

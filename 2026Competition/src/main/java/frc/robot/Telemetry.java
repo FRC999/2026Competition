@@ -34,7 +34,7 @@ public class Telemetry {
 
         /* Set up the module state Mechanism2d telemetry */
         for (int i = 0; i < 4; ++i) {
-            SmartDashboard.putData("Module " + i, moduleMechanisms[i]);
+            SmartDashboard.putData("Swerve/Module" + i, moduleMechanisms[i]);
         }
     }
 

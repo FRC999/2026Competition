@@ -559,9 +559,9 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
 
         if(DebugTelemetrySubsystems.chassis){
-            SmartDashboard.putNumber("IMU", this.getPigeon2().getYaw().getValueAsDouble());
-            SmartDashboard.putNumber("IMU Robot", this.getState().Pose.getRotation().getDegrees());
-            SmartDashboard.putString("CTR Pose: ", this.getState().Pose.toString());
+            SmartDashboard.putNumber("Drive/IMUYawDeg", this.getPigeon2().getYaw().getValueAsDouble());
+            SmartDashboard.putNumber("Drive/PoseYawDeg", this.getState().Pose.getRotation().getDegrees());
+            SmartDashboard.putString("Drive/Pose", this.getState().Pose.toString());
         }
 
         

@@ -154,8 +154,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         // System.out.println("TEST");
       } else {
         if (DebugTelemetrySubsystems.questnav) {
-          SmartDashboard.putString("QuestNav Rejected Pose", robotPose.toString());
-          SmartDashboard.putNumber("QuestNav Rejected TransErr", robotPose.getTranslation().getDistance(poseNow.getTranslation()));
+          SmartDashboard.putString("Odometry/QuestNavRejectedPose", robotPose.toString());
+          SmartDashboard.putNumber("Odometry/QuestNavRejectedTransErr", robotPose.getTranslation().getDistance(poseNow.getTranslation()));
         }
       }
     }
@@ -249,11 +249,11 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     // SmartDashboard: concise and stable paths
     if(Constants.DebugTelemetrySubsystems.odometry) {
       System.out.println("*******Inside transition to: Odometry is true");
-      SmartDashboard.putString("Odometry-State", state.name());
-      SmartDashboard.putString("Odometry-State-Color", ElasticHelpers.questStatesColors(state.name()));
-      SmartDashboard.putString("Odometry-LastTransition", lastTransition);
-      SmartDashboard.putNumber("Odometry-TransitionSeq", transitionSeq);
-      SmartDashboard.putNumber("Odometry-LastTransitionTimeSec", lastTransitionTime);
+      SmartDashboard.putString("Odometry/State", state.name());
+      SmartDashboard.putString("Odometry/StateColor", ElasticHelpers.questStatesColors(state.name()));
+      SmartDashboard.putString("Odometry/LastTransition", lastTransition);
+      SmartDashboard.putNumber("Odometry/TransitionSeq", transitionSeq);
+      SmartDashboard.putNumber("Odometry/LastTransitionTimeSec", lastTransitionTime);
     }
   }
 
@@ -275,8 +275,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         case CALIBRATED_Q -> "CALIBRATED_Q";
         case CALIBRATED_NO_Q -> "CALIBRATED_NO_Q";
       };
-      SmartDashboard.putString("OdometryUpdates State", stateString);
-      SmartDashboard.putBoolean("OdometryUpdates GatePassOverride", gatePassOverride);
+      SmartDashboard.putString("Odometry/UpdatesState", stateString);
+      SmartDashboard.putBoolean("Odometry/GatePassOverride", gatePassOverride);
     }
 
     switch (state) {
@@ -339,7 +339,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           transitionTo(VisionState.CALIBRATED_Q, "Bad LL fix; anchored field pose"); // SEEKING_TAGS_Q -> CALIBRATED_Q
 
         } else {
-          SmartDashboard.putString("CurrentTimer", llTimer.toString());
+          SmartDashboard.putString("Odometry/LLTimer", llTimer.toString());
         }
       }
       case SEEKING_TAGS_NO_Q -> {

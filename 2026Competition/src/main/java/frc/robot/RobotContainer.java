@@ -303,7 +303,7 @@ public class RobotContainer {
 
   // Alliance color determination
   public void checkAllianceColor() {
-    SmartDashboard.putString("AllianceColor", DriverStation.getAlliance().toString());
+    SmartDashboard.putString("Match/AllianceColor", DriverStation.getAlliance().toString());
   }
 
   public static void setIfAllianceRed() {
