@@ -4,14 +4,12 @@
 
 package frc.robot.OdometryUpdates;
 
-import java.awt.Robot;
-
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -21,8 +19,8 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
-import frc.robot.RobotContainer;
 import frc.robot.Constants.DebugTelemetrySubsystems;
+import frc.robot.RobotContainer;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
 import frc.robot.lib.ElasticHelpers;
@@ -235,20 +233,36 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     lastTransitionTime = Timer.getFPGATimestamp();
     lastTransition = prevState.name() + " -> " + state.name() + (reason != null && !reason.isBlank() ? " | " + reason : "");
 
-    switch (prevState){
+    switch (prevState) {
       case SEEKING_TAGS_Q:
+        // Task #10: when leaving the "seek tags w/ Quest" state, stop + reset so elapsed time
+        // does not carry across re-entries.
         llTimer.stop();
+        llTimer.reset();
+        break;
+      default:
+        break;
     }
 
-    switch (newState){
+    switch (newState) {
       case SEEKING_TAGS_Q:
+        // Task #10: on entry, always start the LL timer fresh from 0.
+        llTimer.stop();
+        llTimer.reset();
         llTimer.start();
-        System.out.println("******Starting timer");
+
+        if (DebugTelemetrySubsystems.odometry) {
+          System.out.println("Odometry: llTimer reset+started (enter SEEKING_TAGS_Q)");
+        }
+        break;
+        default:
+        break;
     }
+
 
     // SmartDashboard: concise and stable paths
     if(Constants.DebugTelemetrySubsystems.odometry) {
-      System.out.println("*******Inside transition to: Odometry is true");
+      //System.out.println("*******Inside transition to: Odometry is true");
       SmartDashboard.putString("Odometry/State", state.name());
       SmartDashboard.putString("Odometry/StateColor", ElasticHelpers.questStatesColors(state.name()));
       SmartDashboard.putString("Odometry/LastTransition", lastTransition);
@@ -329,7 +343,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         }
 
         if(llTimer.hasElapsed(QuestNavConstants.llWait)){
-          System.out.println("******* time elapsed");
+          if (DebugTelemetrySubsystems.odometry) {
+            System.out.println("Odometry: llTimer elapsed; using fallback anchor pose");
+          }
+
           calibrateQuestFromLL(QuestNavConstants.startingPositionNoLL);
           RobotContainer.driveSubsystem.resetCTREPose(QuestNavConstants.startingPositionNoLL);
 
@@ -339,8 +356,11 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           transitionTo(VisionState.CALIBRATED_Q, "Bad LL fix; anchored field pose"); // SEEKING_TAGS_Q -> CALIBRATED_Q
 
         } else {
-          SmartDashboard.putString("Odometry/LLTimer", llTimer.toString());
+          if (DebugTelemetrySubsystems.odometry) {
+            SmartDashboard.putString("Odometry/LLTimer", llTimer.toString());
+          }
         }
+
       }
       case SEEKING_TAGS_NO_Q -> {
 
