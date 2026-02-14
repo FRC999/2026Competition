@@ -92,6 +92,8 @@ public static final class EnabledSubsystems {
     public static final boolean transfer = false;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
+    // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
+    public static final boolean smartDashboard = false;
 	}
   
   public static final class AutoConstants {

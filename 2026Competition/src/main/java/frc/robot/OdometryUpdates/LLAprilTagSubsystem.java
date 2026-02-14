@@ -14,7 +14,7 @@ import frc.robot.OdometryUpdates.LLAprilTagConstants.VisionHelperConstants.Robot
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.lib.VisionHelpers;
-
+import frc.robot.lib.ElasticHelpers;
 import java.util.Map;
 
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
@@ -190,6 +190,11 @@ public class LLAprilTagSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
+    
+    if (!EnabledSubsystems.ll) {
+  return;
+    }
+
     SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
     ChassisSpeeds chassisSpeeds = swerveDriveState.Speeds;
 
@@ -200,6 +205,11 @@ public class LLAprilTagSubsystem extends SubsystemBase {
       }
       imuModeSet = true;
     }
+
+    if (DebugTelemetrySubsystems.ll) {
+      SmartDashboard.putString("LL4-Visible", ElasticHelpers.LLAnyVisibleColors(isAprilTagVisibleAny()));
+    }
+
   }
 }
 
