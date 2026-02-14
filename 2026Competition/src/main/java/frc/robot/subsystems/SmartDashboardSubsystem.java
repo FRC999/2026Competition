@@ -4,13 +4,12 @@
 
 package frc.robot.subsystems;
 
-import edu.wpi.first.hal.simulation.RoboRioDataJNI;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.net.PortForwarder;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.RobotContainer;
 import frc.robot.lib.ElasticHelpers;
 
@@ -18,37 +17,35 @@ public class SmartDashboardSubsystem extends SubsystemBase {
   /** Creates a new SmartDashboardSubsystem. */
   public SmartDashboardSubsystem() {}
 
-
-  public void updateLLTelemetry() {
-    SmartDashboard.putString("LL4-Visible", ElasticHelpers.LLAnyVisibleColors(RobotContainer.llAprilTagSubsystem.isAprilTagVisibleAny()));
-  }
-
-  public void SystemsCheckTelemetry() {
+  // Global / cross-cutting telemetry (allowed to remain here).
+  private void systemsCheckTelemetry() {
     SmartDashboard.putNumber("Battery-Voltage", RobotController.getBatteryVoltage());
     SmartDashboard.putString("Alliance-Side", ElasticHelpers.getAllianceSide());
     SmartDashboard.putString("Auto-Selected", ElasticHelpers.getAutoSelectedColor());
     SmartDashboard.putNumber("Match Time", DriverStation.getMatchTime());
   }
 
-  public void TeleopTelemetry() {
+  private void teleopTelemetry() {
     SmartDashboard.putData("Field", ElasticHelpers.getRobotonfield());
     SmartDashboard.putData("Auto Field", ElasticHelpers.getAutoDisplayField());
     SmartDashboard.putString("Lock in to End Game", ElasticHelpers.shouldEndGameColor());
   }
 
-  public void GPMTelemetry() {
-    SmartDashboard.putNumber("Turret Absolute Position: ", RobotContainer.turretSubsystem.getAbsolutePosition());
-    SmartDashboard.putNumber("Turret Relative Position: ", RobotContainer.turretSubsystem.getRelativePosition());
-  }
-
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
+    // Task #12: Gate SmartDashboardSubsystem output.
+    if (!DebugTelemetrySubsystems.smartDashboard) {
+      return;
+    }
+
+    // Keep pose -> field object updates here (global display), gated with the rest.
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
     ElasticHelpers.updateRobotPose(robotPose);
 
-    updateLLTelemetry();
-    SystemsCheckTelemetry();
-    TeleopTelemetry();
+    systemsCheckTelemetry();
+    teleopTelemetry();
+
+    // Task #12: Subsystem-specific telemetry (LL visibility, turret sensors, etc.)
+    // should live inside their respective subsystems, not here.
   }
 }
