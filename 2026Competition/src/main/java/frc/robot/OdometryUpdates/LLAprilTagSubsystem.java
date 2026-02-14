@@ -207,7 +207,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     }
 
     if (DebugTelemetrySubsystems.ll) {
-      SmartDashboard.putString("LL4-Visible", ElasticHelpers.LLAnyVisibleColors(isAprilTagVisibleAny()));
+      SmartDashboard.putString("Vision/LL4/VisibleColors", ElasticHelpers.LLAnyVisibleColors(isAprilTagVisibleAny()));
     }
 
   }
