@@ -4,33 +4,32 @@
 
 package frc.robot.commands;
 
+import org.opencv.core.RotatedRect;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
-import frc.robot.Robot;
 import frc.robot.RobotContainer;
 import frc.robot.lib.TrajectoryHelper.AutoDesiredPoses;
 
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
 // https://docs.wpilib.org/en/stable/docs/software/commandbased/convenience-features.html
-public class AutoStrategyFour extends SequentialCommandGroup {
-  /** Creates a new AutoStrategyFour. */
-  public AutoStrategyFour() {
+public class AutoStrategyFive extends SequentialCommandGroup {
+  /** Creates a new AutoStrategyFive. */
+  public AutoStrategyFive() {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-        RobotContainer.runTrajectory2Poses(
+       RobotContainer.runTrajectory2Poses(
             true,
             RobotContainer.driveSubsystem.getPose(),
-            new Pose2d(AutoDesiredPoses.BlueBumpLeft2.getTranslation(), new Rotation2d(Math.toRadians(-90)))),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueNeutralLeft",false, false),
+            new Pose2d(AutoDesiredPoses.BlueBumpLeft2.getTranslation(), new Rotation2d(Math.toRadians(90)))),
+        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueNeutralRight",false, false),
         new StartIntake(),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeft_BlueNeutralMiddle",false, false),
+        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueNeutralLeft",false, false),
         new StopIntake(),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralMiddle_BlueBumpLeft",false, false),
+        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeft_BlueBumpLeft",false, false),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft_BlueDepot",false, false)
           .alongWith(new AutoShootUntilEmpty()),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower",false, false)
