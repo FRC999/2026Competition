@@ -43,6 +43,8 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.OdometryUpdates.OdometryConstants;
 import frc.robot.RobotContainer;
 
+import com.ctre.phoenix6.sim.Pigeon2SimState;
+
 /**
  * Class that extends the Phoenix 6 SwerveDrivetrain class and implements
  * Subsystem so it can easily be used in command-based projects.
@@ -57,6 +59,13 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private final com.ctre.phoenix6.swerve.SwerveRequest.SwerveDriveBrake brake = new com.ctre.phoenix6.swerve.SwerveRequest.SwerveDriveBrake();
     private final com.ctre.phoenix6.swerve.SwerveRequest.PointWheelsAt point = new com.ctre.phoenix6.swerve.SwerveRequest.PointWheelsAt();
     private final com.ctre.phoenix6.swerve.SwerveRequest.Idle idle = new com.ctre.phoenix6.swerve.SwerveRequest.Idle();
+
+    // --- SIM Yaw Hold ---
+    private double lastCommandedOmegaRadPerSec = 0.0;
+    private boolean simYawHoldActive = false;
+    private double simYawHoldDeg = 0.0;
+    
+
 
     private static final double kSimLoopPeriod = 0.005; // 5 ms
     private Notifier simNotifier = null;
@@ -79,10 +88,18 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     /** Swerve request to apply during robot-centric path following */
     private final SwerveRequest.ApplyRobotSpeeds pathApplyRobotSpeeds = new SwerveRequest.ApplyRobotSpeeds();
 
-    private final com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric drive = new com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric()
-            .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatioLinear)
-            .withRotationalDeadband(SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatioAngular)
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+    // private final com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric drive = new com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric()
+    //         .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatioLinear)
+    //         .withRotationalDeadband(SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatioAngular)
+    //         .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+
+    private final SwerveRequest.FieldCentric drive =
+    new SwerveRequest.FieldCentric()
+        .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatioLinear)
+        .withRotationalDeadband(SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatioAngular)
+        .withDriveRequestType(Utils.isSimulation()
+            ? DriveRequestType.Velocity
+            : DriveRequestType.OpenLoopVoltage);
 
     private final SwerveRequest.RobotCentric driveRobotCentric = new SwerveRequest.RobotCentric()
             .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatioLinear)
@@ -215,12 +232,14 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         super(
                 TalonFX::new, TalonFX::new, CANcoder::new,
                 drivetrainConstants, modules);
+        imu = this.getPigeon2();
+       
         if (Utils.isSimulation()) {
             startSimThread();
         }
         configureAutoBuilder();
 
-        imu = this.getPigeon2();
+       
     }
 
     /**
@@ -436,6 +455,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         // o:" + omega_rad_per_s/SwerveChassis.MaxAngularRate);
         // SmartDashboard.putString("Manual Drive Command Velocities","X: " +
         // xVelocity_m_per_s + " y: " + yVelocity_m_per_s + " o:" + omega_rad_per_s);
+        lastCommandedOmegaRadPerSec = omega_rad_per_s;
         this.setControl(
                 drive.withVelocityX(xVelocity_m_per_s)
                         .withVelocityY(yVelocity_m_per_s)
@@ -569,25 +589,58 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         poseBuffer.addSample(Timer.getFPGATimestamp(), this.getPose());
     }
 
-    private void startSimThread() {
-        lastSimTime = Utils.getCurrentTimeSeconds();
 
-        /* Run simulation at a faster rate so PID gains behave more reasonably */
-        simNotifier = new Notifier(() -> {
-            final double currentTime = Utils.getCurrentTimeSeconds();
-            double deltaTime = currentTime - lastSimTime;
-            lastSimTime = currentTime;
+private void applyIdealSimYawHoldIfNeeded() {
+  if (!Utils.isSimulation()) return;
 
-            /* use the measured time delta, get battery voltage from WPILib */
-            updateSimState(deltaTime, RobotController.getBatteryVoltage());
-        });
-        simNotifier.startPeriodic(kSimLoopPeriod);
+  // Use same deadband as your rotational deadband
+  final double omegaDeadband =
+      SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatioAngular;
+
+  final boolean wantHold =
+      Math.abs(lastCommandedOmegaRadPerSec) <= omegaDeadband;
+
+  if (wantHold) {
+    if (!simYawHoldActive) {
+      // Latch current yaw the moment we enter no-rotation zone
+      simYawHoldDeg = imu.getYaw().getValueAsDouble();
+      simYawHoldActive = true;
     }
+
+    // Override CTRE sim gyro with latched heading
+    Pigeon2SimState sim = imu.getSimState();
+    sim.setRawYaw(simYawHoldDeg);
+
+  } else {
+    // Driver is rotating again
+    simYawHoldActive = false;
+  }
+}
+
+private void startSimThread() {
+  lastSimTime = Utils.getCurrentTimeSeconds();
+
+  simNotifier = new Notifier(() -> {
+    final double currentTime = Utils.getCurrentTimeSeconds();
+    double dt = currentTime - lastSimTime;
+    lastSimTime = currentTime;
+
+    // Clamp dt to something sane in case of debugger pauses/jitter
+    dt = Math.max(0.0, Math.min(dt, 0.05));
+
+    updateSimState(dt, RobotController.getBatteryVoltage());
+
+    applyIdealSimYawHoldIfNeeded();
+
+  });
+
+  simNotifier.startPeriodic(kSimLoopPeriod); // 0.005
+}
 
     @Override
     public void simulationPeriodic() {
         // Advance CTRE swerve simulation so getState().Pose updates in sim
-        updateSimState(0.02, RobotController.getBatteryVoltage());
+        //updateSimState(0.02, RobotController.getBatteryVoltage());
     }
 
 }
