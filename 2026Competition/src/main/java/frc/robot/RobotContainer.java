@@ -244,8 +244,8 @@ public class RobotContainer {
         // System.out.println("Rigth before driving with reset");
 
         return Commands.sequence(
-            new InstantCommand(
-                () -> questNavSubsystem.resetQuestOdometry(new Pose3d(TrajectoryHelper.flipQuestPoseRed(startPose)))),
+           // new InstantCommand(
+                //() -> questNavSubsystem.resetQuestOdometry(new Pose3d(TrajectoryHelper.flipQuestPoseRed(startPose)))),
             AutoBuilder.resetOdom(startPose), new WaitCommand(0), AutoBuilder.followPath(path));
 
         // return Commands.sequence(AutoBuilder.resetOdom(startPose));

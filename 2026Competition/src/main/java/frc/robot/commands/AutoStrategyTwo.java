@@ -28,16 +28,17 @@ public class AutoStrategyTwo extends SequentialCommandGroup {
        new DeferredCommand(
           () -> RobotContainer.runTrajectory2Poses(
               true,
-              RobotContainer.driveSubsystem.getPose(),
+              new Pose2d(3.527, 2.713, new Rotation2d(Math.toRadians(-90))),
+              //RobotContainer.driveSubsystem.getPose(),
               new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueBumpRight2.getTranslation(), new Rotation2d(Math.toRadians(-90)))),
           Set.of(RobotContainer.driveSubsystem)),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_BlueNeutralMiddle", false, false),
-      new StartIntake(),
+     // new StartIntake(),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralMiddle_BlueNeutralRight", false, false),
-      new StopIntake(),
+      //new StopIntake(),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueBumpRight", false, false),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight_BlueTower", false, false)
-          .alongWith(new AutoShootUntilEmpty())
+       //   .alongWith(new AutoShootUntilEmpty())
           //TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }
