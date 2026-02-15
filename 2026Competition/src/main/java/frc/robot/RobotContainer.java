@@ -36,8 +36,12 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
 import frc.robot.OdometryUpdates.QuestNavSubsystem;
+import frc.robot.commands.AutoStrategyEight;
+import frc.robot.commands.AutoStrategyFive;
 import frc.robot.commands.AutoStrategyFour;
 import frc.robot.commands.AutoStrategyOne;
+import frc.robot.commands.AutoStrategySeven;
+import frc.robot.commands.AutoStrategySix;
 import frc.robot.commands.AutoStrategyThree;
 import frc.robot.commands.AutoStrategyTwo;
 import frc.robot.commands.DriveManuallyCommand;
@@ -127,6 +131,10 @@ public class RobotContainer {
     autoChooser.addOption("Auto Strategy Two", new AutoStrategyTwo());
     autoChooser.addOption("Auto Strategy Three", new AutoStrategyThree());
     autoChooser.addOption("Auto Strategy Four", new AutoStrategyFour());
+    autoChooser.addOption("Auto Strategy Five", new AutoStrategyFive());
+    autoChooser.addOption("Auto Strategy Six", new AutoStrategySix());
+    autoChooser.addOption("Auto Strategy Seven", new AutoStrategySeven());
+    autoChooser.addOption("Auto Strategy Eight", new AutoStrategyEight());
     autoChooser.addOption("Test Auto", new TestAuto());
   }
 
