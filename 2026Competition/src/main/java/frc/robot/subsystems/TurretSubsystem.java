@@ -16,6 +16,7 @@ import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -30,9 +31,7 @@ import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.simulation.BatterySim;
-import edu.wpi.first.wpilibj.simulation.FlywheelSim;
-import edu.wpi.first.wpilibj.simulation.RoboRioSim;
+import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 // Simulation
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
@@ -78,6 +77,9 @@ public class TurretSubsystem extends SubsystemBase {
   // Closed-loop position request (hardware position loop in Slot0).
   private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0);
 																							  
+  private final VoltageOut voltageRequest = new VoltageOut(0);
+
+  // Track what we last commanded so simulation can use true volts (not normalized output).
 
   // Absolute CAN Through-Bore (0..1 rotations). (Wraps every revolution.)
   private final StatusSignal<Angle> absPosSig = throughboreCANcoder.getAbsolutePosition();
@@ -135,16 +137,19 @@ public class TurretSubsystem extends SubsystemBase {
   private MechanismLigament2d turretArm;
 
   // Sim model used only in simulationPeriodic().
-  private final FlywheelSim turretSim =
-      new FlywheelSim(
-          LinearSystemId.createFlywheelSystem(
-              DCMotor.getKrakenX60(1),
-              Constants.OperatorConstants.Turret.SIM_GEAR_RATIO,
-              Constants.OperatorConstants.Turret.SIM_TURRET_J_KGM2),
-          DCMotor.getKrakenX60(1));
+  private final DCMotorSim turretSim =
+    new DCMotorSim(
+        LinearSystemId.createDCMotorSystem(
+            DCMotor.getKrakenX60(1),
+            Constants.OperatorConstants.Turret.SIM_TURRET_J_KGM2,
+            Constants.OperatorConstants.Turret.SIM_GEAR_RATIO),
+        DCMotor.getKrakenX60(1));
 
   // Integrated simulated position in rotations.
   private double simPosRot = 0.0;
+  // Optional: simple supply drop model (ohms), same idea as KrakenMotorSubsystem.
+  private static final double SIM_MOTOR_RESISTANCE_OHMS = 0.002;
+
 
   // ---------------- SysId Characterization ----------------
 
@@ -446,16 +451,25 @@ public class TurretSubsystem extends SubsystemBase {
   /** Open-loop manual control with safety clamp. */
   public void setDutyCycle(double duty) {
     // Clamp duty to avoid commanding beyond your configured safe range.
-    duty = MathUtil.clamp(
-			  
-      duty,
-      -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
-      Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE
-    );
+    double maxDuty = isSim
+      ? Constants.OperatorConstants.Turret.SIM_MAX_DUTY_CYCLE
+      : Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE;
+
+    duty = MathUtil.clamp(duty, -maxDuty, maxDuty);
+
 
     // Send open-loop command to the motor controller.
     turret.setControl(dutyRequest.withOutput(duty));
   }
+
+  public void setVoltageVolts(double volts) {
+    // Clamp request to something physically plausible.
+    // In sim we’ll assume 12V supply; on real robot, you can clamp to battery if you want.
+    double v = MathUtil.clamp(volts, -12.0, 12.0);
+
+    turret.setControl(voltageRequest.withOutput(v));
+  }
+
 
   public void stop() {
     // Immediately stop output.
@@ -606,31 +620,26 @@ public class TurretSubsystem extends SubsystemBase {
       return;
     }
 
-    // Convert requested voltage to a duty cycle relative to current battery voltage.
+    // Apply the requested voltage directly.
+    // Clamp to something physically plausible; Phoenix will also saturate to supply.
     double v = volts.in(Volts);
-    double duty = v / RobotController.getBatteryVoltage();
+    double maxV = RobotController.getBatteryVoltage();
+    v = MathUtil.clamp(v, -maxV, maxV);
 
-    // Clamp duty to match your max output limits.
-    duty = MathUtil.clamp(
-			  
-        duty,
-        -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
-        Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
-
-    // Apply duty request to the motor controller.
-    setDutyCycle(duty);
+    setVoltageVolts(v);
   }
+
 
   private void sysIdLog(SysIdRoutineLog log) {
     // Only log when SysId is enabled.
     if (!isSysIdEnabled()) return;
 
-    // Log standard motor signals for SysId analysis.
     log.motor("turret")
         .voltage(Volts.of(getAppliedVolts()))
-        .angularPosition(Rotations.of(getAngleDeg() / 360.0))
-        .angularVelocity(RotationsPerSecond.of(getVelocityDegPerSec() / 360.0));
+        .angularPosition(Rotations.of(continuousDegUnclamped / 360.0))
+        .angularVelocity(RotationsPerSecond.of(estVelDegPerSec / 360.0));
   }
+
 
   @Override
   public void periodic() {
@@ -661,48 +670,51 @@ public class TurretSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
+    // WPILib calls this automatically in simulation for each Subsystem.
     if (!EnabledSubsystems.turret) {
       return;
     }
+    if (!isSim) {
+      return;
+    }
 
-    // Only run simulation when in sim.
-    if (!isSim) return;
-
-    // Fixed timestep for sim integration.
     final double dt = 0.02;
 
-    // Read/drive Talon simulated state.
+    // Phoenix simulated state
     var simState = turret.getSimState();
-												  
-    // Provide simulated supply voltage from RoboRIO sim.
-    simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
-											 
-    // Applied motor voltage from controller.
-    double appliedV = simState.getMotorVoltage();
 
-    // Feed into the physics model.
-    turretSim.setInputVoltage(appliedV);
+    // Give the controller a sane supply voltage first (same idea as KrakenMotorSubsystem)
+    simState.setSupplyVoltage(12.0);
+
+    // Feed CTRE’s motor voltage output into WPILib’s motor physics model
+    turretSim.setInputVoltage(simState.getMotorVoltage());
     turretSim.update(dt);
-														   
-    // Convert rad/s -> rotations/s for integrating encoder position.
-    double rps = turretSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-									  
-    // Integrate simulated position in rotations.
-    simPosRot += rps * dt;					
 
-    simState.setRotorVelocity(rps);
-    simState.setRawRotorPosition(simPosRot);
+    // Read physics model state
+    final double posRot = turretSim.getAngularPositionRotations();
+    final double velRps = turretSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
 
-    // Feed the simulated position/velocity into the CAN Through-Bore (CANcoder)
+    // Push state back into Phoenix
+    simState.setRawRotorPosition(posRot);
+    simState.setRotorVelocity(velRps);
+
+    // Keep your local copy if you still want it for any other debug/telemetry
+    simPosRot = posRot;
+
+    // Update CANcoder sim to match turret position
     var encoderSimState = throughboreCANcoder.getSimState();
-    encoderSimState.setSupplyVoltage(RoboRioSim.getVInVoltage());
-    encoderSimState.setRawPosition(simPosRot);
-    encoderSimState.setVelocity(rps);
-								
-    // Battery voltage sag simulation based on current draw.
-    RoboRioSim.setVInVoltage(
-        BatterySim.calculateDefaultBatteryLoadedVoltage(turretSim.getCurrentDrawAmps()));
+    encoderSimState.setSupplyVoltage(12.0);
+    double absRot = posRot % 1.0;
+    if (absRot < 0) absRot += 1.0;
+    encoderSimState.setRawPosition(absRot);
+
+    encoderSimState.setVelocity(velRps);
+
+    // Optional: approximate battery sag (identical concept to KrakenMotorSubsystem)
+    simState.setSupplyVoltage(12.0 - simState.getSupplyCurrent() * SIM_MOTOR_RESISTANCE_OHMS);
   }
+
+
 
   // ---------------- Helpers ----------------
 

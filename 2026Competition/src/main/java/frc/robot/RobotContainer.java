@@ -56,6 +56,7 @@ import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.KrakenMotorSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.SmartDashboardSubsystem;
 import frc.robot.subsystems.SpindexerSubsystem;
@@ -90,6 +91,8 @@ public class RobotContainer {
   public static HoodSubsystem hoodSubsystem = new HoodSubsystem();
   public static AutoShootSupervisorSubsystem autoShootSupervisorSubsystem = new AutoShootSupervisorSubsystem();
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
+  public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
+
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
@@ -352,10 +355,16 @@ public class RobotContainer {
 // Turret Manual Jog (Simulation)
 // =============================
 
+// new JoystickButton(turretStick, 3)
+//         .whileTrue(Commands.startEnd(
+//             () -> m_kraken.setDutyCycle(1.0),
+//             () -> m_kraken.stop(),
+//             m_kraken
+//         ));
 // Hold A → rotate turret left
 new JoystickButton(turretStick, 3).whileTrue(
     Commands.runEnd(
-        () -> turretSubsystem.setDutyCycle(-1),
+        () -> turretSubsystem.setVoltageVolts(-12),
         () -> turretSubsystem.stop(),
         turretSubsystem
     )
@@ -364,7 +373,7 @@ new JoystickButton(turretStick, 3).whileTrue(
 // Hold B → rotate turret right
 new JoystickButton(turretStick, 4).whileTrue(
     Commands.runEnd(
-        () -> turretSubsystem.setDutyCycle(1),
+        () -> turretSubsystem.setVoltageVolts(12),
         () -> turretSubsystem.stop(),
         turretSubsystem
     )

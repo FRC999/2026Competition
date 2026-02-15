@@ -413,6 +413,8 @@ public static final class EnabledSubsystems {
 
       /** Output safety limits. */
       public static final double MAX_DUTY_CYCLE = 0.8;
+      // Simulation-only: allow full duty for responsive visualization.
+      public static final double SIM_MAX_DUTY_CYCLE = 1.0;
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
 
@@ -430,7 +432,16 @@ public static final class EnabledSubsystems {
 
       /** Simulation placeholders. */
       public static final double SIM_GEAR_RATIO = 1.0;
-      public static final double SIM_TURRET_J_KGM2 = 0.02;
+      public static final double SIM_TURRET_J_KGM2 = 0.002;
+      // Simulation-only: use a fixed supply so this subsystem doesn't collapse RoboRIO voltage.
+      public static final double SIM_SUPPLY_VOLTS = 12.0;
+
+      // Simulation-only “brake feel” when commanded voltage is near zero.
+      public static final double SIM_BRAKE_DEADBAND_VOLTS = 0.15;
+      public static final double SIM_BRAKE_KS_VOLTS = 2.0;                 // static-like braking
+      public static final double SIM_BRAKE_KV_VOLTS_PER_RAD_PER_SEC = 0.25; // viscous braking
+      public static final double SIM_STOP_OMEGA_EPS_RAD_PER_SEC = 0.10;     // snap-to-zero threshold
+
     }
 
 
