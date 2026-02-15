@@ -67,7 +67,7 @@ public static final class EnabledSubsystems {
   public static final boolean questnav = false;
   public static final boolean intake = false;
   public static final boolean shooter = false;
-  public static final boolean turret = false;
+  public static final boolean turret = true;
   public static final boolean hood = false;
   public static final boolean hopper = false;
   public static final boolean spindexer = false;
@@ -85,7 +85,7 @@ public static final class EnabledSubsystems {
 		public static final boolean questnav = false;
     public static final boolean intake = false;
     public static final boolean shooter = false;
-    public static final boolean turret = false;
+    public static final boolean turret = true;
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
@@ -425,7 +425,7 @@ public static final class EnabledSubsystems {
       public static final double kA = 0.0;
 
       /** MotionMagic placeholders (rotations-based). */
-      public static final double MM_CRUISE_VEL_RPS = 1.0;
+      public static final double MM_CRUISE_VEL_RPS = 1.0/60.0; 
       public static final double MM_ACCEL_RPS2 = 2.0;
 
       /** Simulation placeholders. */

@@ -175,6 +175,7 @@ public class RobotContainer {
 
     // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
     // .onFalse(stopRobotCommand());
+    testTurretShooter();
   }
 
   public Command stopRobotCommand() {
@@ -331,11 +332,34 @@ public class RobotContainer {
     // new JoystickButton(turretStick, 2)
     //     .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, -Constants.OperatorConstants.Shooter.RPM_STEP));
 
-    new JoystickButton(turretStick, 3).whileTrue(new ShooterEnableCommand(shooterSubsystem));
+    //new JoystickButton(turretStick, 3).whileTrue(new ShooterEnableCommand(shooterSubsystem));
 
 
-    new JoystickButton(turretStick, 5).whileTrue(new TurretJogCommand(turretSubsystem, -0.25));
-    new JoystickButton(turretStick, 6).whileTrue(new TurretJogCommand(turretSubsystem, 0.25));
+    //new JoystickButton(turretStick, 5).whileTrue(new TurretJogCommand(turretSubsystem, -0.25));
+    //new JoystickButton(turretStick, 6).whileTrue(new TurretJogCommand(turretSubsystem, 0.25));
+
+    // =============================
+// Turret Manual Jog (Simulation)
+// =============================
+
+// Hold A → rotate turret left
+new JoystickButton(turretStick, 3).whileTrue(
+    Commands.runEnd(
+        () -> turretSubsystem.setDutyCycle(-0.2),
+        () -> turretSubsystem.stop(),
+        turretSubsystem
+    )
+);
+
+// Hold B → rotate turret right
+new JoystickButton(turretStick, 4).whileTrue(
+    Commands.runEnd(
+        () -> turretSubsystem.setDutyCycle(0.2),
+        () -> turretSubsystem.stop(),
+        turretSubsystem
+    )
+);
+
   }
 
   public void publishPoseToAdvantageScope() {

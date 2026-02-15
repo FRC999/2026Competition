@@ -1,57 +1,52 @@
 package frc.robot.subsystems;
 
 										  
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.units.Units.Volts;
+
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
-													
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
-import com.ctre.phoenix6.configs.ExternalFeedbackConfigs;
-													
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
-															
 import com.ctre.phoenix6.configs.Slot0Configs;
-													   
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
-													 
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.signals.ExternalFeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
-													   
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorPhaseValue;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
+// Simulation
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
+import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
-
-import edu.wpi.first.units.measure.Angle;
-												   
-import edu.wpi.first.units.measure.Voltage;
-
-import static edu.wpi.first.units.Units.Volts;
-import static edu.wpi.first.units.Units.Seconds;
-import static edu.wpi.first.units.Units.Rotations;
-import static edu.wpi.first.units.Units.RotationsPerSecond;
-
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.Constants.OperatorConstants.Turret;
+
 
 /**
  * Turret using an absolute CAN Through-Bore (CANcoder) sensor (wraps every 360 deg) on a Talon FXS.
@@ -108,6 +103,11 @@ public class TurretSubsystem extends SubsystemBase {
   /** continuous turret angle (deg), 0=forward, CCW positive, clamped to +/-340 */
   private double continuousDeg = 0.0;
 
+  // Unclamped multi-turn angle directly from motor position (deg).
+  // This is what we use for visualization wrapping in Mechanism2d.
+  private double continuousDegUnclamped = 0.0;
+
+
   /** derived velocity estimate */
   private double lastContinuousDeg = 0.0;
   private double lastUpdateTs = Timer.getFPGATimestamp();
@@ -131,6 +131,8 @@ public class TurretSubsystem extends SubsystemBase {
   private final ClosedLoopGeneralConfigs clWrapOff = new ClosedLoopGeneralConfigs().withContinuousWrap(false);
 
   // ---------------- Simulation ----------------
+  private Mechanism2d turretMech;
+  private MechanismLigament2d turretArm;
 
   // Sim model used only in simulationPeriodic().
   private final FlywheelSim turretSim =
@@ -188,6 +190,14 @@ public class TurretSubsystem extends SubsystemBase {
     SmartDashboard.putBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
     SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
 
+    if (Constants.DebugTelemetrySubsystems.turret) {
+        turretMech = new Mechanism2d(2.0, 2.0);
+        MechanismRoot2d root = turretMech.getRoot("TurretRoot", 1.0, 1.0);
+        turretArm = new MechanismLigament2d("TurretArm", 0.8, 0.0);
+        root.append(turretArm);
+
+        SmartDashboard.putData("Turret/Mechanism", turretMech);
+    }
 
 												
   }
@@ -356,32 +366,47 @@ public class TurretSubsystem extends SubsystemBase {
   private void updateContinuousAngle() {
     // Capture time and dt for velocity estimation.
     double now = Timer.getFPGATimestamp();
-    double dt = Math.max(1e-3, now - lastUpdateTs); // guard dt to avoid divide-by-zero
+    double dt = Math.max(1e-3, now - lastUpdateTs);
 
-    // Integrated TalonFX position is multi-turn and does not wrap.
-    // Convert rotations -> degrees in our forward-relative frame.
-    // NOTE: We seeded motorPosSig at boot so that 0 deg corresponds to turret forward.
+    // Force Phoenix to update the cached CAN/sim signals before we read them.
+    // This is the missing step that makes motorPosSig change in simulation.
+    BaseStatusSignal.refreshAll(motorPosSig, absPosSig);
+
+    // Optional: if position is not OK, don't update the mechanism/angle this loop.
+    if (motorPosSig.getStatus() != StatusCode.OK) {
+      SmartDashboard.putString("Turret/MotorPosStatus", motorPosSig.getStatus().toString());
+      lastUpdateTs = now;
+      return;
+    }
+
+        // Integrated TalonFX position is multi-turn and does not wrap.
     double motorRot = motorPosSig.getValueAsDouble();
-    double nextContinuous = motorRot * 360.0;
 
-    // Hard safety clamp to +/- MAX (umbilical protection).
-    nextContinuous = MathUtil.clamp(
-        nextContinuous,
+    // Raw multi-turn degrees (NO CLAMP) for visualization
+    double nextUnclamped = motorRot * 360.0;
+
+    // Safety-clamped degrees for control/safety logic
+    double nextClamped = MathUtil.clamp(
+        nextUnclamped,
         Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
         Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
 
-    // Velocity estimate (deg/s) based on change in continuous position.
-    double prev = continuousDeg;
-    estVelDegPerSec = (nextContinuous - prev) / dt;
+    // Velocity estimate (deg/s) based on UNCLAMPED motion (smooth across limits)
+    double prevUnclamped = continuousDegUnclamped;
+    estVelDegPerSec = (nextUnclamped - prevUnclamped) / dt;
 
     // Commit state.
-    lastContinuousDeg = prev;
-    continuousDeg = nextContinuous;
+    lastContinuousDeg = continuousDeg;          // keep last clamped value for any debugging
+    continuousDegUnclamped = nextUnclamped;     // used for Mechanism wrapping / display
+    continuousDeg = nextClamped;                // used for safety + control
     lastUpdateTs = now;
 
-    // Keep abs wrapped for telemetry/diagnostics (not used for closed-loop after boot).
+
+    // Keep abs wrapped for telemetry/diagnostics
     lastAbsDegWrapped = getAbsDegWrapped();
+    
   }
+
 
   // ---------------- Public API ----------------
 
@@ -423,9 +448,10 @@ public class TurretSubsystem extends SubsystemBase {
     // Clamp duty to avoid commanding beyond your configured safe range.
     duty = MathUtil.clamp(
 			  
-        duty,
-        -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
-        Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE);
+      duty,
+      -Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE,
+      Constants.OperatorConstants.Turret.MAX_DUTY_CYCLE
+    );
 
     // Send open-loop command to the motor controller.
     turret.setControl(dutyRequest.withOutput(duty));
@@ -618,12 +644,19 @@ public class TurretSubsystem extends SubsystemBase {
     // Telemetry block: expose key state for debugging and tuning.
       SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
       SmartDashboard.putNumber("Turret/VelDegPerSec", getVelocityDegPerSec());
+      SmartDashboard.putNumber("Turret/AngleDeg_Unclamped", continuousDegUnclamped);
+      SmartDashboard.putNumber("Turret/AngleDeg_Wrapped0to360", wrapTo0To360(continuousDegUnclamped));
       SmartDashboard.putNumber("Turret/AppliedVolts", getAppliedVolts());
       SmartDashboard.putNumber("Turret/AbsTicks", getAbsoluteTicks());
       SmartDashboard.putNumber("Turret/AbsDegWrapped", lastAbsDegWrapped);
       SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
       SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
     } 
+
+    if (Constants.DebugTelemetrySubsystems.turret && turretArm != null) {
+      turretArm.setAngle(wrapTo0To360(continuousDegUnclamped));
+    }
+
   }
 
   @Override
