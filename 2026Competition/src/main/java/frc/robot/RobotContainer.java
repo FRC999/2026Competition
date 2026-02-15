@@ -72,7 +72,7 @@ public class RobotContainer {
   private final Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
-  private static final Joystick turretStick =  new Joystick(0);
+  private static final Joystick turretStick = new Joystick(0);
 
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
   public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
@@ -89,25 +89,36 @@ public class RobotContainer {
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
+  // --- Elastic Dropdowns (real dropdown widgets) ---
+  // These are published as SendableChoosers so Elastic/SmartDashboard shows
+  // actual dropdowns instead of string inputs.
+  private static SendableChooser<String> firstDestinationChooser = new SendableChooser<>();
+  private static SendableChooser<String> nextPathChooser = new SendableChooser<>();
+  private static final String CHOOSER_PLACEHOLDER = "<Select>";
+  private static int sLastFirstOptionsHash = 0;
+  private static int sLastNextOptionsHash = 0;
+
   // Cached NT4 pubs/subs for Elastic auto UI mirroring (avoid subscriber leaks)
-  private static final edu.wpi.first.networktables.NetworkTable AUTO_NT_FOR_ELASTIC = NetworkTableInstance.getDefault().getTable("Autos");
-  private static final StringArraySubscriber SUB_FIRST_DEST_OPTIONS = AUTO_NT_FOR_ELASTIC.getStringArrayTopic("FirstDestinationOptions").subscribe(new String[0]);
-  private static final StringArraySubscriber SUB_NEXT_OPTIONS = AUTO_NT_FOR_ELASTIC.getStringArrayTopic("NextOptions").subscribe(new String[0]);
-  private static final StringPublisher PUB_FIRST_DEST = AUTO_NT_FOR_ELASTIC.getStringTopic("FirstDestination").publish();
+  private static final edu.wpi.first.networktables.NetworkTable AUTO_NT_FOR_ELASTIC = NetworkTableInstance.getDefault()
+      .getTable("Autos");
+  private static final StringArraySubscriber SUB_FIRST_DEST_OPTIONS = AUTO_NT_FOR_ELASTIC
+      .getStringArrayTopic("FirstDestinationOptions").subscribe(new String[0]);
+  private static final StringArraySubscriber SUB_NEXT_OPTIONS = AUTO_NT_FOR_ELASTIC.getStringArrayTopic("NextOptions")
+      .subscribe(new String[0]);
+  private static final StringPublisher PUB_FIRST_DEST = AUTO_NT_FOR_ELASTIC.getStringTopic("FirstDestination")
+      .publish();
   private static final StringPublisher PUB_CHAIN = AUTO_NT_FOR_ELASTIC.getStringTopic("Chain").publish();
-  private static final edu.wpi.first.networktables.StringArrayPublisher PUB_SELECTED_SEGMENTS = AUTO_NT_FOR_ELASTIC.getStringArrayTopic("SelectedSegments").publish();
+  private static final edu.wpi.first.networktables.StringArrayPublisher PUB_SELECTED_SEGMENTS = AUTO_NT_FOR_ELASTIC
+      .getStringArrayTopic("SelectedSegments").publish();
   private static String sLastFirstDest = "";
   private static String sLastPendingNext = "";
   private static boolean sLastClearChain = false;
-
-
 
   public RobotContainer() {
     configureBindings();
     driveSubsystem.registerTelemetry(logger::telemeterize);
 
     setYaws();
-    
 
     driveSubsystem.setDefaultCommand(
         new DriveManuallyCommand(
@@ -118,7 +129,7 @@ public class RobotContainer {
 
     AutonomousConfigure();
     if (RobotBase.isSimulation()) {
-      //configureSimulation();
+      // configureSimulation();
     }
     testTurretShooter();
   }
@@ -128,42 +139,47 @@ public class RobotContainer {
     // simulated sensors or adjusting subsystem parameters for simulation.
     // For example, you might want to set up a simulated gyro or adjust the drive
     // subsystem's max speed for testing.
-    driveSubsystem.resetCTREPose(new Pose2d(3.5,5.7, new Rotation2d(0)));
+    driveSubsystem.resetCTREPose(new Pose2d(3.5, 5.7, new Rotation2d(0)));
   }
 
   public static void AutonomousConfigure() {
-    // port autonomous routines as commands
-    // sets the default option of the SendableChooser to the simplest autonomous
-    // command. (from touching the hub, drive until outside the tarmac zone)    // Elastic auto-stitch UI keys (Elastic binds to SmartDashboard, we mirror to NT table "Autos")
-    SmartDashboard.putString("Autos/FirstDestination", "");
-    // Drivers select next path from dropdown; robot auto-appends it then clears it
-    SmartDashboard.putString("Autos/PendingNext", "");
-    // Read-only outputs (drivers should not type these)
-    SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
-    SmartDashboard.putString("Autos/ChainDisplay", "");
-    // Dropdown option sources
-    SmartDashboard.putStringArray("Autos/FirstDestinationOptions", new String[0]);
-    SmartDashboard.putStringArray("Autos/NextOptions", new String[0]);
-    // Optional: clear chain button
-    SmartDashboard.putBoolean("Autos/ClearChain", false);
-SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
-    SmartDashboard.putString("Autos/ChainDisplay", "");
-    SmartDashboard.putString("Autos/PendingNext", "");
-    SmartDashboard.putBoolean("Autos/AddSegment", false);
-    SmartDashboard.putBoolean("Autos/ClearChain", false);
-
-
+    // Auto chooser (existing)
     SmartDashboard.putData(autoChooser);
     autoChooser.addOption("Auto Strategy One", new AutoStrategyOne());
     autoChooser.addOption("Auto Strategy Two", new AutoStrategyTwo());
     autoChooser.addOption("Auto Strategy Three", new AutoStrategyThree());
     autoChooser.addOption("Auto Strategy Four", new AutoStrategyFour());
     autoChooser.addOption("Test Auto", new TestAuto());
-    // New: dynamic stitched auto (on-the-fly to first destination, then chained PP paths)
-    autoChooser.addOption("Stitched (FirstDest + Chain)", TrajectoryHelper.buildStitchedAutoCommand());
-  }
+    // Dynamic stitched auto (on-the-fly to first destination, then chained PP
+    // paths)
+    autoChooser.addOption(
+        "Stitched (FirstDest + Chain)",
+        edu.wpi.first.wpilibj2.command.Commands.deferredProxy(TrajectoryHelper::buildStitchedAutoCommand));
 
-  
+    // --- Elastic Auto Stitch UI ---
+    // Drivers interact ONLY with the two dropdown widgets and an optional clear
+    // button:
+    // 1) Autos/First Destination (SendableChooser<String>)
+    // 2) Autos/Next Path (SendableChooser<String>)
+    // The selected sequence is stored as outputs (SelectedSegments + ChainDisplay)
+    // and mirrored to NT table "Autos".
+
+    // Publish dropdown widgets (will be populated dynamically in
+    // updateElasticAutoDropdowns())
+    SmartDashboard.putData("Autos/First Destination", firstDestinationChooser);
+    SmartDashboard.putData("Autos/Next Path", nextPathChooser);
+
+    // Optional: show option arrays for debugging (NOT for driver interaction)
+    SmartDashboard.putStringArray("Autos/FirstDestinationOptions", new String[0]);
+    SmartDashboard.putStringArray("Autos/NextOptions", new String[0]);
+
+    // Read-only outputs
+    SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
+    SmartDashboard.putString("Autos/ChainDisplay", "");
+
+    // Optional: quick reset button
+    SmartDashboard.putBoolean("Autos/ClearChain", false);
+  }
 
   private void configureBindings() {
     // Note that X is defined as forward according to WPILib convention,
@@ -220,7 +236,6 @@ SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
     );
   }
 
-
   public void setYaws() {
     new JoystickButton(xboxDriveController, 8)
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
@@ -253,7 +268,7 @@ SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
       boolean shouldResetOdometryToStartingPose, boolean flipTrajectory) {
 
     // alex test
-    //System.out.println("Start drive routine");
+    // System.out.println("Start drive routine");
 
     try {
       // Load the path you want to follow using its name in the GUI
@@ -293,29 +308,31 @@ SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
     }
   }
 
-  public static Command runTrajectory2Poses(boolean shouldResetOdometryToStartingPose,Pose2d startPose, Pose2d endPose) {
+  public static Command runTrajectory2Poses(boolean shouldResetOdometryToStartingPose, Pose2d startPose,
+      Pose2d endPose) {
     try {
       List<Waypoint> pathWaypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
 
       if (!shouldResetOdometryToStartingPose) {
         PathPlannerPath path = new PathPlannerPath(
-          pathWaypoints,
-          AutoConstants.pathConstraints,
-          null,
-          new GoalEndState(0, endPose.getRotation()));
+            pathWaypoints,
+            AutoConstants.pathConstraints,
+            null,
+            new GoalEndState(0, endPose.getRotation()));
         path.preventFlipping = true;
-        System.out.println("== Driving from "+startPose+" to "+endPose);
+        System.out.println("== Driving from " + startPose + " to " + endPose);
         return AutoBuilder.followPath(path);
       } else { // reset odometry the right way
         driveSubsystem.resetCTREPose(startPose);
         PathPlannerPath path = new PathPlannerPath(
-          pathWaypoints,
-          AutoConstants.pathConstraints,
-          new IdealStartingState(0, startPose.getRotation()),
-          new GoalEndState(0, endPose.getRotation()));
+            pathWaypoints,
+            AutoConstants.pathConstraints,
+            new IdealStartingState(0, startPose.getRotation()),
+            new GoalEndState(0, endPose.getRotation()));
         path.preventFlipping = true;
-        System.out.println("== Driving from "+startPose+" to "+endPose);
-        //return Commands.sequence(AutoBuilder.resetOdom(startPose), AutoBuilder.followPath(path));
+        System.out.println("== Driving from " + startPose + " to " + endPose);
+        // return Commands.sequence(AutoBuilder.resetOdom(startPose),
+        // AutoBuilder.followPath(path));
         return AutoBuilder.resetOdom(startPose);
       }
     } catch (Exception e) {
@@ -354,13 +371,14 @@ SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
 
   public static void testTurretShooter() {
     // new JoystickButton(turretStick, 1)
-    //     .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, Constants.OperatorConstants.Shooter.RPM_STEP));
+    // .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem,
+    // Constants.OperatorConstants.Shooter.RPM_STEP));
 
     // new JoystickButton(turretStick, 2)
-    //     .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, -Constants.OperatorConstants.Shooter.RPM_STEP));
+    // .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem,
+    // -Constants.OperatorConstants.Shooter.RPM_STEP));
 
     new JoystickButton(turretStick, 3).whileTrue(new ShooterEnableCommand(shooterSubsystem));
-
 
     new JoystickButton(turretStick, 5).whileTrue(new TurretJogCommand(turretSubsystem, -0.25));
     new JoystickButton(turretStick, 6).whileTrue(new TurretJogCommand(turretSubsystem, 0.25));
@@ -370,39 +388,128 @@ SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
     logger.telemeterize(driveSubsystem.getState());
   }
 
-
-
   /**
-   * Mirrors NetworkTables table "Autos" <-> SmartDashboard keys under "Autos/...".
+   * Mirrors NetworkTables table "Autos" <-> SmartDashboard keys under
+   * "Autos/...".
    *
    * Why: your Elastic workflow binds widgets to SmartDashboard keys, while the
-   * stitching logic (TrajectoryHelper / ElasticHelpers) reads from the NT table "Autos".
+   * stitching logic (TrajectoryHelper / ElasticHelpers) reads from the NT table
+   * "Autos".
    *
-   * - Robot publishes options to NT table "Autos": FirstDestinationOptions, NextOptions
-   * - Elastic writes selections to SmartDashboard: Autos/FirstDestination, Autos/Chain
+   * - Robot publishes options to NT table "Autos": FirstDestinationOptions,
+   * NextOptions
+   * - Elastic writes selections to SmartDashboard: Autos/FirstDestination,
+   * Autos/Chain
    * - This keeps both in sync.
    */
+
+  private static int optionsHash(String[] options) {
+    return java.util.Arrays.hashCode(options == null ? new String[0] : options);
+  }
+
+  private static boolean containsOption(String[] options, String value) {
+    if (value == null || value.isBlank() || options == null)
+      return false;
+    for (String o : options) {
+      if (o == null)
+        continue;
+      if (value.equals(o.trim()))
+        return true;
+    }
+    return false;
+  }
+
+  private static SendableChooser<String> buildChooser(String preferredSelection, String[] options) {
+    SendableChooser<String> ch = new SendableChooser<>();
+
+    // If preferredSelection is valid, keep it selected by default; otherwise
+    // default to placeholder.
+    boolean preferredValid = containsOption(options, preferredSelection);
+    if (preferredValid) {
+      ch.setDefaultOption(preferredSelection, preferredSelection);
+      ch.addOption(CHOOSER_PLACEHOLDER, "");
+    } else {
+      ch.setDefaultOption(CHOOSER_PLACEHOLDER, "");
+    }
+
+    java.util.HashSet<String> seen = new java.util.HashSet<>();
+    if (preferredValid)
+      seen.add(preferredSelection);
+
+    if (options != null) {
+      for (String o : options) {
+        if (o == null)
+          continue;
+        String s = o.trim();
+        if (s.isEmpty())
+          continue;
+        if (seen.add(s)) {
+          ch.addOption(s, s);
+        }
+      }
+    }
+    return ch;
+  }
+
+  /**
+   * Keeps Elastic/SmartDashboard dropdown widgets and the stitching backend in
+   * sync.
+   *
+   * Drivers should only use these widgets:
+   * - SmartDashboard/Autos/First Destination (dropdown)
+   * - SmartDashboard/Autos/Next Path (dropdown)
+   * - SmartDashboard/Autos/ClearChain (optional button)
+   *
+   * Everything else (SelectedSegments, ChainDisplay, and NT table "Autos") is
+   * produced by the robot.
+   */
   public static void updateElasticAutoDropdowns() {
-    // Robot -> SmartDashboard (dropdown sources)
+    // 1) Pull latest option lists from NT table "Autos" (published by
+    // TrajectoryHelper)
     String[] firstOptions = SUB_FIRST_DEST_OPTIONS.get();
     String[] nextOptions = SUB_NEXT_OPTIONS.get();
 
+    // Also mirror the raw arrays to SmartDashboard for debugging (drivers should
+    // NOT use these as inputs)
     SmartDashboard.putStringArray("Autos/FirstDestinationOptions", firstOptions);
     SmartDashboard.putStringArray("Autos/NextOptions", nextOptions);
 
-    // --- Dropdown-driven chain builder (no manual typing, no "Add Segment" button) ---
-    String firstDest = SmartDashboard.getString("Autos/FirstDestination", "").trim();
+    // 2) Rebuild dropdown widgets when their option lists change.
+    int firstHash = optionsHash(firstOptions);
+    if (firstHash != sLastFirstOptionsHash) {
+      sLastFirstOptionsHash = firstHash;
+      String keep = firstDestinationChooser.getSelected();
+      firstDestinationChooser = buildChooser(keep, firstOptions);
+      SmartDashboard.putData("Autos/First Destination", firstDestinationChooser);
+    }
+
+    int nextHash = optionsHash(nextOptions);
+    if (nextHash != sLastNextOptionsHash) {
+      sLastNextOptionsHash = nextHash;
+      // For next-path chooser we generally want to reset to placeholder; preferred
+      // selection is blank.
+      nextPathChooser = buildChooser("", nextOptions);
+      SmartDashboard.putData("Autos/Next Path", nextPathChooser);
+    }
+
+    // 3) Read driver selections from the dropdown widgets
+    String firstDest = firstDestinationChooser.getSelected();
+    if (firstDest == null)
+      firstDest = "";
+    firstDest = firstDest.trim();
 
     // If the first destination changed, reset chain state.
     if (!firstDest.equals(sLastFirstDest)) {
       sLastFirstDest = firstDest;
       sLastPendingNext = "";
       SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
-      SmartDashboard.putString("Autos/PendingNext", "");
       SmartDashboard.putString("Autos/ChainDisplay", "");
-      // Reset clear latch as well
       SmartDashboard.putBoolean("Autos/ClearChain", false);
       sLastClearChain = false;
+
+      // Reset next chooser to placeholder (even if options didn’t change yet)
+      nextPathChooser = buildChooser("", nextOptions);
+      SmartDashboard.putData("Autos/Next Path", nextPathChooser);
     }
 
     String[] selected = SmartDashboard.getStringArray("Autos/SelectedSegments", new String[0]);
@@ -415,73 +522,77 @@ SmartDashboard.putStringArray("Autos/SelectedSegments", new String[0]);
     if (clearRising) {
       selected = new String[0];
       SmartDashboard.putStringArray("Autos/SelectedSegments", selected);
-      SmartDashboard.putString("Autos/PendingNext", "");
       sLastPendingNext = "";
+
+      // Reset next chooser to placeholder
+      nextPathChooser = buildChooser("", nextOptions);
+      SmartDashboard.putData("Autos/Next Path", nextPathChooser);
 
       SmartDashboard.putBoolean("Autos/ClearChain", false);
       sLastClearChain = false;
     }
 
-    // Driver chooses next path from dropdown; when it changes, we auto-append then clear it.
-    String pendingNext = SmartDashboard.getString("Autos/PendingNext", "").trim();
-    if (!pendingNext.isEmpty() && !pendingNext.equals(sLastPendingNext)) {
-      sLastPendingNext = pendingNext;
+    // 4) Auto-append the chosen next path when the driver picks one from the
+    // dropdown.
+    String chosenNext = nextPathChooser.getSelected();
+    if (chosenNext == null)
+      chosenNext = "";
+    chosenNext = chosenNext.trim();
+
+    if (!chosenNext.isEmpty() && !chosenNext.equals(sLastPendingNext)) {
+      sLastPendingNext = chosenNext;
 
       // Only append if it is one of the currently valid options
-      boolean isValid = false;
-      for (String opt : nextOptions) {
-        if (pendingNext.equals(opt)) {
-          isValid = true;
-          break;
-        }
-      }
-
+      boolean isValid = containsOption(nextOptions, chosenNext);
       if (isValid) {
-        // Append if not duplicate of last element
-        if (selected.length == 0 || !pendingNext.equals(selected[selected.length - 1])) {
+        if (selected.length == 0 || !chosenNext.equals(selected[selected.length - 1])) {
           String[] nextSel = java.util.Arrays.copyOf(selected, selected.length + 1);
-          nextSel[nextSel.length - 1] = pendingNext;
+          nextSel[nextSel.length - 1] = chosenNext;
           selected = nextSel;
           SmartDashboard.putStringArray("Autos/SelectedSegments", selected);
         }
 
-        // Clear pending so the dropdown is ready for the next pick
-        SmartDashboard.putString("Autos/PendingNext", "");
+        // Reset the next-path dropdown back to placeholder immediately
+        nextPathChooser = buildChooser("", nextOptions);
+        SmartDashboard.putData("Autos/Next Path", nextPathChooser);
         sLastPendingNext = "";
       }
     }
 
-    // Build a read-only display string for drivers (optional)
+    // 5) Produce driver-friendly display string and publish outputs
     StringBuilder sb = new StringBuilder();
     if (!firstDest.isEmpty()) {
       sb.append(firstDest);
       for (String seg : selected) {
-        if (seg == null) continue;
+        if (seg == null)
+          continue;
         String s = seg.trim();
-        if (s.isEmpty()) continue;
+        if (s.isEmpty())
+          continue;
         sb.append(" → ").append(s);
       }
     }
     String chainDisplay = sb.toString();
     SmartDashboard.putString("Autos/ChainDisplay", chainDisplay);
 
-    // Publish to NT table "Autos" that TrajectoryHelper / ElasticHelpers read.
+    // 6) Publish to NT table "Autos" that TrajectoryHelper / ElasticHelpers read.
     PUB_FIRST_DEST.set(firstDest);
     PUB_SELECTED_SEGMENTS.set(selected);
 
-    // Keep legacy chain string updated for debugging only (NOT an input)
+    // Keep legacy chain string updated for debugging only (NOT a driver input)
     String legacyChain = "";
     if (!firstDest.isEmpty()) {
       StringBuilder sc = new StringBuilder(firstDest);
       for (String seg : selected) {
-        if (seg == null) continue;
+        if (seg == null)
+          continue;
         String s = seg.trim();
-        if (s.isEmpty()) continue;
+        if (s.isEmpty())
+          continue;
         sc.append(";").append(s);
       }
       legacyChain = sc.toString();
     }
     PUB_CHAIN.set(legacyChain);
   }
-
 }

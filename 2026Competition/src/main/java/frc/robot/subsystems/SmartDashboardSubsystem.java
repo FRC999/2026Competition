@@ -54,6 +54,9 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     // 2) Compute compatible next-path options based on current selection
     TrajectoryHelper.autoStitchUpdate();
 
+    // 2b) Re-publish dropdown widgets after options update (avoids 1-cycle lag in Elastic)
+    RobotContainer.updateElasticAutoDropdowns();
+
     // 3) Draw the continuously-updating auto preview on the Field2d
     ElasticHelpers.updateAutoPreviewRealtime();
 
