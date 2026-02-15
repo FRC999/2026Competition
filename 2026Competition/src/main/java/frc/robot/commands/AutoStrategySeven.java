@@ -6,39 +6,37 @@ package frc.robot.commands;
 
 import java.util.Set;
 
-import org.opencv.core.RotatedRect;
-
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
 import frc.robot.lib.TrajectoryHelper;
 
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
 // https://docs.wpilib.org/en/stable/docs/software/commandbased/convenience-features.html
-public class AutoStrategyTwo extends SequentialCommandGroup {
-  /** Creates a new AutoStrategyTwo. */
-  public AutoStrategyTwo() {
+public class AutoStrategySeven extends SequentialCommandGroup {
+  /** Creates a new AutoStrategySeven. */
+  public AutoStrategySeven() {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
        new DeferredCommand(
           () -> RobotContainer.runTrajectory2Poses(
               true,
-              new Pose2d(3.527, 2.713, new Rotation2d(Math.toRadians(-90))),
-              //RobotContainer.driveSubsystem.getPose(),
+              RobotContainer.driveSubsystem.getPose(),
               new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueBumpRight2.getTranslation(), new Rotation2d(Math.toRadians(-90)))),
           Set.of(RobotContainer.driveSubsystem)),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_BlueNeutralMiddle", false, false),
-     // new StartIntake(),
+      new StartIntake(),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralMiddle_BlueNeutralRight", false, false),
-      //new StopIntake(),
+      new StopIntake(),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueBumpRight", false, false),
-      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight_BlueTower", false, false)
-       //   .alongWith(new AutoShootUntilEmpty())
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight_BlueOutpost", false, false)
+          .alongWith(new AutoShootUntilEmpty()),
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueOutpost_BlueTower", false, false)
+          .alongWith(new AutoShootUntilEmpty())
           //TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }

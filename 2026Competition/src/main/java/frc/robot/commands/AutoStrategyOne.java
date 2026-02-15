@@ -25,22 +25,16 @@ public class AutoStrategyOne extends SequentialCommandGroup {
       new DeferredCommand(
           () -> RobotContainer.runTrajectory2Poses(
               true,
-              new Pose2d(3.884, 6.966, new Rotation2d()),
-              //RobotContainer.driveSubsystem.getPose(),
-              TrajectoryHelper.AutoDesiredPoses.BlueDepot),
-          Set.of(RobotContainer.driveSubsystem)),
-       // .alongWith(new AutoShootUntilEmpty())
-        //.alongWith(new WaitCommand(1).andThen(new StartIntake())),
-
-      //new StopIntake(),
-
-      new DeferredCommand(
-          () -> RobotContainer.runTrajectory2Poses(
-              true,
+              //new Pose2d(3.884, 6.966, new Rotation2d()),
               RobotContainer.driveSubsystem.getPose(),
-              TrajectoryHelper.AutoDesiredPoses.BlueTower),
+              TrajectoryHelper.AutoDesiredPoses.BlueDepot),
           Set.of(RobotContainer.driveSubsystem))
-        //.alongWith(new AutoShootUntilEmpty())
+          .alongWith(new AutoShootUntilEmpty())
+        .alongWith(new WaitCommand(1).andThen(new StartIntake())),
+      new StopIntake(),
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower", false, false)
+       .alongWith(new AutoShootUntilEmpty())
+        //TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }
 }

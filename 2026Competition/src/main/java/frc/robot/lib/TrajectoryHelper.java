@@ -44,5 +44,7 @@ public class TrajectoryHelper {
         
         public static final Pose2d BlueBumpRight = new Pose2d(4.466, 2.372, new Rotation2d());
         public static final Pose2d BlueBumpLeft = new Pose2d(4.466, 5.568, new Rotation2d());
+        public static final Pose2d BlueBumpRight2 = new Pose2d(5.669, 2.636, new Rotation2d());
+        public static final Pose2d BlueBumpLeft2 = new Pose2d(5.647, 5.663, new Rotation2d());
     }
 }

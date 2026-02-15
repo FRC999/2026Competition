@@ -23,14 +23,9 @@ public class AutoStrategyThree extends SequentialCommandGroup {
           RobotContainer.driveSubsystem.getPose(), 
           AutoDesiredPoses.BlueOutpost)
         .alongWith(new AutoShootUntilEmpty()),
-      new WaitCommand(5)
-        .alongWith(new AutoShootUntilEmpty()),
-      RobotContainer.runTrajectory2Poses(
-          false,
-          RobotContainer.driveSubsystem.getPose(), 
-          AutoDesiredPoses.BlueTower)
-        .alongWith(new AutoShootUntilEmpty()),
-      new AutoShootUntilEmpty() //TODO: NEED TO ADD CLIMBING COMMANDS HERE
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueOutpost_BlueTower", false, false)
+        .alongWith(new AutoShootUntilEmpty())
+      //TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }
 }
