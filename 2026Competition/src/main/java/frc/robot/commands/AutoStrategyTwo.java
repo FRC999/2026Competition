@@ -11,6 +11,7 @@ import org.opencv.core.RotatedRect;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
@@ -25,11 +26,12 @@ public class AutoStrategyTwo extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
+      new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.527, 2.713, new Rotation2d(Math.toRadians(-90))))),
        new DeferredCommand(
           () -> RobotContainer.runTrajectory2Poses(
               true,
-              new Pose2d(3.527, 2.713, new Rotation2d(Math.toRadians(-90))),
-              //RobotContainer.driveSubsystem.getPose(),
+              //new Pose2d(3.527, 2.713, new Rotation2d()),
+              RobotContainer.driveSubsystem.getPose(),
               new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueBumpRight2.getTranslation(), new Rotation2d(Math.toRadians(-90)))),
           Set.of(RobotContainer.driveSubsystem)),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_BlueNeutralMiddle", false, false),

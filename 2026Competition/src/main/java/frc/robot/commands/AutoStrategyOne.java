@@ -9,10 +9,12 @@ import java.util.Set;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
 import frc.robot.lib.TrajectoryHelper;
+import frc.robot.subsystems.DriveSubsystem;
 
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
@@ -22,6 +24,7 @@ public class AutoStrategyOne extends SequentialCommandGroup {
   public AutoStrategyOne() {
     addCommands(
       // IMPORTANT: sample drive pose at schedule-time (dynamic start), not at auto construction time.
+    new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
       new DeferredCommand(
           () -> RobotContainer.runTrajectory2Poses(
               true,
@@ -33,7 +36,7 @@ public class AutoStrategyOne extends SequentialCommandGroup {
         .alongWith(new WaitCommand(1).andThen(new StartIntake())),
       new StopIntake(),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower", false, false)
-       .alongWith(new AutoShootUntilEmpty())
+       //.alongWith(new AutoShootUntilEmpty())
         //TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }

@@ -347,7 +347,7 @@ public class RobotContainer {
 // Hold A → rotate turret left
 new JoystickButton(turretStick, 3).whileTrue(
     Commands.runEnd(
-        () -> turretSubsystem.setDutyCycle(-0.2),
+        () -> turretSubsystem.setDutyCycle(-1),
         () -> turretSubsystem.stop(),
         turretSubsystem
     )
@@ -356,7 +356,7 @@ new JoystickButton(turretStick, 3).whileTrue(
 // Hold B → rotate turret right
 new JoystickButton(turretStick, 4).whileTrue(
     Commands.runEnd(
-        () -> turretSubsystem.setDutyCycle(0.2),
+        () -> turretSubsystem.setDutyCycle(1),
         () -> turretSubsystem.stop(),
         turretSubsystem
     )

@@ -4,6 +4,9 @@
 
 package frc.robot.commands;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
@@ -18,13 +21,14 @@ public class AutoStrategyThree extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
+      new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.527, 2.713, new Rotation2d(Math.toRadians(-90))))),
       RobotContainer.runTrajectory2Poses(
           false,
           RobotContainer.driveSubsystem.getPose(), 
-          AutoDesiredPoses.BlueOutpost)
-        .alongWith(new AutoShootUntilEmpty()),
+          AutoDesiredPoses.BlueOutpost),
+        //.alongWith(new AutoShootUntilEmpty()),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueOutpost_BlueTower", false, false)
-        .alongWith(new AutoShootUntilEmpty())
+        //.alongWith(new AutoShootUntilEmpty())
       //TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }
