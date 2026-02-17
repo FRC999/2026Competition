@@ -10,10 +10,13 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class KrakenMotorSubsystem extends SubsystemBase {
   public static final int kCanId = 55;
+
+  private final boolean isSim = RobotBase.isSimulation();
 
   // Rotor inertia reflected to motor shaft (tune as needed for “feel”).
   private static final double kRotorInertia = 0.001;
@@ -53,6 +56,14 @@ public class KrakenMotorSubsystem extends SubsystemBase {
     setDutyCycle(0.0);
   }
 
+  public double getSimCurrentDrawAmps() {
+    if (!isSim) {
+      return 0.0;
+    }
+    return m_motor.getSimState().getSupplyCurrent();
+  }
+
+
   @Override
   public void simulationPeriodic() {
     // WPILib calls this automatically in simulation for each Subsystem. No Robot.java edits needed.
@@ -70,6 +81,6 @@ public class KrakenMotorSubsystem extends SubsystemBase {
     m_simState.setRotorVelocity(velRps);
 
     // Optional: approximate battery sag
-    m_simState.setSupplyVoltage(12.0 - m_simState.getSupplyCurrent() * kMotorResistance);
+    m_simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
   }
 }

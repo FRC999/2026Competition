@@ -49,6 +49,7 @@ import frc.robot.commands.TurretJogCommand;
 import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.AutoShootSupervisorSubsystem;
+import frc.robot.subsystems.ClimbSubsystem;
 import frc.robot.subsystems.DriveSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
@@ -78,6 +79,7 @@ public class RobotContainer {
   public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
   public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
   public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
+  public static ClimbSubsystem climbSubsystem = new ClimbSubsystem();
   public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
   public static TurretSubsystem turretSubsystem = new TurretSubsystem();
   public static ShooterSubsystem shooterSubsystem = new ShooterSubsystem();
@@ -354,22 +356,43 @@ public class RobotContainer {
 //             m_kraken
 //         ));
 // Hold A → rotate turret left
-new JoystickButton(turretStick, 3).whileTrue(
-    Commands.runEnd(
-        () -> turretSubsystem.setVoltageVolts(-12),
-        () -> turretSubsystem.stop(),
-        turretSubsystem
-    )
-);
+// new JoystickButton(turretStick, 3).whileTrue(
+//     Commands.runEnd(
+//         () -> turretSubsystem.setVoltageVolts(-12),
+//         () -> turretSubsystem.stop(),
+//         turretSubsystem
+//     )
+// );
 
-// Hold B → rotate turret right
-new JoystickButton(turretStick, 4).whileTrue(
-    Commands.runEnd(
-        () -> turretSubsystem.setVoltageVolts(12),
-        () -> turretSubsystem.stop(),
-        turretSubsystem
-    )
-);
+// // Hold B → rotate turret right
+// new JoystickButton(turretStick, 4).whileTrue(
+//     Commands.runEnd(
+//         () -> turretSubsystem.setVoltageVolts(12),
+//         () -> turretSubsystem.stop(),
+//         turretSubsystem
+//     )
+// );
+
+    new JoystickButton(turretStick, 3).whileTrue(
+      Commands.runEnd(
+        () -> hopperSubsystem.setStageDuty(1.0),
+        () -> hopperSubsystem.stop(),
+        hopperSubsystem)
+    );
+
+    new JoystickButton(turretStick, 4).whileTrue(
+      Commands.runEnd(
+        () -> hopperSubsystem.setStageDuty(-1.0),
+        () -> hopperSubsystem.stop(),
+        hopperSubsystem)
+    );
+
+    new JoystickButton(turretStick, 5).whileTrue(
+      Commands.runEnd(
+        () -> hopperSubsystem.setStageDuty(0.5),
+        () -> hopperSubsystem.stop(),
+        hopperSubsystem)
+    );
 
   }
 

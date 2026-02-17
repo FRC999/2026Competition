@@ -378,6 +378,14 @@ public class ShooterSubsystem extends SubsystemBase {
 
   }
 
+  public double getSimCurrentDrawAmps() {
+    if (!isSim || !EnabledSubsystems.shooter) {
+      return 0.0;
+    }
+    return flywheelSim.getCurrentDrawAmps();
+  }
+
+
   @Override
   public void simulationPeriodic() {
     if (!EnabledSubsystems.shooter) {
@@ -403,8 +411,7 @@ public class ShooterSubsystem extends SubsystemBase {
     simPosRot += rps * dt;
     simState.setRawRotorPosition(simPosRot);
 
-    RoboRioSim.setVInVoltage(
-        BatterySim.calculateDefaultBatteryLoadedVoltage(flywheelSim.getCurrentDrawAmps()));
+    
   }
 
   /**

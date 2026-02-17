@@ -32,6 +32,7 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 // Simulation
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
@@ -668,6 +669,14 @@ public class TurretSubsystem extends SubsystemBase {
 
   }
 
+  public double getSimCurrentDrawAmps() {
+    if (!isSim || !EnabledSubsystems.turret) {
+      return 0.0;
+    }
+    return turret.getSimState().getSupplyCurrent();
+  }
+
+
   @Override
   public void simulationPeriodic() {
     // WPILib calls this automatically in simulation for each Subsystem.
@@ -711,7 +720,7 @@ public class TurretSubsystem extends SubsystemBase {
     encoderSimState.setVelocity(velRps);
 
     // Optional: approximate battery sag (identical concept to KrakenMotorSubsystem)
-    simState.setSupplyVoltage(12.0 - simState.getSupplyCurrent() * SIM_MOTOR_RESISTANCE_OHMS);
+    simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
   }
 
 

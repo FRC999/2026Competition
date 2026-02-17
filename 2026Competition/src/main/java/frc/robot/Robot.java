@@ -8,10 +8,9 @@ import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
-import org.littletonrobotics.junction.wpilog.WPILOGReader;
-import org.littletonrobotics.junction.LogFileUtil;
 
-import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.simulation.BatterySim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
@@ -108,5 +107,26 @@ public class Robot extends LoggedRobot {
   public void testExit() {}
 
   @Override
-  public void simulationPeriodic() {}
+  public void simulationPeriodic() {
+    // One shared battery voltage for the whole robot simulation.
+    // Each subsystem should set its motor controller SimState supply voltage from RoboRioSim.getVInVoltage().
+
+    double totalCurrentAmps = 0.0;
+
+    // Sum current draw from subsystems that simulate loads.
+    // (Each subsystem returns 0 if disabled or not sim.)
+    totalCurrentAmps += RobotContainer.turretSubsystem.getSimCurrentDrawAmps();
+    totalCurrentAmps += RobotContainer.m_kraken.getSimCurrentDrawAmps();
+    totalCurrentAmps += RobotContainer.hopperSubsystem.getSimCurrentDrawAmps();
+    totalCurrentAmps += RobotContainer.shooterSubsystem.getSimCurrentDrawAmps();
+    totalCurrentAmps += RobotContainer.intakeSubsystem.getSimCurrentDrawAmps();
+    totalCurrentAmps += RobotContainer.transferSubsystem.getSimCurrentDrawAmps();
+    totalCurrentAmps += RobotContainer.spindexerSubsystem.getSimCurrentDrawAmps();
+    totalCurrentAmps += RobotContainer.hoodSubsystem.getSimCurrentDrawAmps();
+    totalCurrentAmps += RobotContainer.climbSubsystem.getSimCurrentDrawAmps(); // if present/enabled
+
+    // Convert current draw -> loaded battery voltage and apply to RoboRIO (shared for all devices).
+    RoboRioSim.setVInVoltage(BatterySim.calculateDefaultBatteryLoadedVoltage(totalCurrentAmps));
+  }
+
 }

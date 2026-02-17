@@ -340,6 +340,14 @@ public class IntakeSubsystem extends SubsystemBase {
     }
   }
 
+  public double getSimCurrentDrawAmps() {
+    if (!isSim || !EnabledSubsystems.intake) {
+      return 0.0;
+    }
+    return (rollerSim.getCurrentDrawAmps() + pivotSim.getCurrentDrawAmps());
+  }
+
+
   @Override
   public void simulationPeriodic() {
     if (!isSim) {
@@ -378,9 +386,7 @@ public class IntakeSubsystem extends SubsystemBase {
     pivotSimState.setRawRotorPosition(simPivotPosRot);
     pivotSimState.setRotorVelocity(pivotRps);
 
-    RoboRioSim.setVInVoltage(
-        BatterySim.calculateDefaultBatteryLoadedVoltage(
-            rollerSim.getCurrentDrawAmps() + pivotSim.getCurrentDrawAmps()));
+    
   }
   
 }
