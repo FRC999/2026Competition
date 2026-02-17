@@ -8,6 +8,7 @@ import org.opencv.core.RotatedRect;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.RobotContainer;
 import frc.robot.lib.TrajectoryHelper.AutoDesiredPoses;
@@ -21,18 +22,19 @@ public class AutoStrategyFive extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
+      // new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.522, 6.45, new Rotation2d(0)))),
        RobotContainer.runTrajectory2Poses(
             true,
             RobotContainer.driveSubsystem.getPose(),
             new Pose2d(AutoDesiredPoses.BlueBumpLeft2.getTranslation(), new Rotation2d(Math.toRadians(90)))),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueNeutralRight",false, false),
-        new StartIntake(),
+        //new StartIntake(),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueNeutralLeft",false, false),
-        new StopIntake(),
+        //new StopIntake(),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeft_BlueBumpLeft",false, false),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft_BlueDepot",false, false)
-          .alongWith(new AutoShootUntilEmpty()),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower",false, false)
+          //.alongWith(new AutoShootUntilEmpty()),
+        ,RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower",false, false)
         // TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }

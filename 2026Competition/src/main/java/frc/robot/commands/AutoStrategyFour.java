@@ -23,8 +23,7 @@ public class AutoStrategyFour extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
-          new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
+        new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
         RobotContainer.runTrajectory2Poses(
             true,
             RobotContainer.driveSubsystem.getPose(),
