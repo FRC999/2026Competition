@@ -25,7 +25,7 @@ public class AutoStrategySix extends SequentialCommandGroup {
             true,
             RobotContainer.driveSubsystem.getPose(),
             new Pose2d(AutoDesiredPoses.BlueBumpLeft2.getTranslation(), new Rotation2d(90))),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueNeutralRight",false, false),
+        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_BlueNeutralRight",false, false),
         //new StartIntake(),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueNeutralLeft",false, false),
         //new StopIntake(),

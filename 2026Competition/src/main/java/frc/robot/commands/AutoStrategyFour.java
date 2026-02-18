@@ -26,16 +26,17 @@ public class AutoStrategyFour extends SequentialCommandGroup {
         new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
         RobotContainer.runTrajectory2Poses(
             true,
+            //new Pose2d(3.3538, 5.279, new Rotation2d(0)),
             RobotContainer.driveSubsystem.getPose(),
-            new Pose2d(AutoDesiredPoses.BlueBumpLeft2.getTranslation(), new Rotation2d(Math.toRadians(-90)))),
+            new Pose2d(AutoDesiredPoses.BlueBumpLeft2.getTranslation(), new Rotation2d(Math.toRadians(0)))),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueNeutralLeft",false, false),
-        //new StartIntake(),
+        new StartIntake(),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeft_BlueNeutralMiddle",false, false),
-        //new StopIntake(),
+        new StopIntake(),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralMiddle_BlueBumpLeft",false, false),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft_BlueDepot",false, false)
-          //.alongWith(new AutoShootUntilEmpty()),
-        ,RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower",false, false)
+          .alongWith(new AutoShootUntilEmpty()),
+        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower",false, false)
         // TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }

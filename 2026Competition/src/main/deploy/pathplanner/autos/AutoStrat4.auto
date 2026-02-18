@@ -7,25 +7,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Strat4RightBumpToNeutral"
+            "pathName": null
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Strat4NeutralTopToDown"
+            "pathName": null
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Strat4NeutralDownToDepot"
+            "pathName": null
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Strat4DepotToClimb"
+            "pathName": null
           }
         }
       ]
