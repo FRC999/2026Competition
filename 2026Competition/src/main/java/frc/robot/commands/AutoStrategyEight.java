@@ -23,14 +23,15 @@ public class AutoStrategyEight extends SequentialCommandGroup {
       new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
       RobotContainer.runTrajectory2Poses(
             true,
-            RobotContainer.driveSubsystem.getPose(),
+            new Pose2d(3.538, 2.352, new Rotation2d(Math.toRadians(0))),
+            //RobotContainer.driveSubsystem.getPose(),
             AutoDesiredPoses.BlueBumpRight2),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_InterferenceRight",false, false),
         //new StartIntake(),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("InterferenceRight_InterferenceLeft",false, false),
         //new StopIntake(),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("InterferenceLeft_BlueBumpLeft",false, false),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueTower",false, false)
+        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft_BlueTower",false, false)
         // TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }
