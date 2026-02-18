@@ -25,8 +25,9 @@ public class AutoStrategyFive extends SequentialCommandGroup {
       // new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.522, 6.45, new Rotation2d(0)))),
        RobotContainer.runTrajectory2Poses(
             true,
+            //new Pose2d(3.538, 2.352, new Rotation2d(Math.toRadians(0))),
             RobotContainer.driveSubsystem.getPose(),
-            new Pose2d(AutoDesiredPoses.BlueBumpRight2.getTranslation(), new Rotation2d(Math.toRadians(90)))),
+            new Pose2d(AutoDesiredPoses.BlueBumpRight2.getTranslation(), new Rotation2d(Math.toRadians(0)))),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_BlueNeutralRight",false, false),
         //new StartIntake(),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueNeutralLeft",false, false),

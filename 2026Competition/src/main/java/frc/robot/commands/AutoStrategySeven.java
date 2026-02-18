@@ -23,22 +23,22 @@ public class AutoStrategySeven extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
       new DeferredCommand(
           () -> RobotContainer.runTrajectory2Poses(
               true,
-              RobotContainer.driveSubsystem.getPose(),
-              new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueBumpRight2.getTranslation(), new Rotation2d(Math.toRadians(-90)))),
+              new Pose2d(3.538, 2.352, new Rotation2d(Math.toRadians(0))),
+              //RobotContainer.driveSubsystem.getPose(),
+              new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueBumpRight2.getTranslation(), new Rotation2d(Math.toRadians(0)))),
           Set.of(RobotContainer.driveSubsystem)),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_BlueNeutralMiddle", false, false),
-      new StartIntake(),
+      //new StartIntake(),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralMiddle_BlueNeutralRight", false, false),
-      new StopIntake(),
+      //new StopIntake(),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueBumpRight", false, false),
-      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight_BlueOutpost", false, false)
-          .alongWith(new AutoShootUntilEmpty()),
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight_BlueOutpost", false, false),
+         // .alongWith(new AutoShootUntilEmpty()),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueOutpost_BlueTower", false, false)
-          .alongWith(new AutoShootUntilEmpty())
+         // .alongWith(new AutoShootUntilEmpty())
           //TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }
