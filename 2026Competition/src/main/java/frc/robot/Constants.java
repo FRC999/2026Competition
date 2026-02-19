@@ -67,9 +67,9 @@ public static final class EnabledSubsystems {
   public static final boolean questnav = false;
   public static final boolean intake = false;
   public static final boolean shooter = false;
-  public static final boolean turret = false;
+  public static final boolean turret = true;
   public static final boolean hood = false;
-  public static final boolean hopper = true;
+  public static final boolean hopper = false;
   public static final boolean spindexer = false;
   public static final boolean transfer = false;
   public static final boolean climber = false;
@@ -77,17 +77,17 @@ public static final class EnabledSubsystems {
 }
 
 
-	public static final class DebugTelemetrySubsystems {
+	public static final class DebugTelemetrySubsystems {  
 		public static final boolean odometry = true;
-		public static final boolean imu = true;
+		public static final boolean imu = false;
 		public static final boolean chassis = true;
 		public static final boolean ll = false;
 		public static final boolean questnav = false;
     public static final boolean intake = false;
     public static final boolean shooter = false;
-    public static final boolean turret = false;
+    public static final boolean turret = true;
     public static final boolean hood = false;
-    public static final boolean hopper = true; 
+    public static final boolean hopper = false; 
     public static final boolean spindexer = false;
     public static final boolean transfer = false;
     public static final boolean climber = false;
@@ -431,7 +431,7 @@ public static final class EnabledSubsystems {
       public static final double MM_ACCEL_RPS2 = 2.0;
 
       /** Simulation placeholders. */
-      public static final double SIM_GEAR_RATIO = 1.0;
+      public static final double SIM_GEAR_RATIO = 11.0/280.0; //pinion has 11 teeth, turret ring has 280
       public static final double SIM_TURRET_J_KGM2 = 0.002;
       // Simulation-only: use a fixed supply so this subsystem doesn't collapse RoboRIO voltage.
       public static final double SIM_SUPPLY_VOLTS = 12.0;

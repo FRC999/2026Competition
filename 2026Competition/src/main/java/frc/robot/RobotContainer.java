@@ -22,6 +22,7 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -74,7 +75,7 @@ public class RobotContainer {
   // Use open-loop control for drive motors
   private final Telemetry logger = new Telemetry(SwerveConstants.MaxSpeed);
 
-  private final Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
+  private static Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
   private static final Joystick turretStick =  new Joystick(0);
@@ -364,43 +365,72 @@ public class RobotContainer {
 //             m_kraken
 //         ));
 // Hold A → rotate turret left
-// new JoystickButton(turretStick, 3).whileTrue(
-//     Commands.runEnd(
-//         () -> turretSubsystem.setVoltageVolts(-12),
-//         () -> turretSubsystem.stop(),
-//         turretSubsystem
-//     )
-// );
+new JoystickButton(turretStick, 3).whileTrue(
+    Commands.runEnd(
+        () -> turretSubsystem.setVoltageVolts(-12),
+        () -> turretSubsystem.stop(),
+        turretSubsystem
+    )
+);
 
-// // Hold B → rotate turret right
-// new JoystickButton(turretStick, 4).whileTrue(
-//     Commands.runEnd(
-//         () -> turretSubsystem.setVoltageVolts(12),
-//         () -> turretSubsystem.stop(),
-//         turretSubsystem
-//     )
-// );
+// Hold B → rotate turret right
+new JoystickButton(turretStick, 4).whileTrue(
+    Commands.runEnd(
+        () -> turretSubsystem.setVoltageVolts(12),
+        () -> turretSubsystem.stop(),
+        turretSubsystem
+    )
+);
 
-    new JoystickButton(turretStick, 3).whileTrue(
-      Commands.runEnd(
-        () -> hopperSubsystem.setStageDuty(1.0),
-        () -> hopperSubsystem.stop(),
-        hopperSubsystem)
-    );
+    // new JoystickButton(turretStick, 3).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hopperSubsystem.setStageDuty(1.0),
+    //     () -> hopperSubsystem.stop(),
+    //     hopperSubsystem)
+    // );
 
-    new JoystickButton(turretStick, 4).whileTrue(
-      Commands.runEnd(
-        () -> hopperSubsystem.setStageDuty(-1.0),
-        () -> hopperSubsystem.stop(),
-        hopperSubsystem)
-    );
+    // new JoystickButton(turretStick, 4).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hopperSubsystem.setStageDuty(-1.0),
+    //     () -> hopperSubsystem.stop(),
+    //     hopperSubsystem)
+    // );
 
-    new JoystickButton(turretStick, 5).whileTrue(
-      Commands.runEnd(
-        () -> hopperSubsystem.setStageDuty(0.5),
-        () -> hopperSubsystem.stop(),
-        hopperSubsystem)
-    );
+    // new JoystickButton(turretStick, 5).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hopperSubsystem.setStageDuty(0.5),
+    //     () -> hopperSubsystem.stop(),
+    //     hopperSubsystem)
+    // );
+
+    
+    // new JoystickButton(xboxDriveController, 1).whileTrue(
+    //   Commands.runEnd(
+    //     () -> shooterSubsystem.setDutyCycle(.32),
+    //     () -> shooterSubsystem.stop(),
+    //     shooterSubsystem)
+    // );
+    
+    // new JoystickButton(xboxDriveController, 2).whileTrue(
+    //   Commands.runEnd(
+    //     () -> shooterSubsystem.setDutyCycle(-.32),
+    //     () -> shooterSubsystem.stop(),
+    //     shooterSubsystem)
+    // );
+
+    // new JoystickButton(xboxDriveController, 3).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hoodSubsystem.setDutyCycle(0.125),
+    //     () -> hoodSubsystem.stop(),
+    //     hoodSubsystem)
+    // );
+
+    // new JoystickButton(xboxDriveController, 4).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hoodSubsystem.setDutyCycle(-0.125),
+    //     () -> hoodSubsystem.stop(),
+    //     hoodSubsystem)
+    // );
 
   }
 
