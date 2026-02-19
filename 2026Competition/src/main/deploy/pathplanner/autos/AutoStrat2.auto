@@ -7,19 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Strat2RightTrenchtoNeutral"
+            "pathName": null
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Strat2NeutralUpToNeutralDown"
+            "pathName": null
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Strat2NeutralToClimb"
+            "pathName": null
           }
         }
       ]

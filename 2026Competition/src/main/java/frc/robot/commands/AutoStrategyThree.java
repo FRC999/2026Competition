@@ -21,11 +21,11 @@ public class AutoStrategyThree extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.527, 2.713, new Rotation2d(Math.toRadians(-90))))),
       RobotContainer.runTrajectory2Poses(
-          false,
-          RobotContainer.driveSubsystem.getPose(), 
-          AutoDesiredPoses.BlueOutpost),
+          true,
+          new Pose2d(3.538, 2.352, new Rotation2d(Math.toRadians(180))),
+          //RobotContainer.driveSubsystem.getPose(), 
+          new Pose2d(AutoDesiredPoses.BlueOutpost.getTranslation(), new Rotation2d(180))),
         //.alongWith(new AutoShootUntilEmpty()),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueOutpost_BlueTower", false, false)
         //.alongWith(new AutoShootUntilEmpty())
