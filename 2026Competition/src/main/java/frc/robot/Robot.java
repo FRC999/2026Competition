@@ -117,7 +117,6 @@ public class Robot extends LoggedRobot {
     // (Each subsystem returns 0 if disabled or not sim.)
     totalCurrentAmps += RobotContainer.turretSubsystem.getSimCurrentDrawAmps();
     totalCurrentAmps += RobotContainer.m_kraken.getSimCurrentDrawAmps();
-    totalCurrentAmps += RobotContainer.hopperSubsystem.getSimCurrentDrawAmps();
     totalCurrentAmps += RobotContainer.shooterSubsystem.getSimCurrentDrawAmps();
     totalCurrentAmps += RobotContainer.intakeSubsystem.getSimCurrentDrawAmps();
     totalCurrentAmps += RobotContainer.transferSubsystem.getSimCurrentDrawAmps();

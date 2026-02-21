@@ -71,7 +71,7 @@ public static final class EnabledSubsystems {
   public static final boolean hood = false;
   public static final boolean hopper = true;
   public static final boolean spindexer = false;
-  public static final boolean transfer = false;
+  public static final boolean transfer = true;
   public static final boolean climber = false;
   public static final boolean supervisor = false;
 }
@@ -89,7 +89,7 @@ public static final class EnabledSubsystems {
     public static final boolean hood = false;
     public static final boolean hopper = true; 
     public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
@@ -603,17 +603,46 @@ public static final class Transfer {
 
   /** Sensor at transfer entry (just AFTER the spindexer handoff). */
   public static final int ENTRY_SENSOR_DIO = 0; // TODO set
-  public static final boolean ENTRY_SENSOR_INVERTED = true; // common for beam breaks
+  public static final boolean ENTRY_SENSOR_INVERTED = false; // raw==true means ball present
 
   /** Sensor at shooter throat (exit of transfer). */
   public static final int THROAT_SENSOR_DIO = 1; // TODO set
-  public static final boolean THROAT_SENSOR_INVERTED = true;
-
+  public static final boolean THROAT_SENSOR_INVERTED = false; // raw==true means ball present
+  
   /** Slow speed to keep balls staged without slamming them into the shooter. */
   public static final double STAGE_DUTY = 0.20;
   /** Fast speed to inject a ball into the shooter. */
   public static final double FEED_DUTY = 0.85;
 
+    // ---------------- Closed-loop velocity targets (RPS) ----------------
+  // TODO: These setpoints are placeholders until the robot is fully built and you can test/measure
+  //       ideal transfer speeds with real balls.
+  /** Staging target speed in rotor RPS (closed-loop). */
+  public static final double STAGE_RPS = 20.0; // TODO: placeholder, tune on robot
+  /** Feeding target speed in rotor RPS (closed-loop). */
+  public static final double FEED_RPS = 60.0;  // TODO: placeholder, tune on robot
+
+  /**
+   * When a ball is already at the throat, staging should stop to avoid jamming/compressing.
+   * If you later prefer a very slow "creep hold", change this to a small nonzero value.
+   */
+  public static final double THROAT_BLOCKED_STAGE_RPS = 0.0; // TODO: placeholder (0 = stop)
+
+  // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
+  // TODO: All gains are placeholders and MUST be tuned on the real robot.
+  // Units:
+  // - kS, kV are in "duty" terms because we use VelocityDutyCycle.
+  // - kP is duty per (RPS error).
+  public static final double VEL_kS = 0.02;   // TODO: placeholder
+  public static final double VEL_kV = 0.01;   // TODO: placeholder
+  public static final double VEL_kP = 0.05;   // TODO: placeholder
+  public static final double VEL_kI = 0.0;    // TODO: placeholder
+  public static final double VEL_kD = 0.0;    // TODO: placeholder
+
+  // ---------------- Motor safety defaults ----------------
+  // Reasonable defaults (you authorized defaults). Tune as needed after measuring performance.
+  public static final double SUPPLY_CURRENT_LIMIT_A = 35.0; // TODO: verify/tune
+  public static final double STATOR_CURRENT_LIMIT_A = 60.0; // TODO: verify/tune
 
   /** Simulation placeholders. */
   public static final double SIM_GEAR_RATIO = 1.0;

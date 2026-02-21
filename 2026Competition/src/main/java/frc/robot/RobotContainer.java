@@ -55,7 +55,6 @@ import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 import frc.robot.subsystems.ClimbSubsystem;
 import frc.robot.subsystems.DriveSubsystem;
-import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.KrakenMotorSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
@@ -87,7 +86,6 @@ public class RobotContainer {
   public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
   public static TurretSubsystem turretSubsystem = new TurretSubsystem();
   public static ShooterSubsystem shooterSubsystem = new ShooterSubsystem();
-  public static HopperSubsystem hopperSubsystem = new HopperSubsystem();
   public static TransferSubsystem transferSubsystem = new TransferSubsystem();
   public static SpindexerSubsystem spindexerSubsystem = new SpindexerSubsystem();
   public static HoodSubsystem hoodSubsystem = new HoodSubsystem();
@@ -380,27 +378,6 @@ public class RobotContainer {
 //         turretSubsystem
 //     )
 // );
-
-    new JoystickButton(turretStick, 3).whileTrue(
-      Commands.runEnd(
-        () -> hopperSubsystem.setStageDuty(1.0),
-        () -> hopperSubsystem.stop(),
-        hopperSubsystem)
-    );
-
-    new JoystickButton(turretStick, 4).whileTrue(
-      Commands.runEnd(
-        () -> hopperSubsystem.setStageDuty(-1.0),
-        () -> hopperSubsystem.stop(),
-        hopperSubsystem)
-    );
-
-    new JoystickButton(turretStick, 5).whileTrue(
-      Commands.runEnd(
-        () -> hopperSubsystem.setStageDuty(0.5),
-        () -> hopperSubsystem.stop(),
-        hopperSubsystem)
-    );
 
   }
 
