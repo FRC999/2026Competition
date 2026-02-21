@@ -381,8 +381,8 @@ public static final class EnabledSubsystems {
       public static final double BOOT_MAX_ABS_DEG = 180.0;
 
       /** Mechanical safe range relative to forward (degrees). */
-      public static final double MIN_ANGLE_DEG = -340.0;
-      public static final double MAX_ANGLE_DEG = 340.0;
+      public static final double MIN_ANGLE_DEG = -180.0;
+      public static final double MAX_ANGLE_DEG = 180.0;
 
       /**
        * "Soft" limit for auto-aiming (degrees from your turret ZERO). Your notes indicate ~±200°.
@@ -390,9 +390,20 @@ public static final class EnabledSubsystems {
        * This does NOT replace the hard umbilical safety (MIN_ANGLE_DEG/MAX_ANGLE_DEG). It is used
        * only by the auto-aim / auto-shoot logic to prefer flipping before you reach the edge.
        */
-      public static final double SOFT_AIM_LIMIT_DEG = 200.0;
+      // public static final double SOFT_AIM_LIMIT_DEG = 200.0;
+      public static final double SOFT_AIM_LIMIT_DEG = 180.0; //Changed
+      /**
+       * Soft limit for auto-aiming (degrees from your turret zero).
+       * For a ±180 turret, this MUST be <= 180 or you can accidentally select ±360
+       * "equivalents".
+       */
+      // TODO: Consider setting slightly inside hard limit (e.g. 175-179) once you
+      // verify real margins.
 
-      /** True if your turret "ZERO" (and ABS_FORWARD_TICKS reference) points toward the ROBOT BACK. */
+      /**
+       * True if your turret "ZERO" (and ABS_FORWARD_TICKS reference) points toward
+       * the ROBOT BACK.
+       */
       public static final boolean ZERO_POINTS_ROBOT_BACK = true;
       /**
        * When within this margin of a limit, prefer turning the other direction when
@@ -431,8 +442,19 @@ public static final class EnabledSubsystems {
       public static final double MM_CRUISE_VEL_RPS = 1.0/60.0; 
       public static final double MM_ACCEL_RPS2 = 2.0;
 
+      /**
+       * Motion Magic defaults expressed in turret physical units (deg/s, deg/s^2).
+       * These are initial approximations to track the hub while driving quickly.
+       *
+       * Reasoning: omega ≈ v/r. With v=5.5 m/s and close range r~1.5–2.0 m,
+       * omega ~ 158–210 deg/s. Use cruise ~240 deg/s for headroom.
+       */
+      // TODO: Tune on real robot.
+      public static final double MM_CRUISE_DEG_PER_SEC = 240.0;
+      public static final double MM_ACCEL_DEG_PER_SEC2 = 1200.0;
+
       /** Simulation placeholders. */
-      public static final double SIM_GEAR_RATIO = 11.0/280.0; //pinion has 11 teeth, turret ring has 280
+      public static final double SIM_GEAR_RATIO = 280.0/11.0; //pinion has 11 teeth, turret ring has 280
       public static final double SIM_TURRET_J_KGM2 = 0.002;
       // Simulation-only: use a fixed supply so this subsystem doesn't collapse RoboRIO voltage.
       public static final double SIM_SUPPLY_VOLTS = 12.0;
@@ -441,8 +463,36 @@ public static final class EnabledSubsystems {
       public static final double SIM_BRAKE_DEADBAND_VOLTS = 0.15;
       public static final double SIM_BRAKE_KS_VOLTS = 2.0;                 // static-like braking
       public static final double SIM_BRAKE_KV_VOLTS_PER_RAD_PER_SEC = 0.25; // viscous braking
-      public static final double SIM_STOP_OMEGA_EPS_RAD_PER_SEC = 0.10;     // snap-to-zero threshold
+      public static final double SIM_STOP_OMEGA_EPS_RAD_PER_SEC = 0.10; // snap-to-zero threshold
 
+      /** Gear ratio: motor pinion 11 teeth, turret ring 280 teeth. */
+      public static final double GEAR_RATIO_TURRET_ROT_PER_MOTOR_ROT = 11.0 / 280.0; // output / input
+      public static final double GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT = 280.0 / 11.0; // input / output
+
+      /** Conversions for integrated sensor (motor rotations) <-> turret degrees. */
+      public static final double MOTOR_ROT_PER_TURRET_DEG = GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT / 360.0;
+      public static final double TURRET_DEG_PER_MOTOR_ROT = 1.0 / MOTOR_ROT_PER_TURRET_DEG;
+
+      /** Calibration-only safe jog limit (do NOT use MAX_DUTY_CYCLE for testing). */
+      // TODO: Tune to a safe value for your turret.
+      public static final double CAL_JOG_MAX_DUTY = 0.20;
+
+      /** Calibration step targets. */
+      // TODO: Adjust if needed
+      public static final double CAL_STEP_SMALL_DEG = 30.0;
+      public static final double CAL_STEP_LARGE_DEG = 90.0;
+
+      /** Sweep test parameters. */
+      // TODO: Ensure safe and within hard limits
+      public static final double CAL_SWEEP_MIN_DEG = -90.0;
+      public static final double CAL_SWEEP_MAX_DEG = 90.0;
+      // TODO: Tune
+      public static final double CAL_SWEEP_PERIOD_SEC = 1.5;
+
+      /** Live tuning increments (testing only). */
+      // TODO: Tune increments
+      public static final double CAL_KP_STEP = 1.0;
+      public static final double CAL_KD_STEP = 0.1;
     }
 
 

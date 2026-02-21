@@ -11,6 +11,8 @@ import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -75,8 +77,7 @@ public class TurretSubsystem extends SubsystemBase {
   // Open-loop duty request (used for manual and SysId drive).
   private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
 
-  // Closed-loop position request (hardware position loop in Slot0).
-  private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0);
+  private final MotionMagicVoltage mmRequest = new MotionMagicVoltage(0).withSlot(0);
 																							  
   private final VoltageOut voltageRequest = new VoltageOut(0);
 
@@ -127,10 +128,9 @@ public class TurretSubsystem extends SubsystemBase {
   // ---------------- Continuous wrap toggling ----------------
 
   // Tracks the currently-applied wrap mode (so we don't spam configs).
-  private boolean continuousWrapEnabled = true;
-
-  // Prebuilt config objects for toggling wrap behavior.
-  private final ClosedLoopGeneralConfigs clWrapOn = new ClosedLoopGeneralConfigs().withContinuousWrap(true);
+  // With a ±180 turret and the requirement (-170 -> +170 goes through 0),
+  // continuous wrap MUST remain disabled.
+  private boolean continuousWrapEnabled = false;
   private final ClosedLoopGeneralConfigs clWrapOff = new ClosedLoopGeneralConfigs().withContinuousWrap(false);
 
   // ---------------- Simulation ----------------
@@ -259,12 +259,24 @@ public class TurretSubsystem extends SubsystemBase {
       .withKV(Constants.OperatorConstants.Turret.kV)
       .withKA(Constants.OperatorConstants.Turret.kA);
 
+  double cruiseMotorRps = (Constants.OperatorConstants.Turret.MM_CRUISE_DEG_PER_SEC / 360.0)
+      * Constants.OperatorConstants.Turret.GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT;
+
+  double accelMotorRps2 = (Constants.OperatorConstants.Turret.MM_ACCEL_DEG_PER_SEC2 / 360.0)
+      * Constants.OperatorConstants.Turret.GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT;
+
+  MotionMagicConfigs mm = new MotionMagicConfigs()
+      .withMotionMagicCruiseVelocity(cruiseMotorRps)
+      .withMotionMagicAcceleration(accelMotorRps2);
+
   // IMPORTANT: Turret closed-loop uses the TalonFX integrated (relative) sensor.
   // The CANcoder/ThroughBore is used ONLY to seed the integrated sensor at boot.
   TalonFXConfiguration cfg = new TalonFXConfiguration()
-      .withMotorOutput(out)
-      .withCurrentLimits(limits)
-      .withSlot0(slot0);
+    .withMotorOutput(out)
+    .withCurrentLimits(limits)
+    .withSlot0(slot0)
+    .withMotionMagic(mm)
+    .withClosedLoopGeneral(clWrapOff);
 
   turret.getConfigurator().apply(cfg);
 }			  
@@ -281,17 +293,17 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
 								
-  private void setContinuousWrap(boolean enable) {
-    // If we're already in the desired wrap mode, do nothing (avoid CAN config spam).
-    if (enable == continuousWrapEnabled) return;
+  // private void setContinuousWrap(boolean enable) {
+  //   // If we're already in the desired wrap mode, do nothing (avoid CAN config spam).
+  //   if (enable == continuousWrapEnabled) return;
 
-    // Apply the wrap config to the motor controller.
-    turret.getConfigurator().apply(enable ? clWrapOn : clWrapOff);
+  //   // Apply the wrap config to the motor controller.
+  //   turret.getConfigurator().apply(enable ? clWrapOn : clWrapOff);
 
-    // Record state and publish for debugging.
-    continuousWrapEnabled = enable;
-    SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", enable);
-  }
+  //   // Record state and publish for debugging.
+  //   continuousWrapEnabled = enable;
+  //   SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", enable);
+  // }
 
   /**
    * Read absolute angle (deg) in [0, 360).
@@ -347,9 +359,12 @@ public class TurretSubsystem extends SubsystemBase {
     // Initialize continuous turret position in your forward-relative frame.
     continuousDeg = deltaDeg;
 
-    // Seed the TalonFX integrated position so closed-loop uses relative sensor from this point.
+    // Seed the TalonFX integrated position so closed-loop uses relative sensor from
+    // this point.
     // TalonFX position units are rotations; we keep continuousDeg in degrees.
-    turret.setPosition(continuousDeg / 360.0);
+    // Seed TalonFX integrated position in *motor* rotations, not turret rotations.
+    double motorRot = motorRotFromTurretDeg(continuousDeg);
+    turret.setPosition(ANGLE_SIGN * motorRot);
 
     // Initialize velocity bookkeeping.
     lastContinuousDeg = continuousDeg;
@@ -385,11 +400,14 @@ public class TurretSubsystem extends SubsystemBase {
       return;
     }
 
-        // Integrated TalonFX position is multi-turn and does not wrap.
-    double motorRot = motorPosSig.getValueAsDouble();
+    double motorRotSensor = motorPosSig.getValueAsDouble();
 
-    // Raw multi-turn degrees (NO CLAMP) for visualization
-    double nextUnclamped = motorRot * 360.0;
+    // Undo ANGLE_SIGN so motorRot is positive in your “CCW positive” turret
+    // convention.
+    double motorRot = motorRotSensor / ANGLE_SIGN;
+
+    // Convert motor rotations -> turret degrees using gear ratio.
+    double nextUnclamped = turretDegFromMotorRot(motorRot);
 
     // Safety-clamped degrees for control/safety logic
     double nextClamped = MathUtil.clamp(
@@ -487,46 +505,27 @@ public class TurretSubsystem extends SubsystemBase {
     return estVelDegPerSec;
   }
 
-  /**
-   * Command turret to desired angle (deg) relative to forward.
-   *
-   * <p>This method enforces +/-340 safety and chooses the best equivalent target among
-   * {deg, deg+360, deg-360} that stays inside the allowed range and minimizes travel.
-   *
-   * <p>Then it toggles continuous wrap:
-   *  - Wrap ON if |delta| <= 180 (short way)
-   *  - Wrap OFF if |delta| > 180 (force long way)
-   */
   public void goToAngleDeg(double desiredDeg) {
-    // Find the closest safe equivalent of desiredDeg (handles ±360 wrap candidates).
-    double best = chooseBestEquivalentTargetDeg(desiredDeg);
+    // Clamp to physical bounds. With ±180 hardware, we do not allow ±360
+    // equivalents.
+    double target = MathUtil.clamp(
+        desiredDeg,
+        Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
+        Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
 
-    // If no safe target exists, refuse the command and report.
-    if (Double.isNaN(best)) {
-      stop();
-      SmartDashboard.putString("Turret/GoalStatus", "REJECTED_UNREACHABLE");
-      return;
-    }
+    targetDeg = target;
 
-    // Store chosen target and compute delta from current continuous position.
-    targetDeg = best;
-    double delta = targetDeg - continuousDeg;
+    // Enforce wrap disabled for required behavior (-170 -> +170 goes through 0).
+    // setContinuousWrap(false);
 
-    // If short-way motion is <= 180°, enable continuous wrap; else force long-way.
-    boolean wantWrap = Math.abs(delta) <= 180.0;
-    setContinuousWrap(wantWrap);
+    // Convert turret degrees -> motor rotations in Talon sensor frame.
+    double motorRotTarget = ANGLE_SIGN * motorRotFromTurretDeg(target);
 
-    // Convert continuous target to wrapped [0,1) rotations in encoder frame.
-    // Multiply by ANGLE_SIGN so the controller sees the correct sign convention.
-    double targetRot = ANGLE_SIGN * wrappedRotFromContinuousDeg(targetDeg);
+    turret.setControl(mmRequest.withPosition(motorRotTarget));
 
-    // Command the hardware position loop.
-    turret.setControl(positionRequest.withPosition(targetRot));
-
-    // Telemetry block: target selection and mode decisions.
     SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
-    SmartDashboard.putNumber("Turret/DeltaDegCmd", delta);
-    SmartDashboard.putString("Turret/GoalStatus", wantWrap ? "SHORT_WRAP_ON" : "LONG_WRAP_OFF");
+    SmartDashboard.putNumber("Turret/DeltaDegCmd", targetDeg - continuousDeg);
+    SmartDashboard.putString("Turret/GoalStatus", "MM_WRAP_OFF_CLAMPED");
   }
 
   /** true if turret is within tolerance of desired angle (deg), using best safe equivalent. */
@@ -593,6 +592,155 @@ public class TurretSubsystem extends SubsystemBase {
     // Convert degrees to rotations [0,1).
     return absDeg / 360.0;
   }
+
+  private double motorRotFromTurretDeg(double turretDeg) {
+    return turretDeg * Constants.OperatorConstants.Turret.MOTOR_ROT_PER_TURRET_DEG;
+  }
+
+  private double turretDegFromMotorRot(double motorRot) {
+    return motorRot * Constants.OperatorConstants.Turret.TURRET_DEG_PER_MOTOR_ROT;
+  }
+
+  // ============================CALIBRATION METHODS===============================
+
+  // Calibration sweep state
+  private boolean isCalSweepEnabled = false;
+  private double calSweepStartTimeSec = 0.0;
+
+  // Live-tuned gains (calibration only)
+  private double tunedKp = Constants.OperatorConstants.Turret.kP;
+  private double tunedKd = Constants.OperatorConstants.Turret.kD;
+
+  public void reseedIntegratedFromAbsoluteNow() {
+    double absDeg = getAbsDegWrapped();
+    lastAbsDegWrapped = absDeg;
+
+    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
+    deltaDeg = MathUtil.clamp(
+        deltaDeg,
+        -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
+        Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG);
+
+    continuousDeg = deltaDeg;
+    continuousDegUnclamped = deltaDeg;
+
+    double motorRot = motorRotFromTurretDeg(continuousDeg);
+    turret.setPosition(ANGLE_SIGN * motorRot);
+
+    targetDeg = continuousDeg;
+
+    SmartDashboard.putNumber("Turret/ReseedAbsDeg", absDeg);
+    SmartDashboard.putNumber("Turret/ReseedContinuousDeg", continuousDeg);
+  }
+
+  public void captureAbsForwardTicksCandidate() {
+    int ticks = getAbsoluteTicks();
+    SmartDashboard.putNumber("Turret/AbsForwardTicksCandidate", ticks);
+  }
+
+  public void adjustKp(double delta) {
+    tunedKp = Math.max(0.0, tunedKp + delta);
+    applyTunedGains();
+  }
+
+  public void adjustKd(double delta) {
+    tunedKd = Math.max(0.0, tunedKd + delta);
+    applyTunedGains();
+  }
+
+  private void applyTunedGains() {
+    Slot0Configs slot0 = new Slot0Configs()
+        .withKP(tunedKp)
+        .withKI(Constants.OperatorConstants.Turret.kI)
+        .withKD(tunedKd)
+        .withKS(Constants.OperatorConstants.Turret.kS)
+        .withKV(Constants.OperatorConstants.Turret.kV)
+        .withKA(Constants.OperatorConstants.Turret.kA);
+
+    turret.getConfigurator().apply(slot0);
+
+    SmartDashboard.putNumber("Turret/TunedKP", tunedKp);
+    SmartDashboard.putNumber("Turret/TunedKD", tunedKd);
+  }
+
+  // =======================
+  // Calibration API
+  // =======================
+
+  /**
+   * Calibration: reseed TalonFX integrated position from absolute encoder NOW.
+   */
+  public void calibrationReseedIntegratedFromAbsoluteNow() {
+    double absDeg = getAbsDegWrapped();
+    lastAbsDegWrapped = absDeg;
+
+    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
+    deltaDeg = MathUtil.clamp(
+        deltaDeg,
+        -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
+        Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG);
+
+    continuousDeg = deltaDeg;
+    continuousDegUnclamped = deltaDeg;
+
+    double motorRot = motorRotFromTurretDeg(continuousDeg);
+    turret.setPosition(ANGLE_SIGN * motorRot);
+
+    targetDeg = continuousDeg;
+
+    SmartDashboard.putNumber("Turret/Cal/ReseedAbsDeg", absDeg);
+    SmartDashboard.putNumber("Turret/Cal/ReseedContinuousDeg", continuousDeg);
+  }
+
+  /**
+   * Calibration: capture absolute ticks at current turret pose to manually set
+   * ABS_FORWARD_TICKS.
+   */
+  public void calibrationCaptureAbsForwardTicksCandidate() {
+    int ticks = getAbsoluteTicks();
+    SmartDashboard.putNumber("Turret/Cal/AbsForwardTicksCandidate", ticks);
+  }
+
+  /**
+   * Calibration: go to a turret angle using Motion Magic (wrap disabled,
+   * clamped).
+   */
+  public void calibrationGoToAngleDeg(double desiredDeg) {
+    goToAngleDeg(desiredDeg); // uses your updated MotionMagicVoltage + clamp + wrap-off behavior
+  }
+
+  /** Calibration: start/stop a sweep test. */
+  public void calibrationStartSweep() {
+    // Using internal state so the command can just toggle enable/disable.
+    isCalSweepEnabled = true;
+    calSweepStartTimeSec = Timer.getFPGATimestamp();
+    SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", true);
+  }
+
+  public void calibrationStopSweep() {
+    isCalSweepEnabled = false;
+    SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", false);
+  }
+
+  /** Calibration: adjust tuned Slot0 kP by delta (testing only). */
+  public void calibrationAdjustKp(double delta) {
+    tunedKp = Math.max(0.0, tunedKp + delta);
+    applyTunedGains();
+  }
+
+  /** Calibration: adjust tuned Slot0 kD by delta (testing only). */
+  public void calibrationAdjustKd(double delta) {
+    tunedKd = Math.max(0.0, tunedKd + delta);
+    applyTunedGains();
+  }
+
+  public void calibrationToggleSweep() {
+  if (isCalSweepEnabled) {
+    calibrationStopSweep();
+  } else {
+    calibrationStartSweep();
+  }
+}
 
   // ---------------- SysId commands ----------------
 
@@ -661,7 +809,28 @@ public class TurretSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("Turret/AbsDegWrapped", lastAbsDegWrapped);
       SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
       SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
+      SmartDashboard.putNumber("Turret/ErrorDeg", targetDeg - continuousDeg);
+      SmartDashboard.putBoolean("Turret/At1Deg", Math.abs(targetDeg - continuousDeg) <= 1.0);
+      SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", isCalSweepEnabled);
     } 
+
+    // Calibration sweep: ping-pong between CAL_SWEEP_MIN_DEG and CAL_SWEEP_MAX_DEG.
+    if (isCalSweepEnabled) {
+      double t = Timer.getFPGATimestamp() - calSweepStartTimeSec;
+
+      double period = Constants.OperatorConstants.Turret.CAL_SWEEP_PERIOD_SEC;
+      double minDeg = Constants.OperatorConstants.Turret.CAL_SWEEP_MIN_DEG;
+      double maxDeg = Constants.OperatorConstants.Turret.CAL_SWEEP_MAX_DEG;
+
+      // Triangle wave in [0, 1]
+      double phase = (t % period) / period; // [0,1)
+      double tri = phase < 0.5 ? (phase * 2.0) : (2.0 - phase * 2.0);
+
+      double cmdDeg = minDeg + (maxDeg - minDeg) * tri;
+
+      calibrationGoToAngleDeg(cmdDeg);
+      SmartDashboard.putNumber("Turret/Cal/SweepCmdDeg", cmdDeg);
+    }
 
     if (Constants.DebugTelemetrySubsystems.turret && turretArm != null) {
       turretArm.setAngle(wrapTo0To360(continuousDegUnclamped));

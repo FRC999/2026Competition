@@ -50,6 +50,7 @@ import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
+import frc.robot.commands.TurretCalibrationJogCommand;
 import frc.robot.commands.TurretJogCommand;
 import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
@@ -191,6 +192,7 @@ public class RobotContainer {
     // .onFalse(stopRobotCommand());
     //testTurretShooter();
     //testAuto();
+    configureTurretCalibrationBindings();
   }
 
   public Command stopRobotCommand() {
@@ -441,6 +443,90 @@ public class RobotContainer {
     //     hoodSubsystem)
     // );
 
+  }
+
+  private void configureTurretCalibrationBindings() {
+    // 1-2: hold-to-jog (open loop)
+    new JoystickButton(turretStick, 1)
+        .whileTrue(new TurretCalibrationJogCommand(-Constants.OperatorConstants.Turret.CAL_JOG_MAX_DUTY));
+
+    new JoystickButton(turretStick, 2)
+        .whileTrue(new TurretCalibrationJogCommand(Constants.OperatorConstants.Turret.CAL_JOG_MAX_DUTY));
+
+    // 3: reseed integrated from absolute now
+    new JoystickButton(turretStick, 3)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationReseedIntegratedFromAbsoluteNow(),
+            RobotContainer.turretSubsystem));
+
+    // 4: capture absolute ticks candidate (copy into ABS_FORWARD_TICKS manually)
+    JoystickButton capture = new JoystickButton(turretStick, 4);
+    capture.onTrue(new InstantCommand(
+        () -> RobotContainer.turretSubsystem.calibrationCaptureAbsForwardTicksCandidate(),
+        RobotContainer.turretSubsystem));
+
+    // 5-9: Motion Magic step targets
+    new JoystickButton(turretStick, 5)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(0.0),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 6)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
+                Constants.OperatorConstants.Turret.CAL_STEP_SMALL_DEG),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 7)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
+                -Constants.OperatorConstants.Turret.CAL_STEP_SMALL_DEG),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 8)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
+                Constants.OperatorConstants.Turret.CAL_STEP_LARGE_DEG),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 9)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
+                -Constants.OperatorConstants.Turret.CAL_STEP_LARGE_DEG),
+            RobotContainer.turretSubsystem));
+
+    // 10: toggle sweep (sweep motion runs from TurretSubsystem.periodic while
+    // enabled)
+    new JoystickButton(turretStick, 10)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationToggleSweep(),
+            RobotContainer.turretSubsystem));
+
+    // 11/12: +kP / -kP
+    new JoystickButton(turretStick, 11)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationAdjustKp(
+                Constants.OperatorConstants.Turret.CAL_KP_STEP),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 12)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationAdjustKp(
+                -Constants.OperatorConstants.Turret.CAL_KP_STEP),
+            RobotContainer.turretSubsystem));
+
+    // Modifier: hold button 4 while tapping 11/12 adjusts kD instead
+    capture.and(new JoystickButton(turretStick, 11))
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationAdjustKd(
+                Constants.OperatorConstants.Turret.CAL_KD_STEP),
+            RobotContainer.turretSubsystem));
+
+    capture.and(new JoystickButton(turretStick, 12))
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationAdjustKd(
+                -Constants.OperatorConstants.Turret.CAL_KD_STEP),
+            RobotContainer.turretSubsystem));
   }
 
   public void publishPoseToAdvantageScope() {
