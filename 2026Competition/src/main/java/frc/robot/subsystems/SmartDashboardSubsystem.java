@@ -52,8 +52,8 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
     ElasticHelpers.updateRobotPose(robotPose);
 
-    systemsCheckTelemetry();
-    teleopTelemetry();
+    // systemsCheckTelemetry();
+    // teleopTelemetry();
 
     // Task #12: Subsystem-specific telemetry (LL visibility, turret sensors, etc.)
     // should live inside their respective subsystems, not here.

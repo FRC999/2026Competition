@@ -363,7 +363,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     double currentDeg = RobotContainer.turretSubsystem.getContinuousAngleDeg();
 
-    double[] cands = new double[] { desiredDeg, desiredDeg + 360.0, desiredDeg - 360.0 };
+    double[] cands = new double[] { desiredDeg };
     double best = Double.NaN;
     double bestScore = Double.POSITIVE_INFINITY;
 

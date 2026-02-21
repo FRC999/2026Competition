@@ -347,7 +347,7 @@ public class VisionHelpers {
             SmartDashboard.putNumber("Vision/LL/" + cn + "/Tag/Id", pe.rawFiducials[0].id);
             SmartDashboard.putString("Vision/LL/" + cn + "/Tag/Pose",
                 VisionHelpers.getTagPose(pe.rawFiducials[0].id).toString());
-            System.out.println("LL " + cn + " Robot Pose " + pe.pose.toString());
+            //System.out.println("LL " + cn + " Robot Pose " + pe.pose.toString());
             SmartDashboard.putString("Vision/LL/" + cn + "/RobotPose", pe.pose.toString());
           }
         } catch (Exception e) {

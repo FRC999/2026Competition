@@ -480,7 +480,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      * odometry was properly updated.
      */
     public Pose2d getPose() {
-        // System.out.println("cp: " + this.getState().Pose);
+      //System.out.println("cp: " + this.getState().Pose);
         return this.getState().Pose;
     }
 

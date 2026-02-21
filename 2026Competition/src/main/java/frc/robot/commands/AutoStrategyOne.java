@@ -24,17 +24,17 @@ public class AutoStrategyOne extends SequentialCommandGroup {
   public AutoStrategyOne() {
     addCommands(
       // IMPORTANT: sample drive pose at schedule-time (dynamic start), not at auto construction time.
-    new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
+    //new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
       new DeferredCommand(
           () -> RobotContainer.runTrajectory2Poses(
               true,
               //new Pose2d(3.884, 6.966, new Rotation2d()),
               RobotContainer.driveSubsystem.getPose(),
               TrajectoryHelper.AutoDesiredPoses.BlueDepot),
-          Set.of(RobotContainer.driveSubsystem))
-          .alongWith(new AutoShootUntilEmpty())
-        .alongWith(new WaitCommand(1).andThen(new StartIntake())),
-      new StopIntake(),
+          Set.of(RobotContainer.driveSubsystem)),
+          //.alongWith(new AutoShootUntilEmpty())
+        //.alongWith(new WaitCommand(1).andThen(new StartIntake())),
+      //new StopIntake(),
       RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower", false, false)
        //.alongWith(new AutoShootUntilEmpty())
         //TODO: NEED TO ADD CLIMBING COMMANDS HERE

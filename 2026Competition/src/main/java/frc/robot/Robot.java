@@ -21,20 +21,20 @@ public class Robot extends LoggedRobot {
 
   public Robot() {
     // --- AdvantageKit setup (NO robot behavior changes) ---
-    Logger.recordMetadata("Project", "2026Competition");
-    Logger.recordMetadata("Mode", "Competition");
+    // Logger.recordMetadata("Project", "2026Competition");
+    // Logger.recordMetadata("Mode", "Competition");
 
     if (isReal()) { // THE ### #####... IS REAL
       // Real robot logging
-      Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
-      Logger.addDataReceiver(new NT4Publisher());
+      // Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
+      // Logger.addDataReceiver(new NT4Publisher());
     } else {
       // NORMAL SIMULATION (no replay, real timing)
-      Logger.addDataReceiver(new NT4Publisher());
-      Logger.addDataReceiver(new WPILOGWriter("logs/sim"));
+      // Logger.addDataReceiver(new NT4Publisher());
+      // Logger.addDataReceiver(new WPILOGWriter("logs/sim"));
     }
 
-    Logger.start();
+    //Logger.start();
     m_robotContainer = new RobotContainer();
     RobotContainer.setIfAllianceRed();
   }
@@ -51,7 +51,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
-    m_robotContainer.publishPoseToAdvantageScope();
+    //m_robotContainer.publishPoseToAdvantageScope();
   }
 
   @Override

@@ -22,6 +22,7 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -49,6 +50,7 @@ import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
+import frc.robot.commands.TurretCalibrationJogCommand;
 import frc.robot.commands.TurretJogCommand;
 import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
@@ -73,7 +75,7 @@ public class RobotContainer {
   // Use open-loop control for drive motors
   private final Telemetry logger = new Telemetry(SwerveConstants.MaxSpeed);
 
-  private final Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
+  private static Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
   private static final Joystick turretStick =  new Joystick(0);
@@ -98,9 +100,9 @@ public class RobotContainer {
 
   public RobotContainer() {
     configureBindings();
-    driveSubsystem.registerTelemetry(logger::telemeterize);
+    //driveSubsystem.registerTelemetry(logger::telemeterize);
 
-    setYaws();
+    //setYaws();
     
 
     driveSubsystem.setDefaultCommand(
@@ -114,7 +116,7 @@ public class RobotContainer {
     if (RobotBase.isSimulation()) {
       //configureSimulation();
     }
-    testTurretShooter();
+    //testTurretShooter();
   }
 
   private static void configureSimulation() {
@@ -182,11 +184,13 @@ public class RobotContainer {
     // xboxDriveController.leftBumper().onTrue(driveSubsystem.runOnce(() ->
     // driveSubsystem.seedFieldCentric()));
 
-    driveSubsystem.registerTelemetry(logger::telemeterize);
+    //driveSubsystem.registerTelemetry(logger::telemeterize);
 
     // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
     // .onFalse(stopRobotCommand());
-    testTurretShooter();
+    //testTurretShooter();
+    //testAuto();
+    configureTurretCalibrationBindings();
   }
 
   public Command stopRobotCommand() {
@@ -219,6 +223,7 @@ public class RobotContainer {
     // return -xboxController.getLeftStickX();
     // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
     return -xboxDriveController.getRightStickX();
+    //return 0;
   }
 
   private double getDriverOmegaAxis() {
@@ -283,7 +288,7 @@ public class RobotContainer {
           null,
           new GoalEndState(0, endPose.getRotation()));
         path.preventFlipping = true;
-        System.out.println("== Driving from " + startPose + " to " + endPose);
+        // System.out.println("== Driving from " + startPose + " to " + endPose);
         return AutoBuilder.followPath(path);
       } else { // reset odometry, then follow the path
         PathPlannerPath path = new PathPlannerPath(
@@ -292,7 +297,7 @@ public class RobotContainer {
           new IdealStartingState(0, startPose.getRotation()),
           new GoalEndState(0, endPose.getRotation()));
         path.preventFlipping = true;
-        System.out.println("== Driving from " + startPose + " to " + endPose);
+        // System.out.println("== Driving from " + startPose + " to " + endPose);
 
         // Keep the original CTRE pose reset behavior, but perform it at schedule-time.
         // AutoBuilder.resetOdom(startPose) is the PathPlanner-friendly reset; we run it too.
@@ -338,6 +343,13 @@ public class RobotContainer {
     return autoChooser.getSelected();
   }
 
+  public static void testAuto() {
+    new JoystickButton(xboxDriveController, 1)
+      .onTrue(new InstantCommand(()->odometryUpdateSubsystem.updateQuestAndState(
+        new Pose2d(3.5, 4.0, new Rotation2d())
+      )));
+  }
+
   public static void testTurretShooter() {
     // new JoystickButton(turretStick, 1)
     //     .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, Constants.OperatorConstants.Shooter.RPM_STEP));
@@ -379,6 +391,140 @@ public class RobotContainer {
 //     )
 // );
 
+    // new JoystickButton(turretStick, 3).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hopperSubsystem.setStageDuty(1.0),
+    //     () -> hopperSubsystem.stop(),
+    //     hopperSubsystem)
+    // );
+
+    // new JoystickButton(turretStick, 4).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hopperSubsystem.setStageDuty(-1.0),
+    //     () -> hopperSubsystem.stop(),
+    //     hopperSubsystem)
+    // );
+
+    // new JoystickButton(turretStick, 5).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hopperSubsystem.setStageDuty(0.5),
+    //     () -> hopperSubsystem.stop(),
+    //     hopperSubsystem)
+    // );
+
+    
+    // new JoystickButton(xboxDriveController, 1).whileTrue(
+    //   Commands.runEnd(
+    //     () -> shooterSubsystem.setDutyCycle(.32),
+    //     () -> shooterSubsystem.stop(),
+    //     shooterSubsystem)
+    // );
+    
+    // new JoystickButton(xboxDriveController, 2).whileTrue(
+    //   Commands.runEnd(
+    //     () -> shooterSubsystem.setDutyCycle(-.32),
+    //     () -> shooterSubsystem.stop(),
+    //     shooterSubsystem)
+    // );
+
+    // new JoystickButton(xboxDriveController, 3).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hoodSubsystem.setDutyCycle(0.125),
+    //     () -> hoodSubsystem.stop(),
+    //     hoodSubsystem)
+    // );
+
+    // new JoystickButton(xboxDriveController, 4).whileTrue(
+    //   Commands.runEnd(
+    //     () -> hoodSubsystem.setDutyCycle(-0.125),
+    //     () -> hoodSubsystem.stop(),
+    //     hoodSubsystem)
+    // );
+
+  }
+
+  private void configureTurretCalibrationBindings() {
+    // 1-2: hold-to-jog (open loop)
+    new JoystickButton(turretStick, 1)
+        .whileTrue(new TurretCalibrationJogCommand(-Constants.OperatorConstants.Turret.CAL_JOG_MAX_DUTY));
+
+    new JoystickButton(turretStick, 2)
+        .whileTrue(new TurretCalibrationJogCommand(Constants.OperatorConstants.Turret.CAL_JOG_MAX_DUTY));
+
+    // 3: reseed integrated from absolute now
+    new JoystickButton(turretStick, 3)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationReseedIntegratedFromAbsoluteNow(),
+            RobotContainer.turretSubsystem));
+
+    // 4: capture absolute ticks candidate (copy into ABS_FORWARD_TICKS manually)
+    JoystickButton capture = new JoystickButton(turretStick, 4);
+    capture.onTrue(new InstantCommand(
+        () -> RobotContainer.turretSubsystem.calibrationCaptureAbsForwardTicksCandidate(),
+        RobotContainer.turretSubsystem));
+
+    // 5-9: Motion Magic step targets
+    new JoystickButton(turretStick, 5)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(0.0),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 6)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
+                Constants.OperatorConstants.Turret.CAL_STEP_SMALL_DEG),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 7)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
+                -Constants.OperatorConstants.Turret.CAL_STEP_SMALL_DEG),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 8)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
+                Constants.OperatorConstants.Turret.CAL_STEP_LARGE_DEG),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 9)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
+                -Constants.OperatorConstants.Turret.CAL_STEP_LARGE_DEG),
+            RobotContainer.turretSubsystem));
+
+    // 10: toggle sweep (sweep motion runs from TurretSubsystem.periodic while
+    // enabled)
+    new JoystickButton(turretStick, 10)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationToggleSweep(),
+            RobotContainer.turretSubsystem));
+
+    // 11/12: +kP / -kP
+    new JoystickButton(turretStick, 11)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationAdjustKp(
+                Constants.OperatorConstants.Turret.CAL_KP_STEP),
+            RobotContainer.turretSubsystem));
+
+    new JoystickButton(turretStick, 12)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationAdjustKp(
+                -Constants.OperatorConstants.Turret.CAL_KP_STEP),
+            RobotContainer.turretSubsystem));
+
+    // Modifier: hold button 4 while tapping 11/12 adjusts kD instead
+    capture.and(new JoystickButton(turretStick, 11))
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationAdjustKd(
+                Constants.OperatorConstants.Turret.CAL_KD_STEP),
+            RobotContainer.turretSubsystem));
+
+    capture.and(new JoystickButton(turretStick, 12))
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationAdjustKd(
+                -Constants.OperatorConstants.Turret.CAL_KD_STEP),
+            RobotContainer.turretSubsystem));
   }
 
   public void publishPoseToAdvantageScope() {
