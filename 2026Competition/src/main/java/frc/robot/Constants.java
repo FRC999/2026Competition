@@ -682,6 +682,8 @@ public static final class SysId {
       public static final double SHOOTER_RAMP_RATE_V_PER_S = 1.0;
       public static final double SHOOTER_STEP_V = 4.0;
       public static final double SHOOTER_TIMEOUT_S = 10.0;
+      public static final double SHOOTER_SYSID_MAX_VOLTS = 6.0; // TODO: PLACEHOLDER - set a safe max voltage for shooter SysId testing (start conservative)
+
 
       public static final double HOOD_RAMP_RATE_V_PER_S = 1.0;
       public static final double HOOD_STEP_V = 4.0;
