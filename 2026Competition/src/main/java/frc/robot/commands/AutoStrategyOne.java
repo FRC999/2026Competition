@@ -24,7 +24,7 @@ public class AutoStrategyOne extends SequentialCommandGroup {
   public AutoStrategyOne() {
     addCommands(
       // IMPORTANT: sample drive pose at schedule-time (dynamic start), not at auto construction time.
-    new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
+    //new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
       new DeferredCommand(
           () -> RobotContainer.runTrajectory2Poses(
               true,
