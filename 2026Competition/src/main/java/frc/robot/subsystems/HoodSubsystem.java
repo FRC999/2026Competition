@@ -12,6 +12,8 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.SoftwareLimitSwitchConfigs;
+
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -63,6 +65,15 @@ public class HoodSubsystem extends SubsystemBase {
   private double velocityRps = 0.0;
   private double targetRot = 0.0;
   private double targetAngleRad = 0.0;
+
+  private enum ControlMode {
+    POSITION_CLOSED_LOOP,
+    OPEN_LOOP_CALIBRATION,
+    SYSID_CHARACTERIZATION
+  }
+
+  private ControlMode controlMode = ControlMode.POSITION_CLOSED_LOOP;
+
 
   // ---------------- Simulation ----------------
   private final FlywheelSim hoodSim = new FlywheelSim(
@@ -133,16 +144,24 @@ public class HoodSubsystem extends SubsystemBase {
         .withKV(Constants.OperatorConstants.Hood.kV)
         .withKA(Constants.OperatorConstants.Hood.kA);
 
-    ClosedLoopGeneralConfigs cl = new ClosedLoopGeneralConfigs().withContinuousWrap(false);
-								   
+        ClosedLoopGeneralConfigs cl = new ClosedLoopGeneralConfigs().withContinuousWrap(false);
+
+    // CTRE built-in soft limits (recommended since no hard stop on UP)
+    SoftwareLimitSwitchConfigs softLimits = new SoftwareLimitSwitchConfigs()
+        .withReverseSoftLimitEnable(true)
+        .withReverseSoftLimitThreshold(Constants.OperatorConstants.Hood.REVERSE_SOFT_LIMIT_ROT) // TODO: PLACEHOLDER
+        .withForwardSoftLimitEnable(true)
+        .withForwardSoftLimitThreshold(Constants.OperatorConstants.Hood.FORWARD_SOFT_LIMIT_ROT); // TODO: PLACEHOLDER
 
     TalonFXConfiguration cfg = new TalonFXConfiguration()
         .withMotorOutput(out)
         .withCurrentLimits(limits)
         .withSlot0(slot0)
-        .withClosedLoopGeneral(cl);
+        .withClosedLoopGeneral(cl)
+        .withSoftwareLimitSwitch(softLimits);
 
     hoodMotor.getConfigurator().apply(cfg);
+
   }
 
   private void configureStatusSignals() {
@@ -187,6 +206,8 @@ public class HoodSubsystem extends SubsystemBase {
 
     targetAngleRad = clampedRad;
     targetRot = clampedRad * Constants.OperatorConstants.Hood.MOTOR_ROT_PER_RAD;
+    controlMode = ControlMode.POSITION_CLOSED_LOOP;
+
   }
 
   /** Direct motor-rotation target (kept for testing). */
@@ -194,6 +215,8 @@ public class HoodSubsystem extends SubsystemBase {
     targetRot = rot;
 														   
     targetAngleRad = rot / Constants.OperatorConstants.Hood.MOTOR_ROT_PER_RAD;
+    controlMode = ControlMode.POSITION_CLOSED_LOOP;
+
   }
 
   /** Open-loop duty-cycle (for quick tests). */
@@ -204,9 +227,36 @@ public class HoodSubsystem extends SubsystemBase {
     hoodMotor.setControl(dutyRequest.withOutput(duty));
   }
 
+    /** Calibration-only: seed "down hard stop" to zero rotations. */
+  public void seedZeroFromDownHardStop() {
+    // Assumes the hood is physically resting on the bottom plate.
+    hoodMotor.setPosition(0.0); // TODO: PLACEHOLDER confirm TalonFX reports 0 at hard stop
+    targetRot = 0.0;
+    targetAngleRad = 0.0;
+    controlMode = ControlMode.POSITION_CLOSED_LOOP;
+  }
+
+  /**
+   * Calibration-only: open-loop jog.
+   * IMPORTANT: periodic() must NOT overwrite this, so we switch controlMode.
+   */
+  public void setCalibrationDutyCycle(double duty) {
+    controlMode = ControlMode.OPEN_LOOP_CALIBRATION;
+    hoodMotor.setControl(dutyRequest.withOutput(duty));
+  }
+
+  /** Exit calibration open-loop; returns to holding the last targetRot. */
+  public void exitCalibrationOpenLoopHold() {
+    controlMode = ControlMode.POSITION_CLOSED_LOOP;
+  }
+
+
   public void stop() {
     hoodMotor.setControl(dutyRequest.withOutput(0.0));
+    // Default back to closed-loop holding the last target
+    controlMode = ControlMode.POSITION_CLOSED_LOOP;
   }
+
 
   // ---------------- SysId factory commands ----------------
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
@@ -236,6 +286,8 @@ public class HoodSubsystem extends SubsystemBase {
     }
 
     double duty = v / batt;
+
+    controlMode = ControlMode.SYSID_CHARACTERIZATION;
     hoodMotor.setControl(dutyRequest.withOutput(duty));
   }
 
@@ -258,15 +310,29 @@ public class HoodSubsystem extends SubsystemBase {
     positionRot = positionSig.getValueAsDouble();
     velocityRps = velocitySig.getValueAsDouble();
 
-    hoodMotor.setControl(positionRequest.withPosition(targetRot));
+    if (controlMode == ControlMode.POSITION_CLOSED_LOOP) {
+      hoodMotor.setControl(positionRequest.withPosition(targetRot));
+    }
 
-    if (DebugTelemetrySubsystems.hood) {
+
+    if (DebugTelemetrySubsystems.hood || DebugTelemetrySubsystems.calibration) {
       SmartDashboard.putNumber("Hood/PosRot", positionRot);
       SmartDashboard.putNumber("Hood/VelRps", velocityRps);
       SmartDashboard.putNumber("Hood/TargetRot", targetRot);
       SmartDashboard.putNumber("Hood/TargetRad", targetAngleRad);
+
+      // Helpful for 1-degree tuning:
+      double angleDeg = Math.toDegrees(targetAngleRad); // NOTE: target angle, not measured
+      SmartDashboard.putNumber("Hood/TargetDeg", angleDeg);
+
+      // Approximate measured angle from motor rotations using placeholder mapping:
+      double measuredDeg = positionRot / Constants.OperatorConstants.Hood.MOTOR_ROT_PER_DEG; // TODO: PLACEHOLDER
+      SmartDashboard.putNumber("Hood/AngleDeg", measuredDeg);
+
       SmartDashboard.putNumber("Hood/MotorVoltage", motorVoltageSig.getValueAsDouble());
+      SmartDashboard.putString("Hood/ControlMode", controlMode.name());
     }
+
   }
 
   public double getSimCurrentDrawAmps() {

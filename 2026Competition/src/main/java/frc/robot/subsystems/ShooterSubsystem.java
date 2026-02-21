@@ -27,6 +27,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
+import com.ctre.phoenix6.controls.VoltageOut;
+import edu.wpi.first.units.measure.Angle;
 
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
@@ -48,6 +50,8 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private VelocityVoltage velocityRequest;
   private DutyCycleOut dutyRequest;
+  private final VoltageOut voltageRequest = new VoltageOut(0.0); // SysId should be true voltage
+
 
   private double targetRpm = 0.0;
   private double lastRpm = 0.0;
@@ -79,6 +83,8 @@ public class ShooterSubsystem extends SubsystemBase {
   // Phoenix 6 typed signals
   private StatusSignal<AngularVelocity> velocitySig;
   private StatusSignal<Voltage> motorVoltageSig;
+  private StatusSignal<Angle> positionSig; // used for SysId logging
+
 
   // ---------------- SysId Characterization ----------------
   private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
@@ -107,9 +113,11 @@ public class ShooterSubsystem extends SubsystemBase {
 
     velocitySig = shooterLeader.getVelocity();
     motorVoltageSig = shooterLeader.getMotorVoltage();
+    positionSig = shooterLeader.getPosition(); // SysId: log real position
     configureStatusSignals();
     dutyRequest = new DutyCycleOut(0);
     velocityRequest = new VelocityVoltage(0).withSlot(0);
+
   }
 
   private void configureStatusSignals() {
@@ -117,6 +125,7 @@ public class ShooterSubsystem extends SubsystemBase {
     motorVoltageSig.setUpdateFrequency(100.0); // 50
     shooterLeader.optimizeBusUtilization();
     shooterFollower.optimizeBusUtilization();
+    positionSig.setUpdateFrequency(100.0);
   }
 
   private void configureHardware() {
@@ -250,29 +259,37 @@ public class ShooterSubsystem extends SubsystemBase {
 
   // ---------------- SysId callbacks ----------------
   private void sysIdVoltageDrive(edu.wpi.first.units.measure.Voltage volts) {
-    if (!isSysIdEnabled()) {
-      stop();
-      return;
-    }
-    double v = volts.in(Volts);
-
-    double duty = v / RobotController.getBatteryVoltage();
-    duty = MathUtil.clamp(
-        duty,
-        -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
-        Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
-
-    shooterLeader.setControl(dutyRequest.withOutput(duty));
+  if (!isSysIdEnabled()) {
+    stop();
+    return;
   }
+
+  double v = volts.in(Volts);
+
+  // SysId safety clamp (DO NOT reuse MAX_DUTY_CYCLE here; SysId expects true volts)
+  v = MathUtil.clamp(
+      v,
+      -Constants.OperatorConstants.SysId.SHOOTER_SYSID_MAX_VOLTS,
+      Constants.OperatorConstants.SysId.SHOOTER_SYSID_MAX_VOLTS);
+
+  shooterLeader.setControl(voltageRequest.withOutput(v));
+}
+
 
   private void sysIdLog(SysIdRoutineLog log) {
-    if (!isSysIdEnabled())
-      return;
-    log.motor("shooter")
-        .voltage(Volts.of(getAppliedVolts()))
-        .angularPosition(Rotations.of(0.0))
-        .angularVelocity(RotationsPerSecond.of(getVelocityRps()));
+  if (!isSysIdEnabled()) {
+    return;
   }
+
+  // Ensure fresh values for the log sample
+  BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
+
+  log.motor("shooter")
+      .voltage(Volts.of(motorVoltageSig.getValueAsDouble()))
+      .angularPosition(Rotations.of(positionSig.getValueAsDouble()))
+      .angularVelocity(RotationsPerSecond.of(velocitySig.getValueAsDouble()));
+}
+
 
   @Override
   public void periodic() {
