@@ -101,9 +101,9 @@ public class RobotContainer {
 
   public RobotContainer() {
     configureBindings();
-    driveSubsystem.registerTelemetry(logger::telemeterize);
+    //driveSubsystem.registerTelemetry(logger::telemeterize);
 
-    setYaws();
+    //setYaws();
     
 
     driveSubsystem.setDefaultCommand(
@@ -117,7 +117,7 @@ public class RobotContainer {
     if (RobotBase.isSimulation()) {
       //configureSimulation();
     }
-    testTurretShooter();
+    //testTurretShooter();
   }
 
   private static void configureSimulation() {
@@ -185,11 +185,12 @@ public class RobotContainer {
     // xboxDriveController.leftBumper().onTrue(driveSubsystem.runOnce(() ->
     // driveSubsystem.seedFieldCentric()));
 
-    driveSubsystem.registerTelemetry(logger::telemeterize);
+    //driveSubsystem.registerTelemetry(logger::telemeterize);
 
     // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
     // .onFalse(stopRobotCommand());
-    testTurretShooter();
+    //testTurretShooter();
+    //testAuto();
   }
 
   public Command stopRobotCommand() {
@@ -222,6 +223,7 @@ public class RobotContainer {
     // return -xboxController.getLeftStickX();
     // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
     return -xboxDriveController.getRightStickX();
+    //return 0;
   }
 
   private double getDriverOmegaAxis() {
@@ -286,7 +288,7 @@ public class RobotContainer {
           null,
           new GoalEndState(0, endPose.getRotation()));
         path.preventFlipping = true;
-        System.out.println("== Driving from " + startPose + " to " + endPose);
+        // System.out.println("== Driving from " + startPose + " to " + endPose);
         return AutoBuilder.followPath(path);
       } else { // reset odometry, then follow the path
         PathPlannerPath path = new PathPlannerPath(
@@ -295,7 +297,7 @@ public class RobotContainer {
           new IdealStartingState(0, startPose.getRotation()),
           new GoalEndState(0, endPose.getRotation()));
         path.preventFlipping = true;
-        System.out.println("== Driving from " + startPose + " to " + endPose);
+        // System.out.println("== Driving from " + startPose + " to " + endPose);
 
         // Keep the original CTRE pose reset behavior, but perform it at schedule-time.
         // AutoBuilder.resetOdom(startPose) is the PathPlanner-friendly reset; we run it too.
@@ -341,6 +343,13 @@ public class RobotContainer {
     return autoChooser.getSelected();
   }
 
+  public static void testAuto() {
+    new JoystickButton(xboxDriveController, 1)
+      .onTrue(new InstantCommand(()->odometryUpdateSubsystem.updateQuestAndState(
+        new Pose2d(3.5, 4.0, new Rotation2d())
+      )));
+  }
+
   public static void testTurretShooter() {
     // new JoystickButton(turretStick, 1)
     //     .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, Constants.OperatorConstants.Shooter.RPM_STEP));
@@ -365,22 +374,22 @@ public class RobotContainer {
 //             m_kraken
 //         ));
 // Hold A → rotate turret left
-new JoystickButton(turretStick, 3).whileTrue(
-    Commands.runEnd(
-        () -> turretSubsystem.setVoltageVolts(-12),
-        () -> turretSubsystem.stop(),
-        turretSubsystem
-    )
-);
+// new JoystickButton(turretStick, 3).whileTrue(
+//     Commands.runEnd(
+//         () -> turretSubsystem.setVoltageVolts(-12),
+//         () -> turretSubsystem.stop(),
+//         turretSubsystem
+//     )
+// );
 
-// Hold B → rotate turret right
-new JoystickButton(turretStick, 4).whileTrue(
-    Commands.runEnd(
-        () -> turretSubsystem.setVoltageVolts(12),
-        () -> turretSubsystem.stop(),
-        turretSubsystem
-    )
-);
+// // Hold B → rotate turret right
+// new JoystickButton(turretStick, 4).whileTrue(
+//     Commands.runEnd(
+//         () -> turretSubsystem.setVoltageVolts(12),
+//         () -> turretSubsystem.stop(),
+//         turretSubsystem
+//     )
+// );
 
     // new JoystickButton(turretStick, 3).whileTrue(
     //   Commands.runEnd(

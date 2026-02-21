@@ -13,8 +13,8 @@ import edu.wpi.first.math.numbers.N3;
 
 public class QuestNavConstants {
     //public static final Transform2d ROBOT_TO_QUEST = new Transform2d(0.23, -0.26, Rotation2d.fromDegrees(-41)); //Original was -0.32, -0.29
-    public static final Transform2d ROBOT_TO_QUEST = new Transform2d(0.4, 0.3, Rotation2d.k180deg); //2024 Constant
-    public static final Transform3d ROBOT_TO_QUEST_3D = new Transform3d(0.4, 0.3, 0.0, new Rotation3d(0, 0, Math.PI)); //2024 Constant
+    public static final Transform2d ROBOT_TO_QUEST = new Transform2d(0, 0.305, Rotation2d.fromDegrees(90 - 0.9256 - 0.7489)); //2024 Constant 0.4, 0.3, Rotation2d.k180deg
+    public static final Transform3d ROBOT_TO_QUEST_3D = new Transform3d(0, 0.305, 0.0, new Rotation3d(0, 0, Math.toRadians(90 - 0.9256))); //2024 Constant 90 - 0.9256 - 0.7489
     public static final Pose2d characterizationQuestPose = new Pose2d();
     public static final Pose3d characterizationQuestPose3d = new Pose3d(characterizationQuestPose);
     public static final Pose2d nullPose = new Pose2d(-1000, -1000, Rotation2d.kZero);
@@ -29,7 +29,7 @@ public class QuestNavConstants {
         0.035 // Trust down to 2 degrees rotational
     );
 
-    public static final double llWait = 1000.0;
-    public static Pose2d startingPositionNoLL = new Pose2d(10.331, 6.31, new Rotation2d(0));
+    public static final double llWait = 1.0; //In seconds, was 1000
+    public static Pose2d startingPositionNoLL = new Pose2d(0, 0, new Rotation2d(0)); //10.331, 6.31, new Rotation2d(0)
 
 }

@@ -63,11 +63,12 @@ public final class Constants {
 public static final class EnabledSubsystems {
 
   public static final boolean chasis = true;
+  public static final boolean odometry = true;
   public static final boolean ll = false;
-  public static final boolean questnav = false;
+  public static final boolean questnav = true;
   public static final boolean intake = false;
   public static final boolean shooter = false;
-  public static final boolean turret = true;
+  public static final boolean turret = false;
   public static final boolean hood = false;
   public static final boolean hopper = false;
   public static final boolean spindexer = false;
@@ -82,10 +83,10 @@ public static final class EnabledSubsystems {
 		public static final boolean imu = false;
 		public static final boolean chassis = true;
 		public static final boolean ll = false;
-		public static final boolean questnav = false;
+		public static final boolean questnav = true;
     public static final boolean intake = false;
     public static final boolean shooter = false;
-    public static final boolean turret = true;
+    public static final boolean turret = false;
     public static final boolean hood = false;
     public static final boolean hopper = false; 
     public static final boolean spindexer = false;

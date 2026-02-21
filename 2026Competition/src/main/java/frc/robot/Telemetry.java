@@ -30,7 +30,7 @@ public class Telemetry {
      */
     public Telemetry(double maxSpeed) {
         MaxSpeed = maxSpeed;
-        SignalLogger.start();
+        //SignalLogger.start();
 
         /* Set up the module state Mechanism2d telemetry */
         for (int i = 0; i < 4; ++i) {
@@ -108,10 +108,10 @@ public class Telemetry {
             moduleTargetsArray[i*2 + 1] = state.ModuleTargets[i].speedMetersPerSecond;
         }
 
-        SignalLogger.writeDoubleArray("DriveState/Pose", poseArray);
-        SignalLogger.writeDoubleArray("DriveState/ModuleStates", moduleStatesArray);
-        SignalLogger.writeDoubleArray("DriveState/ModuleTargets", moduleTargetsArray);
-        SignalLogger.writeDouble("DriveState/OdometryPeriod", state.OdometryPeriod, "seconds");
+        // SignalLogger.writeDoubleArray("DriveState/Pose", poseArray);
+        // SignalLogger.writeDoubleArray("DriveState/ModuleStates", moduleStatesArray);
+        // SignalLogger.writeDoubleArray("DriveState/ModuleTargets", moduleTargetsArray);
+        // SignalLogger.writeDouble("DriveState/OdometryPeriod", state.OdometryPeriod, "seconds");
 
         /* Telemeterize the pose to a Field2d */
         fieldTypePub.set("Field2d");

@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
+import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.RobotContainer;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants;
 import frc.robot.OdometryUpdates.LLAprilTagConstants.LLVisionConstants.LLCamera;
@@ -110,6 +111,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
   /** Creates a new OdometryUpdatesSubsystem. */
   public OdometryUpdatesSubsystem() {
+    if(!EnabledSubsystems.odometry){
+      return;
+    }
+
     gatePassOverride = true;
     
     // The chassis yaw should be initialized regardless of quest or LL being operational
@@ -119,11 +124,11 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
   //Update odometry using Quest
   private void fuseQuestNavAllUnread() {
-    // System.out.println(Timer.getFPGATimestamp());
+   // System.out.println(Timer.getFPGATimestamp());
     PoseFrame[] frames = RobotContainer.questNavSubsystem.getAllCurrentPoseframes();
-    // System.out.println(Timer.getFPGATimestamp());
+   // System.out.println(Timer.getFPGATimestamp());
     if (frames == null || frames.length == 0) return;
-    // System.out.println(Timer.getFPGATimestamp());
+   // System.out.println(Timer.getFPGATimestamp());
     SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
     ChassisSpeeds chassisSpeeds = swerveDriveState.Speeds;
 
@@ -152,8 +157,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         // System.out.println("TEST");
       } else {
         if (DebugTelemetrySubsystems.questnav) {
-          SmartDashboard.putString("Odometry/QuestNavRejectedPose", robotPose.toString());
-          SmartDashboard.putNumber("Odometry/QuestNavRejectedTransErr", robotPose.getTranslation().getDistance(poseNow.getTranslation()));
+        //  SmartDashboard.putString("Odometry/QuestNavRejectedPose", robotPose.toString());
+        //  SmartDashboard.putNumber("Odometry/QuestNavRejectedTransErr", robotPose.getTranslation().getDistance(poseNow.getTranslation()));
         }
       }
     }
@@ -271,8 +276,29 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
   }
 
+  //Limelight Override for States
+  public void updateQuestAndState(Pose2d pose2d) {
+    if (state == VisionState.SEEKING_TAGS_Q) {
+      calibrateQuestFromLL(pose2d);
+      RobotContainer.driveSubsystem.resetCTREPose(pose2d);
+      gatePassOverride = false;
+      RobotContainer.questNavSubsystem.setInitialPoseSet(true);
+
+      transitionTo(VisionState.CALIBRATED_Q, "Manual override with good pose"); // SEEKING_TAGS_Q -> CALIBRATED_Q
+    } else if (state == VisionState.SEEKING_TAGS_NO_Q) {
+      RobotContainer.driveSubsystem.resetCTREPose(pose2d);
+      gatePassOverride = false;
+
+      transitionTo(VisionState.CALIBRATED_NO_Q, "Manual override with good pose"); // SEEKING_TAGS_NO_Q -> CALIBRATED_NO_Q
+    }
+  }
+
   @Override
   public void periodic() {
+    if (!EnabledSubsystems.odometry) {
+      return;
+    }
+
     // This method will be called once per scheduler run
     // System.out.println(Timer.getFPGATimestamp());
 
@@ -291,6 +317,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       };
       SmartDashboard.putString("Odometry/UpdatesState", stateString);
       SmartDashboard.putBoolean("Odometry/GatePassOverride", gatePassOverride);
+      //System.out.println("Test0***");
     }
 
     switch (state) {
@@ -299,12 +326,13 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         if (RobotContainer.questNavSubsystem.isTracking()){
           // Set quest IMU to initial yaw based on alliance
           RobotContainer.questNavSubsystem.resetQuestIMUToAngle(OdometryConstants.initialYawForAlliance().getDegrees());
-
+      //System.out.println("Test1***");
           transitionTo(VisionState.SEEKING_TAGS_Q, "Quest tracking true; seeded Quest IMU"); // initialize -> SEEKING_TAGS_Q
           //state = VisionState.SEEKING_TAGS_Q;
         } else { // No Quest detected at INITIALIZE
           if(forceTransitionFromInitialize-- < 0){ // Do not give up looking for Quest for some iterations in case it's late to start
           
+      //System.out.println("Test2***");
           transitionTo(VisionState.SEEKING_TAGS_NO_Q, "Quest not tracking; timeout from initialize"); // initialize -> SEEKING_NO_Q
           //state = VisionState.SEEKING_TAGS_NO_Q;
           }
@@ -314,10 +342,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
       }
       case SEEKING_TAGS_Q -> { // Quest was present before
+    //System.out.println("Test3***");
+
         if (RobotContainer.questNavSubsystem.isTracking()){ // Quest is still working
           Pose2d rp = RobotContainer.questNavSubsystem.getQuestRobotPose2d();
           if(!rp.equals(QuestNavConstants.nullPose)){ // But occasionally there are no new poses Quest gives us. If so, do not update LL
             RobotContainer.llAprilTagSubsystem.setLLOrientation(rp.getRotation().getDegrees(), RobotContainer.driveSubsystem.getTurnRate());
+    //System.out.println("Test4***");
+
           }
 
           var bestPoseEstimate = RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL();
@@ -327,6 +359,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
             RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);
             gatePassOverride = false;
             RobotContainer.questNavSubsystem.setInitialPoseSet(true);
+    //System.out.println("Test5***");
 
             transitionTo(VisionState.CALIBRATED_Q, "Good LL fix; anchored field pose"); // SEEKING_TAGS_Q -> CALIBRATED_Q
             //state = VisionState.CALIBRATED_Q; // Now we're calibrated with Quest working
@@ -334,6 +367,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           }
 
         } else { // Quest is not working anymore, so transition to no-quest state while still seeking the tags
+    //System.out.println("Test6***");
 
           transitionTo(VisionState.SEEKING_TAGS_NO_Q, "Quest lost during seeking"); // SEEKING_TAGS_Q -> SEEKING_TAGS_NO_Q
           //state = VisionState.SEEKING_TAGS_NO_Q;
@@ -341,11 +375,13 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           RobotContainer.llAprilTagSubsystem.setLLOrientation(
               RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
         }
+    //System.out.println("Test7***");
 
         if(llTimer.hasElapsed(QuestNavConstants.llWait)){
           if (DebugTelemetrySubsystems.odometry) {
             System.out.println("Odometry: llTimer elapsed; using fallback anchor pose");
           }
+    //System.out.println("Test8***");
 
           calibrateQuestFromLL(QuestNavConstants.startingPositionNoLL);
           RobotContainer.driveSubsystem.resetCTREPose(QuestNavConstants.startingPositionNoLL);
@@ -363,11 +399,13 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
       }
       case SEEKING_TAGS_NO_Q -> {
+    //System.out.println("Test9***");
 
         if (RobotContainer.questNavSubsystem.isTracking()){ // Quest came up!!! note that this will result in extra 20ms cycle since Quest Pose is not set yet
           Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
           // Set Quest IMU to current robot yaw
           RobotContainer.questNavSubsystem.resetQuestIMUToAngle(robotPose.getRotation().getDegrees());
+    //System.out.println("Test10***");
 
           // Update LL Yaw based on Robot Yaw, since we updated the Quest to the same pose
           RobotContainer.llAprilTagSubsystem.setLLOrientation(
@@ -385,6 +423,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           // Set robot odometry to the pose detected
           RobotContainer.driveSubsystem.resetCTREPose(poseEstimate.pose);
           gatePassOverride = false;
+    //System.out.println("Test11***");
 
           transitionTo(VisionState.CALIBRATED_NO_Q, "Good LL fix w/o Quest; anchored"); // SEEKING_TAGS_NO_Q -> CALIBRATED_NO_Q
           //state = VisionState.CALIBRATED_NO_Q; // Now we're calibrated without Quest
@@ -392,26 +431,34 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         }
       }
       case CALIBRATED_Q -> {
-        
+    //System.out.println("Test12***");
+
         if (RobotContainer.questNavSubsystem.isTracking()) { // Quest is working
           
           fuseQuestNavAllUnread(); // Update poses from Quest
+    //System.out.println("Test13***");
 
         } else { // Quest is not working anymore, so transition to no-quest state while still calibrated
 
           transitionTo(VisionState.CALIBRATED_NO_Q, "Quest lost while calibrated"); // CALIBRATED_Q -> CALIBRATED_NO_Q
           //state = VisionState.CALIBRATED_NO_Q;
         }
+   // System.out.println("Test14***");
 
-        // Update LL Yaw based on Robot Yaw
-        RobotContainer.llAprilTagSubsystem.setLLOrientation(
-          RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
+        if(Constants.EnabledSubsystems.ll){
+          // Update LL Yaw based on Robot Yaw
+          RobotContainer.llAprilTagSubsystem.setLLOrientation(
+            RobotContainer.driveSubsystem.getPose().getRotation().getDegrees(),RobotContainer.driveSubsystem.getTurnRate());
 
-        // One way or the other, process odometry updates from LL
-        for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
-          fuseLLCamera(llcamera);
+          // One way or the other, process odometry updates from LL
+          for (LLCamera llcamera: RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
+            fuseLLCamera(llcamera);
+          }
+    //System.out.println("Test15***");
         }
-        RobotContainer.AutonomousConfigure();
+          //RobotContainer.AutonomousConfigure();
+    //System.out.println("Test16***");
+
       }
       case CALIBRATED_NO_Q -> {
         Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
@@ -432,7 +479,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         for (LLCamera llcamera : RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
           fuseLLCamera(llcamera);
         }
-        RobotContainer.AutonomousConfigure();
+        //RobotContainer.AutonomousConfigure();
       }
     }
   }
