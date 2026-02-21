@@ -721,21 +721,43 @@ public static final class SysId {
       public static final boolean IntakeRollerInverted = false;
 
       public static final int intakePivotMotorId = 56;
+      public static final int intakePivotFollowerMotorId = 0;
+      // TODO: PLACEHOLDER - set to the actual CAN ID of the 2nd pivot Kraken (follower)
+
+      public static final boolean intakePivotFollowerOpposeLeader = false;
+      // TODO: PLACEHOLDER - verify on hardware by jogging. If the motors fight, flip this.
+
       public static final boolean intakePivotMotorInverted = false;
       public static final double defaultSpeed = 0.3;
 
-      public static enum IntakePositions{ // position of the arm for the piece placement/pickup
-				IntakeDown(0.0),
-				IntakeUp(0.0);
-        private double intakePositionSelected;
-				IntakePositions(double position) {
-				  this.intakePositionSelected = position;
-				}
-				public double getPosition() {
-				  return intakePositionSelected;
-				}
-			  }
+      public static final double PIVOT_MOTOR_TO_ARM_GEAR_RATIO = 5.0;
+      // TODO: PLACEHOLDER - confirm this is exactly 5:1 motor rotations per arm rotation
 
+      public static final double PIVOT_MIN_DEG = 10.0;     // retracted hard stop = 0 deg
+      public static final double PIVOT_MAX_DEG = 142.0;   // TODO: PLACEHOLDER - verify true max
+
+      public static final double CAL_PIVOT_JOG_DUTY = 0.08;
+      // TODO: PLACEHOLDER - start low, raise carefully if needed
+
+      public static final double CAL_STEP_LOW_DEG = 5.0;
+      // TODO: PLACEHOLDER - safe small move off hard stop
+      public static final double CAL_STEP_HIGH_DEG = 90.0;
+      // TODO: PLACEHOLDER - pick a safe value that avoids hitting anything
+
+
+      public static enum IntakePositions { // arm degrees (not motor rotations)
+        IntakeStowedDeg(0.0),
+        IntakeDeployedDeg(142.0);
+        // TODO: PLACEHOLDER - tune deployed deg to your real safe max
+
+        private double armDeg;
+        IntakePositions(double armDeg) {
+          this.armDeg = armDeg;
+        }
+        public double getPosition() {
+          return armDeg;
+        }
+      }
       public static final class IntakePidConstants {
         public static class PositionDutyCycleConstants {
 					public static final double intake_kP = 0.1;
@@ -754,7 +776,8 @@ public static final class SysId {
 					public static final double motionMagicJerk = 1000.0; //1500.0
 				}
 
-        public static final double tolerance = 3.0;
+        public static final double tolerance = 3.0; // TODO: PLACEHOLDER - your requirement
+
       }
 
       /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */

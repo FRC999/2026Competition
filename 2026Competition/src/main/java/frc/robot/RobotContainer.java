@@ -196,11 +196,65 @@ public class RobotContainer {
 
         // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
+        // --- Calibration bindings (easy on/off) ---
+    // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
       configureHoodCalibrationBindings();
+      configureIntakeCalibrationBindings();
     }
 
   }
+
+  private void configureIntakeCalibrationBindings() {
+  // TODO: PLACEHOLDER - pick real button numbers that don’t conflict with hood calibration
+  final int BTN_INTAKE_SEED_ZERO = 1;
+  final int BTN_INTAKE_JOG_UP = 2;
+  final int BTN_INTAKE_JOG_DOWN = 3;
+  final int BTN_INTAKE_STEP_TOGGLE = 4;
+
+  final int BTN_INTAKE_SYSID_QS_FWD = 9;
+  final int BTN_INTAKE_SYSID_QS_REV = 10;
+  final int BTN_INTAKE_SYSID_DYN_FWD = 11;
+  final int BTN_INTAKE_SYSID_DYN_REV = 12;
+
+  final double JOG_DUTY = Constants.OperatorConstants.IntakeConstants.CAL_PIVOT_JOG_DUTY;
+
+  final double STEP_LOW_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_LOW_DEG;
+  final double STEP_HIGH_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_HIGH_DEG;
+
+  // Seed zero (press)
+  new JoystickButton(turretStick, BTN_INTAKE_SEED_ZERO)
+      .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
+
+  // Jog UP (hold) - assume positive deploys (your instruction)
+  new JoystickButton(turretStick, BTN_INTAKE_JOG_UP)
+      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+
+  // Jog DOWN (hold)
+  new JoystickButton(turretStick, BTN_INTAKE_JOG_DOWN)
+      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+
+  // Step test toggle (press): alternate between two angles
+  new JoystickButton(turretStick, BTN_INTAKE_STEP_TOGGLE)
+      .onTrue(new InstantCommand(() -> {
+        double current = intakeSubsystem.getTargetPivotDeg();
+        double mid = (STEP_LOW_DEG + STEP_HIGH_DEG) * 0.5;
+        double next = (current < mid) ? STEP_HIGH_DEG : STEP_LOW_DEG;
+        intakeSubsystem.setTargetPivotDeg(next);
+      }));
+
+  // SysId routines (hold)
+  new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_FWD)
+      .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kForward));
+  new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_REV)
+      .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kReverse));
+  new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_FWD)
+      .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kForward));
+  new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_REV)
+      .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kReverse));
+}
 
     private void configureHoodCalibrationBindings() {
     // Logitech Extreme 3D Pro suggested mapping (TODO: PLACEHOLDER change as desired)
