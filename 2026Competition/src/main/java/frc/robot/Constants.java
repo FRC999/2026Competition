@@ -95,6 +95,9 @@ public static final class EnabledSubsystems {
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = false;
+
+    // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
+    public static final boolean calibration = false; // TODO: PLACEHOLDER set true only while calibrating
 	}
   
   public static final class AutoConstants {
@@ -457,25 +460,31 @@ public static final class EnabledSubsystems {
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
 
-      /**
-       * Hood gearing: motor rotations per hood mechanism rotation.
-       * Placeholder until the hood gearbox/sprocket ratio is finalized.
-       */
-      public static final double GEAR_RATIO_MOTOR_ROT_PER_HOOD_ROT = 1.0;
+            // --- Range + conversion (PLACEHOLDERS until measured on real robot) ---
+      // Fully down = 0 degrees and 0 motor rotations.
+      public static final double HOOD_MIN_ANGLE_DEG = 0.0; // TODO: PLACEHOLDER confirm 0 is correct
+      public static final double HOOD_MAX_ANGLE_DEG = 62.0; // TODO: PLACEHOLDER measure real max angle
+      public static final double HOOD_MAX_MOTOR_ROT = 22.0; // TODO: PLACEHOLDER measure real motor rotations at max angle
 
-      /**
-       * Conversion used by HoodSubsystem when commanding a hood physical angle (radians).
-       * motorRot = hoodRad / (2π) * GEAR_RATIO_MOTOR_ROT_PER_HOOD_ROT
-       */
+      // Conversion derived from measurements.
+      public static final double MOTOR_ROT_PER_DEG =
+          HOOD_MAX_MOTOR_ROT / HOOD_MAX_ANGLE_DEG; // TODO: PLACEHOLDER until both above are measured
       public static final double MOTOR_ROT_PER_RAD =
-          GEAR_RATIO_MOTOR_ROT_PER_HOOD_ROT / (2.0 * Math.PI);
+          MOTOR_ROT_PER_DEG * (180.0 / Math.PI); // TODO: PLACEHOLDER derived from above
 
-      /**
-       * Soft limits in hood physical angle (radians). Placeholder values.
-       * If you do not know yet, leave wide; tighten once mechanical range is known.
-       */
-      public static final double MIN_ANGLE_RAD = -0.10;
-      public static final double MAX_ANGLE_RAD =  1.60;
+      // --- Software limit margin ---
+      // Since you have NO hard-stop at the top, keep a conservative margin.
+      public static final double SOFT_LIMIT_MARGIN_FRACTION = 0.10; // TODO: PLACEHOLDER (10% margin)
+
+      // Motor-rotation soft limits (0 = down hard-stop, up is constrained by forward soft limit)
+      public static final double REVERSE_SOFT_LIMIT_ROT = 0.0; // TODO: PLACEHOLDER assumes down is exactly 0 rot
+      public static final double FORWARD_SOFT_LIMIT_ROT =
+          HOOD_MAX_MOTOR_ROT * (1.0 - SOFT_LIMIT_MARGIN_FRACTION); // TODO: PLACEHOLDER
+
+      // Physical angle clamps used by setTargetAngleRad()
+      public static final double MIN_ANGLE_RAD = Math.toRadians(HOOD_MIN_ANGLE_DEG); // TODO: PLACEHOLDER
+      public static final double MAX_ANGLE_RAD = Math.toRadians(HOOD_MAX_ANGLE_DEG); // TODO: PLACEHOLDER
+
 
       /** Placeholder gains (Position control). Tune after SysId. */
       public static final double kP = 40.0;
