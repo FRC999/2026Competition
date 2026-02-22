@@ -203,7 +203,13 @@ public class RobotContainer {
       configureIntakeCalibrationBindings();
       configureTurretCalibrationBindings();
     }
+    competitionXBOXButtonBindings();
+  }
 
+  private void competitionXBOXButtonBindings(){
+    new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
+        .onTrue(new StartIntake())
+        .onFalse(new StopIntake());
   }
 
   private void configureShooterCalibrationBindings() {
@@ -382,13 +388,13 @@ public class RobotContainer {
   private double getDriverXAxis() {
     // return -xboxController.getLeftStickY();
     // SmartDashboard.putNumber("X-Axis: ", -xboxDriveController.getRightStickY());
-    return -xboxDriveController.getRightStickY();
+    return -xboxDriveController.getLefttStickY();
   }
 
   private double getDriverYAxis() {
     // return -xboxController.getLeftStickX();
     // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
-    return -xboxDriveController.getRightStickX();
+    return -xboxDriveController.getLefttStickX();
     //return 0;
   }
 
@@ -396,7 +402,7 @@ public class RobotContainer {
     // return -xboxController.getLeftStickOmega();
     // SmartDashboard.putNumber("Z-Axis: ", -xboxDriveController.getLeftStickX() *
     // 0.6);
-    return -xboxDriveController.getLeftStickX() * 0.6;
+    return -xboxDriveController.getRightStickX() * 0.6;
   }
 
   public static Command runTrajectoryPathPlannerWithForceResetOfStartingPose(String tr,
