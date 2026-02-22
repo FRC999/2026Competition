@@ -7,8 +7,11 @@ import static edu.wpi.first.units.Units.Volts;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.VelocityDutyCycle;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -56,15 +59,16 @@ public class TransferSubsystem extends SubsystemBase {
   private final DigitalInput throatSensor =
       new DigitalInput(Constants.OperatorConstants.Transfer.THROAT_SENSOR_DIO);
 
-  private double commandedDuty = 0.0;
+  // Closed-loop velocity (primary control mode)
+  private VelocityDutyCycle velocityDuty = new VelocityDutyCycle(0.0);
 
-  // Status signals (for telemetry + SysId logs)
   private StatusSignal<Angle> positionSig;
   private StatusSignal<AngularVelocity> velocitySig;
   private StatusSignal<Voltage> motorVoltageSig;
-
   private double posRot = 0.0;
   private double velRps = 0.0;
+  private double commandedDuty = 0.0;
+  private double commandedRps = 0.0;
 
   // ---------------- SysId Characterization ----------------
   private final SysIdRoutine sysIdRoutine =
@@ -102,7 +106,30 @@ public class TransferSubsystem extends SubsystemBase {
         new TalonFX(
             Constants.OperatorConstants.Transfer.MOTOR_ID,
             Constants.OperatorConstants.Transfer.CANBUS_NAME);
+        // ---------------- Motor configuration ----------------
+    var cfg = new TalonFXConfiguration();
 
+    // Coast requested
+    cfg.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+
+    // Current limits (reasonable defaults; TODO verify/tune)
+    cfg.CurrentLimits.SupplyCurrentLimitEnable = true;
+    cfg.CurrentLimits.SupplyCurrentLimit =
+        Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LIMIT_A;
+
+    cfg.CurrentLimits.StatorCurrentLimitEnable = true;
+    cfg.CurrentLimits.StatorCurrentLimit =
+        Constants.OperatorConstants.Transfer.STATOR_CURRENT_LIMIT_A;
+
+    // Slot0 closed-loop gains (TODO placeholders)
+    cfg.Slot0.kS = Constants.OperatorConstants.Transfer.VEL_kS;
+    cfg.Slot0.kV = Constants.OperatorConstants.Transfer.VEL_kV;
+    cfg.Slot0.kP = Constants.OperatorConstants.Transfer.VEL_kP;
+    cfg.Slot0.kI = Constants.OperatorConstants.Transfer.VEL_kI;
+    cfg.Slot0.kD = Constants.OperatorConstants.Transfer.VEL_kD;
+
+    motor.getConfigurator().apply(cfg);
+    
     positionSig = motor.getPosition();
     velocitySig = motor.getVelocity();
     motorVoltageSig = motor.getMotorVoltage();
@@ -113,25 +140,47 @@ public class TransferSubsystem extends SubsystemBase {
     motor.optimizeBusUtilization();
   }
 
-  /** Run transfer at a raw duty cycle in [-1, +1]. */
+   /** Run transfer at a raw duty cycle in [-1, +1]. */
   public void runDuty(double dutyCycle) {
+    if (!EnabledSubsystems.transfer) { return; }
+
     commandedDuty = dutyCycle;
     motor.setControl(duty.withOutput(dutyCycle));
   }
 
+  /** Run transfer at a target rotor speed in RPS (closed-loop). */
+  public void runVelocityRps(double targetRps) {
+    if (!EnabledSubsystems.transfer) { return; }
+
+    commandedRps = targetRps;
+    motor.setControl(velocityDuty.withVelocity(targetRps));
+  }
+
   /** Stop transfer. */
   public void stop() {
+    if (!EnabledSubsystems.transfer) { return; }
+
+    commandedDuty = 0.0;
+    commandedRps = 0.0;
     runDuty(0.0);
   }
 
-  /** Run transfer at the configured staging speed (keeps ball at throat without hard-feeding). */
+    /** Run transfer at the configured staging speed (closed-loop), but do not push if throat is already occupied. */
   public void runStage() {
-    runDuty(Constants.OperatorConstants.Transfer.STAGE_DUTY);
+    if (!EnabledSubsystems.transfer) { return; }
+
+    if (hasBallAtThroat()) {
+      runVelocityRps(Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      return;
+    }
+    runVelocityRps(Constants.OperatorConstants.Transfer.STAGE_RPS);
   }
 
-  /** Run transfer at the configured feed speed (inject a ball into the shooter). */
+  /** Run transfer at the configured feed speed (closed-loop) to inject a ball into the shooter. */
   public void runFeed() {
-    runDuty(Constants.OperatorConstants.Transfer.FEED_DUTY);
+    if (!EnabledSubsystems.transfer) { return; }
+    
+    runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
   }
 
   /** @return true if a ball is detected at transfer entry (after spindexer). */
@@ -214,6 +263,7 @@ public class TransferSubsystem extends SubsystemBase {
       return;
     }
     SmartDashboard.putNumber("Transfer/DutyCmd", commandedDuty);
+    SmartDashboard.putNumber("Transfer/RpsCmd", commandedRps);
     SmartDashboard.putNumber("Transfer/PosRot", posRot);
     SmartDashboard.putNumber("Transfer/VelRps", velRps);
     SmartDashboard.putNumber("Transfer/MotorVoltage", motorVoltageSig.getValueAsDouble());
@@ -227,7 +277,6 @@ public class TransferSubsystem extends SubsystemBase {
     }
     return transferSim.getCurrentDrawAmps();
   }
-
 
   @Override
   public void simulationPeriodic() {

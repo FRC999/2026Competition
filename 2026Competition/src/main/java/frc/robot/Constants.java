@@ -72,7 +72,7 @@ public static final class EnabledSubsystems {
   public static final boolean hood = false;
   public static final boolean hopper = false;
   public static final boolean spindexer = false;
-  public static final boolean transfer = false;
+  public static final boolean transfer = true;
   public static final boolean climber = false;
   public static final boolean supervisor = false;
 }
@@ -90,11 +90,14 @@ public static final class EnabledSubsystems {
     public static final boolean hood = false;
     public static final boolean hopper = false; 
     public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = false;
+
+    // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
+    public static final boolean calibration = false; // TODO: PLACEHOLDER set true only while calibrating
 	}
   
   public static final class AutoConstants {
@@ -507,25 +510,31 @@ public static final class EnabledSubsystems {
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
 
-      /**
-       * Hood gearing: motor rotations per hood mechanism rotation.
-       * Placeholder until the hood gearbox/sprocket ratio is finalized.
-       */
-      public static final double GEAR_RATIO_MOTOR_ROT_PER_HOOD_ROT = 1.0;
+            // --- Range + conversion (PLACEHOLDERS until measured on real robot) ---
+      // Fully down = 0 degrees and 0 motor rotations.
+      public static final double HOOD_MIN_ANGLE_DEG = 0.0; // TODO: PLACEHOLDER confirm 0 is correct
+      public static final double HOOD_MAX_ANGLE_DEG = 62.0; // TODO: PLACEHOLDER measure real max angle
+      public static final double HOOD_MAX_MOTOR_ROT = 22.0; // TODO: PLACEHOLDER measure real motor rotations at max angle
 
-      /**
-       * Conversion used by HoodSubsystem when commanding a hood physical angle (radians).
-       * motorRot = hoodRad / (2π) * GEAR_RATIO_MOTOR_ROT_PER_HOOD_ROT
-       */
+      // Conversion derived from measurements.
+      public static final double MOTOR_ROT_PER_DEG =
+          HOOD_MAX_MOTOR_ROT / HOOD_MAX_ANGLE_DEG; // TODO: PLACEHOLDER until both above are measured
       public static final double MOTOR_ROT_PER_RAD =
-          GEAR_RATIO_MOTOR_ROT_PER_HOOD_ROT / (2.0 * Math.PI);
+          MOTOR_ROT_PER_DEG * (180.0 / Math.PI); // TODO: PLACEHOLDER derived from above
 
-      /**
-       * Soft limits in hood physical angle (radians). Placeholder values.
-       * If you do not know yet, leave wide; tighten once mechanical range is known.
-       */
-      public static final double MIN_ANGLE_RAD = -0.10;
-      public static final double MAX_ANGLE_RAD =  1.60;
+      // --- Software limit margin ---
+      // Since you have NO hard-stop at the top, keep a conservative margin.
+      public static final double SOFT_LIMIT_MARGIN_FRACTION = 0.10; // TODO: PLACEHOLDER (10% margin)
+
+      // Motor-rotation soft limits (0 = down hard-stop, up is constrained by forward soft limit)
+      public static final double REVERSE_SOFT_LIMIT_ROT = 0.0; // TODO: PLACEHOLDER assumes down is exactly 0 rot
+      public static final double FORWARD_SOFT_LIMIT_ROT =
+          HOOD_MAX_MOTOR_ROT * (1.0 - SOFT_LIMIT_MARGIN_FRACTION); // TODO: PLACEHOLDER
+
+      // Physical angle clamps used by setTargetAngleRad()
+      public static final double MIN_ANGLE_RAD = Math.toRadians(HOOD_MIN_ANGLE_DEG); // TODO: PLACEHOLDER
+      public static final double MAX_ANGLE_RAD = Math.toRadians(HOOD_MAX_ANGLE_DEG); // TODO: PLACEHOLDER
+
 
       /** Placeholder gains (Position control). Tune after SysId. */
       public static final double kP = 40.0;
@@ -654,17 +663,46 @@ public static final class Transfer {
 
   /** Sensor at transfer entry (just AFTER the spindexer handoff). */
   public static final int ENTRY_SENSOR_DIO = 0; // TODO set
-  public static final boolean ENTRY_SENSOR_INVERTED = true; // common for beam breaks
+  public static final boolean ENTRY_SENSOR_INVERTED = false; // raw==true means ball present
 
   /** Sensor at shooter throat (exit of transfer). */
   public static final int THROAT_SENSOR_DIO = 1; // TODO set
-  public static final boolean THROAT_SENSOR_INVERTED = true;
-
+  public static final boolean THROAT_SENSOR_INVERTED = false; // raw==true means ball present
+  
   /** Slow speed to keep balls staged without slamming them into the shooter. */
   public static final double STAGE_DUTY = 0.20;
   /** Fast speed to inject a ball into the shooter. */
   public static final double FEED_DUTY = 0.85;
 
+    // ---------------- Closed-loop velocity targets (RPS) ----------------
+  // TODO: These setpoints are placeholders until the robot is fully built and you can test/measure
+  //       ideal transfer speeds with real balls.
+  /** Staging target speed in rotor RPS (closed-loop). */
+  public static final double STAGE_RPS = 20.0; // TODO: placeholder, tune on robot
+  /** Feeding target speed in rotor RPS (closed-loop). */
+  public static final double FEED_RPS = 60.0;  // TODO: placeholder, tune on robot
+
+  /**
+   * When a ball is already at the throat, staging should stop to avoid jamming/compressing.
+   * If you later prefer a very slow "creep hold", change this to a small nonzero value.
+   */
+  public static final double THROAT_BLOCKED_STAGE_RPS = 0.0; // TODO: placeholder (0 = stop)
+
+  // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
+  // TODO: All gains are placeholders and MUST be tuned on the real robot.
+  // Units:
+  // - kS, kV are in "duty" terms because we use VelocityDutyCycle.
+  // - kP is duty per (RPS error).
+  public static final double VEL_kS = 0.02;   // TODO: placeholder
+  public static final double VEL_kV = 0.01;   // TODO: placeholder
+  public static final double VEL_kP = 0.05;   // TODO: placeholder
+  public static final double VEL_kI = 0.0;    // TODO: placeholder
+  public static final double VEL_kD = 0.0;    // TODO: placeholder
+
+  // ---------------- Motor safety defaults ----------------
+  // Reasonable defaults (you authorized defaults). Tune as needed after measuring performance.
+  public static final double SUPPLY_CURRENT_LIMIT_A = 35.0; // TODO: verify/tune
+  public static final double STATOR_CURRENT_LIMIT_A = 60.0; // TODO: verify/tune
 
   /** Simulation placeholders. */
   public static final double SIM_GEAR_RATIO = 1.0;
@@ -723,6 +761,8 @@ public static final class SysId {
       public static final double SHOOTER_RAMP_RATE_V_PER_S = 1.0;
       public static final double SHOOTER_STEP_V = 4.0;
       public static final double SHOOTER_TIMEOUT_S = 10.0;
+      public static final double SHOOTER_SYSID_MAX_VOLTS = 6.0; // TODO: PLACEHOLDER - set a safe max voltage for shooter SysId testing (start conservative)
+
 
       public static final double HOOD_RAMP_RATE_V_PER_S = 1.0;
       public static final double HOOD_STEP_V = 4.0;
@@ -762,21 +802,43 @@ public static final class SysId {
       public static final boolean IntakeRollerInverted = false;
 
       public static final int intakePivotMotorId = 56;
+      public static final int intakePivotFollowerMotorId = 0;
+      // TODO: PLACEHOLDER - set to the actual CAN ID of the 2nd pivot Kraken (follower)
+
+      public static final boolean intakePivotFollowerOpposeLeader = false;
+      // TODO: PLACEHOLDER - verify on hardware by jogging. If the motors fight, flip this.
+
       public static final boolean intakePivotMotorInverted = false;
       public static final double defaultSpeed = 0.3;
 
-      public static enum IntakePositions{ // position of the arm for the piece placement/pickup
-				IntakeDown(0.0),
-				IntakeUp(0.0);
-        private double intakePositionSelected;
-				IntakePositions(double position) {
-				  this.intakePositionSelected = position;
-				}
-				public double getPosition() {
-				  return intakePositionSelected;
-				}
-			  }
+      public static final double PIVOT_MOTOR_TO_ARM_GEAR_RATIO = 5.0;
+      // TODO: PLACEHOLDER - confirm this is exactly 5:1 motor rotations per arm rotation
 
+      public static final double PIVOT_MIN_DEG = 10.0;     // retracted hard stop = 0 deg
+      public static final double PIVOT_MAX_DEG = 142.0;   // TODO: PLACEHOLDER - verify true max
+
+      public static final double CAL_PIVOT_JOG_DUTY = 0.08;
+      // TODO: PLACEHOLDER - start low, raise carefully if needed
+
+      public static final double CAL_STEP_LOW_DEG = 5.0;
+      // TODO: PLACEHOLDER - safe small move off hard stop
+      public static final double CAL_STEP_HIGH_DEG = 90.0;
+      // TODO: PLACEHOLDER - pick a safe value that avoids hitting anything
+
+
+      public static enum IntakePositions { // arm degrees (not motor rotations)
+        IntakeStowedDeg(0.0),
+        IntakeDeployedDeg(142.0);
+        // TODO: PLACEHOLDER - tune deployed deg to your real safe max
+
+        private double armDeg;
+        IntakePositions(double armDeg) {
+          this.armDeg = armDeg;
+        }
+        public double getPosition() {
+          return armDeg;
+        }
+      }
       public static final class IntakePidConstants {
         public static class PositionDutyCycleConstants {
 					public static final double intake_kP = 0.1;
@@ -795,7 +857,8 @@ public static final class SysId {
 					public static final double motionMagicJerk = 1000.0; //1500.0
 				}
 
-        public static final double tolerance = 3.0;
+        public static final double tolerance = 3.0; // TODO: PLACEHOLDER - your requirement
+
       }
 
       /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */
