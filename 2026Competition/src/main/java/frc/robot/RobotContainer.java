@@ -32,6 +32,7 @@ import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OperatorConstants.OIContants;
@@ -39,6 +40,10 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
 import frc.robot.OdometryUpdates.QuestNavSubsystem;
+import frc.robot.commands.AutoMainOneLeft;
+import frc.robot.commands.AutoMainOneRight;
+import frc.robot.commands.AutoMainTwoDepotHubSide;
+import frc.robot.commands.AutoMainTwoDepotMiddle;
 import frc.robot.commands.AutoStrategyEight;
 import frc.robot.commands.AutoStrategyFive;
 import frc.robot.commands.AutoStrategyFour;
@@ -50,6 +55,8 @@ import frc.robot.commands.AutoStrategyTwo;
 import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
+import frc.robot.commands.StartIntake;
+import frc.robot.commands.StopIntake;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
 import frc.robot.commands.TurretCalibrationJogCommand;
@@ -142,6 +149,10 @@ public class RobotContainer {
     autoChooser.addOption("Auto Strategy Six", new AutoStrategySix());
     autoChooser.addOption("Auto Strategy Seven", new AutoStrategySeven());
     autoChooser.addOption("Auto Strategy Eight", new AutoStrategyEight());
+    autoChooser.addOption("Auto Main One Left", new AutoMainOneLeft());
+    autoChooser.addOption("AutoMainOneRight", new AutoMainOneRight());
+    autoChooser.addOption("AutoMainTwoDepotHubSide", new AutoMainTwoDepotHubSide());
+    autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
     autoChooser.addOption("Test Auto", new TestAuto());
   }
 
@@ -388,13 +399,13 @@ public class RobotContainer {
   private double getDriverXAxis() {
     // return -xboxController.getLeftStickY();
     // SmartDashboard.putNumber("X-Axis: ", -xboxDriveController.getRightStickY());
-    return -xboxDriveController.getLefttStickY();
+    return -xboxDriveController.getLeftStickY();
   }
 
   private double getDriverYAxis() {
     // return -xboxController.getLeftStickX();
     // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
-    return -xboxDriveController.getLefttStickX();
+    return -xboxDriveController.getLeftStickX();
     //return 0;
   }
 

@@ -409,7 +409,7 @@ public class TurretSubsystem extends SubsystemBase {
 
     double motorRotSensor = motorPosSig.getValueAsDouble();
 
-    // Undo ANGLE_SIGN so motorRot is positive in your “CCW positive” turret
+    // Undo ANGLE_SIGN so motorRot is positive in your "CCW positive" turret
     // convention.
     double motorRot = motorRotSensor / ANGLE_SIGN;
 
