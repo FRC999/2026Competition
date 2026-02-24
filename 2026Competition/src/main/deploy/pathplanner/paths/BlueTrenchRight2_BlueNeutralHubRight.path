@@ -3,32 +3,37 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 5.785777460770328,
-        "y": 2.1653637660485026
+        "x": 5.669,
+        "y": 0.65
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.823791756833813,
-        "y": 2.412456690461157
+        "x": 5.964253012048193,
+        "y": 1.040807228915662
       },
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "BlueTrenchRight2"
     },
     {
       "anchor": {
-        "x": 5.785777460770328,
-        "y": 5.865820256776035
+        "x": 5.9423975903614465,
+        "y": 3.3684096385542173
       },
       "prevControl": {
-        "x": 5.750422121711002,
-        "y": 5.618332883360743
+        "x": 5.876831325301204,
+        "y": 2.4504819277108436
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "BlueNeutralHubRight"
     }
   ],
-  "rotationTargets": [],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 0.3460580912863054,
+      "rotationDegrees": 90.0
+    }
+  ],
   "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],
@@ -41,14 +46,14 @@
     "unlimited": false
   },
   "goalEndState": {
-    "velocity": 0,
+    "velocity": 0.0,
     "rotation": 90.0
   },
   "reversed": false,
   "folder": null,
   "idealStartingState": {
-    "velocity": 0,
-    "rotation": 90.0
+    "velocity": 1.5,
+    "rotation": 0.0
   },
   "useDefaultConstraints": true
 }
