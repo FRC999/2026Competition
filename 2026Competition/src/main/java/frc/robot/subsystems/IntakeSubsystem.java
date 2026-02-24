@@ -344,7 +344,7 @@ public class IntakeSubsystem extends SubsystemBase {
 }
 
 public void setCalibrationPivotDutyCycle(double duty) {
-  // Voltage consistency is good, but for “jog”, duty is fine and simple.
+  // Voltage consistency is good, but for "jog", duty is fine and simple.
   intakePivotMotor.setControl(new DutyCycleOut(MathUtil.clamp(duty, -1.0, 1.0)));
 }
 

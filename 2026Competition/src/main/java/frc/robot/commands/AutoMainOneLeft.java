@@ -6,6 +6,8 @@ package frc.robot.commands;
 
 import java.util.Set;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.robot.RobotContainer;
@@ -24,23 +26,24 @@ public class AutoMainOneLeft extends SequentialCommandGroup {
           () -> RobotContainer.runTrajectory2Poses(
               true,
               //new Pose2d(3.884, 6.966, new Rotation2d()),
-              RobotContainer.driveSubsystem.getPose(),
-              TrajectoryHelper.AutoDesiredPoses.BlueBumpLeft2),
+              TrajectoryHelper.AutoDesiredPoses.BlueTrenchLeft,
+              //RobotContainer.driveSubsystem.getPose(),
+              TrajectoryHelper.AutoDesiredPoses.BlueTrenchLeft2),
           Set.of(RobotContainer.driveSubsystem)),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueNeutralLeftMiddle", false, false),
-          new StartIntake(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeftMiddle_BlueNeutralRightMiddle", false, false),
-          new StopIntake(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRightMiddle_BlueBumpRight2", false, false),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_BlueAllianceRight", false, false),
-          new AutoShootUntilEmpty(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceRight_BlueHubSideRight", false, false),
-          new StartIntake(),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft2_BlueNeutralLeft", false, false),
+          //new StartIntake(),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeft_BlueNeutralLeftMiddle", false, false),
+          //new StopIntake(),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeftMiddle_BlueNeutralHubLeft", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubLeft_BlueBumpLeft2", false, false),
+          //new AutoShootUntilEmpty(),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueAllianceSideLeft", false, false),
+          //new StartIntake(), TODO: Need to finish correcting rest of auto
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueHubSideRight_BlueHubSideLeft", false, false),
-          new StopIntake(),
+          //new StopIntake(),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueHubSideLeft_BlueAllianceLeft", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceLeft_BlueTower", false, false)
-          .alongWith(new AutoShootUntilEmpty())
+          //.alongWith(new AutoShootUntilEmpty())
     );
   }
 }

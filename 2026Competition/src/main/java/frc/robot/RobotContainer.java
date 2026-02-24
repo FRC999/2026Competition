@@ -40,6 +40,10 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
 import frc.robot.OdometryUpdates.QuestNavSubsystem;
+import frc.robot.commands.AutoMainOneLeft;
+import frc.robot.commands.AutoMainOneRight;
+import frc.robot.commands.AutoMainTwoDepotHubSide;
+import frc.robot.commands.AutoMainTwoDepotMiddle;
 import frc.robot.commands.AutoStrategyEight;
 import frc.robot.commands.AutoStrategyFive;
 import frc.robot.commands.AutoStrategyFour;
@@ -145,6 +149,10 @@ public class RobotContainer {
     autoChooser.addOption("Auto Strategy Six", new AutoStrategySix());
     autoChooser.addOption("Auto Strategy Seven", new AutoStrategySeven());
     autoChooser.addOption("Auto Strategy Eight", new AutoStrategyEight());
+    autoChooser.addOption("Auto Main One Left", new AutoMainOneLeft());
+    autoChooser.addOption("AutoMainOneRight", new AutoMainOneRight());
+    autoChooser.addOption("AutoMainTwoDepotHubSide", new AutoMainTwoDepotHubSide());
+    autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
     autoChooser.addOption("Test Auto", new TestAuto());
   }
 
@@ -479,7 +487,7 @@ public class RobotContainer {
           pathWaypoints,
           AutoConstants.pathConstraints,
           new IdealStartingState(0, startPose.getRotation()),
-          new GoalEndState(0, endPose.getRotation()));
+          new GoalEndState(2, endPose.getRotation()));
         path.preventFlipping = true;
         // System.out.println("== Driving from " + startPose + " to " + endPose);
 

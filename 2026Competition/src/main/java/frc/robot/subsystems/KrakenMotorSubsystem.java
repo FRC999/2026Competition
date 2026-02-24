@@ -18,7 +18,7 @@ public class KrakenMotorSubsystem extends SubsystemBase {
 
   private final boolean isSim = RobotBase.isSimulation();
 
-  // Rotor inertia reflected to motor shaft (tune as needed for “feel”).
+  // Rotor inertia reflected to motor shaft (tune as needed for "feel").
   private static final double kRotorInertia = 0.001;
 
   // Simple supply drop model (ohms). Optional, but harmless.
