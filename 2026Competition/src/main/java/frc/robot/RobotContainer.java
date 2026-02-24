@@ -478,7 +478,7 @@ public class RobotContainer {
           pathWaypoints,
           AutoConstants.pathConstraints,
           new IdealStartingState(0, startPose.getRotation()),
-          new GoalEndState(0, endPose.getRotation()));
+          new GoalEndState(2, endPose.getRotation()));
         path.preventFlipping = true;
         // System.out.println("== Driving from " + startPose + " to " + endPose);
 
