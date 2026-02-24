@@ -30,7 +30,7 @@ public class AutoMainOneRight extends SequentialCommandGroup {
               //RobotContainer.driveSubsystem.getPose(),
               TrajectoryHelper.AutoDesiredPoses.BlueTrenchRight2),
           Set.of(RobotContainer.driveSubsystem)),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_BlueNeutralRightMiddle", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralRightMiddle", false, false),
           //new StartIntake(),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRightMiddle_BlueNeutralLeftMiddle", false, false),
           //new StopIntake(),
