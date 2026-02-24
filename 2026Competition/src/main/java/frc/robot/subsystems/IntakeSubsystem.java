@@ -7,6 +7,7 @@ package frc.robot.subsystems;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
@@ -166,6 +167,18 @@ public class IntakeSubsystem extends SubsystemBase {
 
     TalonFXConfiguration pidRollerConfig = new TalonFXConfiguration().withMotorOutput(motorRollerConfig);
 
+         // ---------------- Current limits (roller) ----------------
+    final var rollerCurrentLimits = new CurrentLimitsConfigs();
+    rollerCurrentLimits.SupplyCurrentLimitEnable = true;
+    rollerCurrentLimits.SupplyCurrentLimit = IntakeConstants.ROLLER_SUPPLY_CURRENT_LIMIT_A;
+    rollerCurrentLimits.SupplyCurrentLowerLimit = IntakeConstants.ROLLER_SUPPLY_CURRENT_LOWER_LIMIT_A;
+    rollerCurrentLimits.SupplyCurrentLowerTime = IntakeConstants.ROLLER_SUPPLY_CURRENT_LOWER_TIME_S;
+
+     rollerCurrentLimits.StatorCurrentLimitEnable = true;
+     rollerCurrentLimits.StatorCurrentLimit = IntakeConstants.ROLLER_STATOR_CURRENT_LIMIT_A;
+
+     pidRollerConfig.CurrentLimits = rollerCurrentLimits;
+
     StatusCode statusRoller = StatusCode.StatusCodeNotInitialized;
     for (int i = 0; i < 5; ++i) {
       statusRoller = talonFXRollerConfigurator.apply(pidRollerConfig);
@@ -196,7 +209,7 @@ public class IntakeSubsystem extends SubsystemBase {
     intakePivotFollowerMotor.setControl(new Follower(IntakeConstants.intakePivotMotorId, alignment));
     
     var motorPivotConfig = new MotorOutputConfigs();
-    motorPivotConfig.NeutralMode = NeutralModeValue.Brake;
+    motorPivotConfig.NeutralMode = NeutralModeValue.Coast;
     motorPivotConfig.Inverted =
         (IntakeConstants.intakePivotMotorInverted
             ? InvertedValue.CounterClockwise_Positive
@@ -205,6 +218,33 @@ public class IntakeSubsystem extends SubsystemBase {
     var talonFXPivotConfigurator = intakePivotMotor.getConfigurator();
 
     TalonFXConfiguration pidPivotConfig = new TalonFXConfiguration().withMotorOutput(motorPivotConfig);
+
+         // ---------------- Current limits (pivot leader + follower) ----------------
+    final var pivotCurrentLimits = new CurrentLimitsConfigs();
+    pivotCurrentLimits.SupplyCurrentLimitEnable = true;
+    pivotCurrentLimits.SupplyCurrentLimit = IntakeConstants.PIVOT_SUPPLY_CURRENT_LIMIT_A;
+    pivotCurrentLimits.SupplyCurrentLowerLimit = IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A;
+    pivotCurrentLimits.SupplyCurrentLowerTime = IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_TIME_S;
+
+     pivotCurrentLimits.StatorCurrentLimitEnable = true;
+     pivotCurrentLimits.StatorCurrentLimit = IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A;
+
+     pidPivotConfig.CurrentLimits = pivotCurrentLimits;
+
+          // Apply the SAME pivot current limits to the follower motor as well
+     final TalonFXConfiguration pivotFollowerConfig = new TalonFXConfiguration();
+     pivotFollowerConfig.CurrentLimits = pivotCurrentLimits;
+
+     StatusCode statusPivotFollower = StatusCode.StatusCodeNotInitialized;
+     for (int i = 0; i < 5; ++i) {
+       statusPivotFollower = intakePivotFollowerMotor.getConfigurator().apply(pivotFollowerConfig);
+       if (statusPivotFollower.isOK()) {
+         break;
+       }
+     }
+     if (!statusPivotFollower.isOK()) {
+       System.out.println("Could not apply follower current limits, error code: " + statusPivotFollower.toString());
+     }
 
         // Soft limits: 0 rot == retracted hard stop; forward == max deploy
     final double fwdSoftLimitRot =

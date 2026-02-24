@@ -111,7 +111,7 @@ public class RobotContainer {
     configureBindings();
     //driveSubsystem.registerTelemetry(logger::telemeterize);
 
-    //setYaws();
+    setYaws();
     
 
     driveSubsystem.setDefaultCommand(
@@ -221,6 +221,15 @@ public class RobotContainer {
     new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
         .onTrue(new StartIntake())
         .onFalse(new StopIntake());
+
+    new JoystickButton(xboxDriveController, 
+    5).whileTrue(
+    Commands.runEnd(
+        () -> intakeSubsystem.runIntake(-0.5),
+        () -> intakeSubsystem.stopIntake(),
+        intakeSubsystem
+    )
+);
   }
 
   private void configureShooterCalibrationBindings() {

@@ -90,7 +90,7 @@ public static final class EnabledSubsystems {
     public static final boolean hood = false;
     public static final boolean hopper = false; 
     public static final boolean spindexer = false;
-    public static final boolean transfer = true;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
@@ -802,14 +802,30 @@ public static final class SysId {
       public static final boolean IntakeRollerInverted = false;
 
       public static final int intakePivotMotorId = 56;
-      public static final int intakePivotFollowerMotorId = 0;
+      public static final int intakePivotFollowerMotorId = 57;
       // TODO: PLACEHOLDER - set to the actual CAN ID of the 2nd pivot Kraken (follower)
 
       public static final boolean intakePivotFollowerOpposeLeader = false;
       // TODO: PLACEHOLDER - verify on hardware by jogging. If the motors fight, flip this.
 
       public static final boolean intakePivotMotorInverted = false;
-      public static final double defaultSpeed = 0.3;
+      public static final double defaultSpeed = 1;
+
+            // ---------------- Current limits (brownout protection) ----------------
+      // TODO: PLACEHOLDER - tune on real robot. Start conservative to prevent 6-7V sag.
+
+      // Roller motor current limits
+      public static final double ROLLER_SUPPLY_CURRENT_LIMIT_A = 25.0;
+      public static final double ROLLER_SUPPLY_CURRENT_LOWER_LIMIT_A = 20.0;
+      public static final double ROLLER_SUPPLY_CURRENT_LOWER_TIME_S = 0.25;
+      public static final double ROLLER_STATOR_CURRENT_LIMIT_A = 60.0;
+
+      // Pivot motors current limits (applied to BOTH leader + follower)
+      public static final double PIVOT_SUPPLY_CURRENT_LIMIT_A = 30.0;
+      public static final double PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A = 25.0;
+      public static final double PIVOT_SUPPLY_CURRENT_LOWER_TIME_S = 0.25;
+      public static final double PIVOT_SUPPLY_TIME_THRESHOLD_S = 0.10;
+      public static final double PIVOT_STATOR_CURRENT_LIMIT_A = 80.0;
 
       public static final double PIVOT_MOTOR_TO_ARM_GEAR_RATIO = 5.0;
       // TODO: PLACEHOLDER - confirm this is exactly 5:1 motor rotations per arm rotation
