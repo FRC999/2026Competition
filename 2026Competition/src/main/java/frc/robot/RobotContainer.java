@@ -32,6 +32,7 @@ import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OperatorConstants.OIContants;
@@ -50,6 +51,8 @@ import frc.robot.commands.AutoStrategyTwo;
 import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
+import frc.robot.commands.StartIntake;
+import frc.robot.commands.StopIntake;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
 import frc.robot.commands.TurretCalibrationJogCommand;
@@ -104,7 +107,7 @@ public class RobotContainer {
     configureBindings();
     //driveSubsystem.registerTelemetry(logger::telemeterize);
 
-    //setYaws();
+    setYaws();
     
 
     driveSubsystem.setDefaultCommand(
@@ -210,6 +213,15 @@ public class RobotContainer {
     new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
         .onTrue(new StartIntake())
         .onFalse(new StopIntake());
+
+    new JoystickButton(xboxDriveController, 
+    5).whileTrue(
+    Commands.runEnd(
+        () -> intakeSubsystem.runIntake(-0.5),
+        () -> intakeSubsystem.stopIntake(),
+        intakeSubsystem
+    )
+);
   }
 
   private void configureShooterCalibrationBindings() {
@@ -388,13 +400,13 @@ public class RobotContainer {
   private double getDriverXAxis() {
     // return -xboxController.getLeftStickY();
     // SmartDashboard.putNumber("X-Axis: ", -xboxDriveController.getRightStickY());
-    return -xboxDriveController.getLefttStickY();
+    return -xboxDriveController.getLeftStickY();
   }
 
   private double getDriverYAxis() {
     // return -xboxController.getLeftStickX();
     // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
-    return -xboxDriveController.getLefttStickX();
+    return -xboxDriveController.getLeftStickX();
     //return 0;
   }
 
