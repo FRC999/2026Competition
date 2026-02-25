@@ -18,29 +18,35 @@ import frc.robot.lib.TurretHelpers;
  * "Superstructure" owner of the volley state machine.
  *
  * Why a subsystem owns state (instead of the command):
- * - Commands are interruptible; you still want the system to "know what it was doing" for telemetry/debug.
- * - The driver can press the shoot button multiple times; we want deterministic behavior.
+ * - Commands are interruptible; you still want the system to "know what it was
+ * doing" for telemetry/debug.
+ * - The driver can press the shoot button multiple times; we want deterministic
+ * behavior.
  *
  * High-level goals:
  * - Aim turret at target at all times (if enabled).
  * - When the driver requests shooting, run a continuous volley:
- *   keep shooter + hood + turret commanded; stage balls; fire as soon as gates are satisfied; repeat until empty.
- * - If no shooting solution exists for the next ball, the volley pauses (NO_SOLUTION) instead of firing blind.
+ * keep shooter + hood + turret commanded; stage balls; fire as soon as gates
+ * are satisfied; repeat until empty.
+ * - If no shooting solution exists for the next ball, the volley pauses
+ * (NO_SOLUTION) instead of firing blind.
  *
  * Performance architecture:
- * - This subsystem does the math once per 20 ms loop (50 Hz). The solver itself is lightweight.
+ * - This subsystem does the math once per 20 ms loop (50 Hz). The solver itself
+ * is lightweight.
  * - Artillery table is loaded once at startup from /deploy (CSV).
- * - Robot acceleration is estimated from two consecutive velocity samples (no CTRE acceleration signal needed).
+ * - Robot acceleration is estimated from two consecutive velocity samples (no
+ * CTRE acceleration signal needed).
  */
 public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
   public enum VolleyState {
     IDLE,
-    ARMING,        // preparing + staging concurrently
-    FIRING,        // actively feeding ball into shooter
-    RECOVERING,    // waiting for shooter to recover after a dip
-    NO_SOLUTION,   // requested shoot, but no valid solution exists (pause)
-    EMPTY          // no balls remaining
+    ARMING, // preparing + staging concurrently
+    FIRING, // actively feeding ball into shooter
+    RECOVERING, // waiting for shooter to recover after a dip
+    NO_SOLUTION, // requested shoot, but no valid solution exists (pause)
+    EMPTY // no balls remaining
   }
 
   private TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle table;
@@ -71,16 +77,20 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
   public AutoShootSupervisorSubsystem() {
 
-    if(!EnabledSubsystems.supervisor){
+    if (!EnabledSubsystems.supervisor) {
       return;
     }
 
-    // Load artillery table once. If missing/empty, hasAnyData() will be false and solver will return invalid.
+    // Load artillery table once. If missing/empty, hasAnyData() will be false and
+    // solver will return invalid.
     this.table = TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle
         .loadFromDeployCsv(Constants.OperatorConstants.ArtilleryTable.DEPLOY_CSV_PATH);
   }
 
-  /** Driver intent: true = attempt to run a volley; false = stop shooting immediately. */
+  /**
+   * Driver intent: true = attempt to run a volley; false = stop shooting
+   * immediately.
+   */
   public void setShootRequested(boolean requested) {
     if (requested && !shootRequested) {
       // Rising edge: latch ball estimate at start of volley.
@@ -122,13 +132,29 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     }
   }
 
+  public enum ShotMode {
+    MOVING_AUTO,
+    STATIC_HUB_BASE,
+    STATIC_TOWER_BASE
+  }
+
+  private ShotMode shotMode = ShotMode.MOVING_AUTO;
+
+  public void setShotMode(ShotMode newMode) {
+    shotMode = newMode;
+  }
+
+  public ShotMode getShotMode() {
+    return shotMode;
+  }
+
   @Override
   public void periodic() {
 
-    if (! EnabledSubsystems.supervisor) {
+    if (!EnabledSubsystems.supervisor) {
       return;
     }
-    
+
     final double now = Timer.getFPGATimestamp();
 
     // --- 1) Compute target position ---
@@ -151,30 +177,74 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     Translation2d aField = estimateAccelerationField(now, vField);
 
     // --- 3) Solve shooting (or just aim) ---
-    lastSolution = TurretHelpers.solveForShooterRpmAndHoodAngleCommandsWhileRobotIsMovingUsingMeasuredTableIndexedByRpmAndHood(
-        poseField,
-        vField,
-        aField,
-        omega,
-        Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
-        Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS,
-        Constants.OperatorConstants.TurretGeometry.BALL_RELEASE_HEIGHT_METERS,
-        target3d,
-        table,
-        Constants.OperatorConstants.ArtillerySolver.TOF_MIN_SEC,
-        Constants.OperatorConstants.ArtillerySolver.TOF_MAX_SEC,
-        Constants.OperatorConstants.ArtillerySolver.TOF_STEP_SEC,
-        Constants.OperatorConstants.ArtillerySolver.GRAVITY_MPS2,
-        Constants.OperatorConstants.ArtillerySolver.ANGLE_WEIGHT,
-        Constants.OperatorConstants.ArtillerySolver.SPEED_WEIGHT
-    );
+
+    final boolean isStatic = (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE);
+
+    if (!isStatic) {
+      // MOVING: use your existing moving-shot solver (no behavior change)
+      lastSolution = TurretHelpers
+          .solveForShooterRpmAndHoodAngleCommandsWhileRobotIsMovingUsingMeasuredTableIndexedByRpmAndHood(
+              poseField,
+              vField,
+              aField,
+              omega,
+              Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
+              Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS,
+              Constants.OperatorConstants.TurretGeometry.BALL_RELEASE_HEIGHT_METERS,
+              target3d,
+              table,
+              Constants.OperatorConstants.ArtillerySolver.TOF_MIN_SEC,
+              Constants.OperatorConstants.ArtillerySolver.TOF_MAX_SEC,
+              Constants.OperatorConstants.ArtillerySolver.TOF_STEP_SEC,
+              Constants.OperatorConstants.ArtillerySolver.GRAVITY_MPS2,
+              Constants.OperatorConstants.ArtillerySolver.ANGLE_WEIGHT,
+              Constants.OperatorConstants.ArtillerySolver.SPEED_WEIGHT);
+    } else {
+      // STATIC (failsafe): pose-only yaw-to-hub + hardwired RPM/hood presets (no
+      // vision, no solver)
+
+      // Field yaw from robot position -> hub center
+      final double dx = target2d.getX() - poseField.getX();
+      final double dy = target2d.getY() - poseField.getY();
+      final double yawFieldRad = Math.atan2(dy, dx);
+
+      final double shooterRpm = (shotMode == ShotMode.STATIC_TOWER_BASE)
+          ? Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_RPM
+          : Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_RPM;
+
+      final double hoodAngleRad = Math.toRadians(
+          (shotMode == ShotMode.STATIC_TOWER_BASE)
+              ? Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_HOOD_DEG
+              : Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_HOOD_DEG);
+
+      // Create a "valid" solution object so the rest of the supervisor pipeline stays
+      // unchanged.
+      lastSolution = new TurretHelpers.Solution(
+          true, // valid
+          0.0, // timeOfFlightS (unused in static mode)
+          yawFieldRad, // yawFieldRad (what we need for turret aiming)
+          Double.NaN, // desiredBallOutputAngleRad (unused)
+          Double.NaN, // desiredBallExitSpeedMps (unused)
+          new Translation3d(), // ballExitVelocityRelativeToRobotExpressedInFieldFrame (unused)
+          shooterRpm, // shooterRpmCommand (preset)
+          hoodAngleRad, // hoodCommandAngleRad (preset)
+          Double.NaN, // tableMatchedBallOutputAngleRad (unused)
+          Double.NaN // tableMatchedBallExitSpeedMps (unused)
+      );
+    }
 
     boolean solutionValid = lastSolution.valid;
 
-    // Compute desired turret angle now (deg in turret-forward frame) using predicted robot heading at release time.
+    // Compute desired turret angle now (deg in turret-forward frame) using
+    // predicted robot heading at release time.
+    
+    final boolean isStaticForPredict =
+    (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE);
+    final double omegaForPredict = isStaticForPredict ? 0.0 : omega;
+
     desiredTurretDeg = computeDesiredTurretDeg(
         poseField.getRotation().getRadians(),
-        omega,
+        omegaForPredict,
         Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
         lastSolution.yawFieldRad,
         Constants.OperatorConstants.Turret.ZERO_POINTS_ROBOT_BACK
@@ -252,6 +322,25 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     // Gate to actually fire:
     boolean okToFire = turretAimed && shooterReady && ballAtThroat;
+
+    // ------------------------------------------------------------------
+    // Additional gating for STATIC shots: robot must be effectively stopped
+    // ------------------------------------------------------------------
+    // ------------------------------------------------------------------
+    // Additional gating for STATIC shots: robot must be effectively stopped
+    // ------------------------------------------------------------------
+    if (shotMode == ShotMode.STATIC_HUB_BASE
+        || shotMode == ShotMode.STATIC_TOWER_BASE) {
+
+      var speeds = RobotContainer.driveSubsystem.getState().Speeds;
+
+      boolean stopped = Math.abs(speeds.vxMetersPerSecond) < Constants.OperatorConstants.AutoShoot.STATIC_MAX_VX_MPS
+          && Math.abs(speeds.vyMetersPerSecond) < Constants.OperatorConstants.AutoShoot.STATIC_MAX_VY_MPS
+          && Math.abs(Math.toDegrees(
+              speeds.omegaRadiansPerSecond)) < Constants.OperatorConstants.AutoShoot.STATIC_MAX_OMEGA_DEG_PER_S;
+
+      okToFire = okToFire && stopped;
+    }
 
     if (okToFire) {
       state = VolleyState.FIRING;
@@ -335,8 +424,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       double omegaRadPerSec,
       double dtReleaseSec,
       double desiredYawFieldRad,
-      boolean zeroPointsRobotBack
-  ) {
+      boolean zeroPointsRobotBack) {
     double predictedHeading = robotHeadingFieldRad + omegaRadPerSec * dtReleaseSec;
     double robotRelative = MathUtil.angleModulus(desiredYawFieldRad - predictedHeading);
     if (zeroPointsRobotBack) {
@@ -347,7 +435,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
   /** Simple aim check: compare current continuous turret angle to desired. */
   private boolean isTurretAimed(double desiredDeg) {
-    if (!Double.isFinite(desiredDeg)) return false;
+    if (!Double.isFinite(desiredDeg))
+      return false;
     double err = Math.abs(desiredDeg - RobotContainer.turretSubsystem.getContinuousAngleDeg());
     return err <= Constants.OperatorConstants.Turret.AIM_TOLERANCE_DEG;
   }
@@ -355,7 +444,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   /**
    * Soft-limit selection to avoid living at the ends of turret travel.
    *
-   * Also implements "flip suppression": if we unwrap/flip, we suppress feeding briefly so we don't fire mid-swing.
+   * Also implements "flip suppression": if we unwrap/flip, we suppress feeding
+   * briefly so we don't fire mid-swing.
    */
   private double chooseSoftLimitedEquivalent(double desiredDeg, double nowTs) {
     double soft = Constants.OperatorConstants.Turret.SOFT_AIM_LIMIT_DEG;
@@ -368,7 +458,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     double bestScore = Double.POSITIVE_INFINITY;
 
     for (double c : cands) {
-      if (c < -soft || c > soft) continue;
+      if (c < -soft || c > soft)
+        continue;
       double travel = Math.abs(c - currentDeg);
 
       // Edge penalty: discourage living within 'margin' of the soft ends.
@@ -397,7 +488,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       avoidingEdge = false;
     }
 
-    // If we chose a different branch (±360), it will look like a big step; suppress briefly.
+    // If we chose a different branch (±360), it will look like a big step; suppress
+    // briefly.
     if (Math.abs(best - desiredDeg) > 180.0) {
       suppressShootUntilTs = Math.max(
           suppressShootUntilTs,

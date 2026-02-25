@@ -31,12 +31,14 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import edu.wpi.first.wpilibj2.command.button.POVButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OperatorConstants.OIContants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
+import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
 import frc.robot.OdometryUpdates.QuestNavSubsystem;
@@ -44,6 +46,7 @@ import frc.robot.commands.AutoMainOneLeft;
 import frc.robot.commands.AutoMainOneRight;
 import frc.robot.commands.AutoMainTwoDepotHubSide;
 import frc.robot.commands.AutoMainTwoDepotMiddle;
+import frc.robot.commands.AutoShootUntilEmpty;
 import frc.robot.commands.AutoStrategyEight;
 import frc.robot.commands.AutoStrategyFive;
 import frc.robot.commands.AutoStrategyFour;
@@ -52,10 +55,18 @@ import frc.robot.commands.AutoStrategySeven;
 import frc.robot.commands.AutoStrategySix;
 import frc.robot.commands.AutoStrategyThree;
 import frc.robot.commands.AutoStrategyTwo;
+import frc.robot.commands.ClimbDown;
+import frc.robot.commands.ClimbUp;
+import frc.robot.commands.DeployIntakeSequence;
 import frc.robot.commands.DriveManuallyCommand;
+import frc.robot.commands.IntakeToPositionAndHold;
+import frc.robot.commands.RetractIntakeSequence;
+import frc.robot.commands.ReverseIntake;
+import frc.robot.commands.ShootWhileHeld;
 import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
 import frc.robot.commands.StartIntake;
+import frc.robot.commands.StopClimb;
 import frc.robot.commands.StopIntake;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
@@ -87,7 +98,7 @@ public class RobotContainer {
   private static Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
-  private static final Joystick turretStick =  new Joystick(0);
+  private static final Joystick turretStick = new Joystick(0);
 
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
   public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
@@ -104,15 +115,13 @@ public class RobotContainer {
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
   public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
-
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
   public RobotContainer() {
     configureBindings();
-    //driveSubsystem.registerTelemetry(logger::telemeterize);
+    // driveSubsystem.registerTelemetry(logger::telemeterize);
 
     setYaws();
-    
 
     driveSubsystem.setDefaultCommand(
         new DriveManuallyCommand(
@@ -123,9 +132,9 @@ public class RobotContainer {
 
     AutonomousConfigure();
     if (RobotBase.isSimulation()) {
-      //configureSimulation();
+      // configureSimulation();
     }
-    //testTurretShooter();
+    // testTurretShooter();
   }
 
   private static void configureSimulation() {
@@ -133,7 +142,7 @@ public class RobotContainer {
     // simulated sensors or adjusting subsystem parameters for simulation.
     // For example, you might want to set up a simulated gyro or adjust the drive
     // subsystem's max speed for testing.
-    driveSubsystem.resetCTREPose(new Pose2d(3.5,5.7, new Rotation2d(0)));
+    driveSubsystem.resetCTREPose(new Pose2d(3.5, 5.7, new Rotation2d(0)));
   }
 
   public static void AutonomousConfigure() {
@@ -155,8 +164,6 @@ public class RobotContainer {
     autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
     autoChooser.addOption("Test Auto", new TestAuto());
   }
-
-  
 
   private void configureBindings() {
     // Note that X is defined as forward according to WPILib convention,
@@ -197,19 +204,19 @@ public class RobotContainer {
     // xboxDriveController.leftBumper().onTrue(driveSubsystem.runOnce(() ->
     // driveSubsystem.seedFieldCentric()));
 
-    //driveSubsystem.registerTelemetry(logger::telemeterize);
+    // driveSubsystem.registerTelemetry(logger::telemeterize);
 
     // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
     // .onFalse(stopRobotCommand());
-    //testTurretShooter();
-    //testAuto();
+    // testTurretShooter();
+    // testAuto();
 
-        // --- Calibration bindings (easy on/off) ---
+    // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
-        // --- Calibration bindings (easy on/off) ---
+    // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      configureShooterCalibrationBindings();  // <-- add this
+      configureShooterCalibrationBindings(); // <-- add this
       configureHoodCalibrationBindings();
       configureIntakeCalibrationBindings();
       configureTurretCalibrationBindings();
@@ -217,129 +224,165 @@ public class RobotContainer {
     competitionXBOXButtonBindings();
   }
 
-  private void competitionXBOXButtonBindings(){
+  private void competitionXBOXButtonBindings() {
     new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
-        .onTrue(new StartIntake())
+        .onTrue(new DeployIntakeSequence())
         .onFalse(new StopIntake());
 
-    new JoystickButton(xboxDriveController, 
-    5).whileTrue(
-    Commands.runEnd(
-        () -> intakeSubsystem.runIntake(-0.5),
-        () -> intakeSubsystem.stopIntake(),
-        intakeSubsystem
-    )
-);
+    new JoystickButton(xboxDriveController, 5)
+        .onTrue(new RetractIntakeSequence())
+        .onFalse(new StopIntake());
+
+    new POVButton(xboxDriveController, 0)
+        .onTrue(new ClimbUp())
+        .onFalse(new StopClimb());
+
+    new POVButton(xboxDriveController, 180)
+        .onTrue(new ClimbDown())
+        .onFalse(new StopClimb());
+
+    new JoystickButton(xboxDriveController, 8)
+        .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
+            .andThen(new InstantCommand(() -> questNavSubsystem.zeroYaw())));
+
+    // Trigger 3: MOVING shot while held (no drivetrain hold)
+    new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3)
+        .whileTrue(new ShootWhileHeld(
+            autoShootSupervisorSubsystem,
+            AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO,
+            false));
+
+    // Button 6: STATIC HUB BASE shot while held (drivetrain hold heading)
+    new JoystickButton(xboxDriveController, 6)
+        .whileTrue(new ShootWhileHeld(
+            autoShootSupervisorSubsystem,
+            AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
+            true));
+
+    // Button Y: STATIC TOWER BASE shot while held (drivetrain hold heading)
+    new JoystickButton(xboxDriveController, XboxController.Button.kY.value)
+        .whileTrue(new ShootWhileHeld(
+            autoShootSupervisorSubsystem,
+            AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
+            true));
+
+    new JoystickButton(xboxDriveController, 1)
+        .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeStowedDeg));
+    new JoystickButton(xboxDriveController, 1)
+        .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeDeployedDeg));
+
   }
 
   private void configureShooterCalibrationBindings() {
-  // TODO: PLACEHOLDER - pick real button numbers (ok to reuse across subsystems if you disable others)
-  final int BTN_SHOOTER_SET_RPM_A = 1;
-  final int BTN_SHOOTER_SET_RPM_B = 2;
-  final int BTN_SHOOTER_STOP = 3;
+    // TODO: PLACEHOLDER - pick real button numbers (ok to reuse across subsystems
+    // if you disable others)
+    final int BTN_SHOOTER_SET_RPM_A = 1;
+    final int BTN_SHOOTER_SET_RPM_B = 2;
+    final int BTN_SHOOTER_STOP = 3;
 
-  // Runs your existing volley state machine command (hold)
-  final int BTN_SHOOTER_AUTOSHOOT_UNTIL_EMPTY = 4;
+    // Runs your existing volley state machine command (hold)
+    final int BTN_SHOOTER_AUTOSHOOT_UNTIL_EMPTY = 4;
 
-  // SysId routines (hold)
-  final int BTN_SHOOTER_SYSID_QS_FWD = 9;
-  final int BTN_SHOOTER_SYSID_QS_REV = 10;
-  final int BTN_SHOOTER_SYSID_DYN_FWD = 11;
-  final int BTN_SHOOTER_SYSID_DYN_REV = 12;
+    // SysId routines (hold)
+    final int BTN_SHOOTER_SYSID_QS_FWD = 9;
+    final int BTN_SHOOTER_SYSID_QS_REV = 10;
+    final int BTN_SHOOTER_SYSID_DYN_FWD = 11;
+    final int BTN_SHOOTER_SYSID_DYN_REV = 12;
 
-  // TODO: PLACEHOLDER - choose two practical calibration RPMs
-  final double RPM_A = 3000.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
-  final double RPM_B = 4500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM B
+    // TODO: PLACEHOLDER - choose two practical calibration RPMs
+    final double RPM_A = 3000.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
+    final double RPM_B = 4500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM B
 
-  // Set RPM A (press)
-  new JoystickButton(turretStick, BTN_SHOOTER_SET_RPM_A)
-      .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem));
+    // Set RPM A (press)
+    new JoystickButton(turretStick, BTN_SHOOTER_SET_RPM_A)
+        .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem));
 
-  // Set RPM B (press)
-  new JoystickButton(turretStick, BTN_SHOOTER_SET_RPM_B)
-      .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_B), shooterSubsystem));
+    // Set RPM B (press)
+    new JoystickButton(turretStick, BTN_SHOOTER_SET_RPM_B)
+        .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_B), shooterSubsystem));
 
-  // Stop shooter (press)
-  new JoystickButton(turretStick, BTN_SHOOTER_STOP)
-      .onTrue(new InstantCommand(() -> shooterSubsystem.stop(), shooterSubsystem));
+    // Stop shooter (press)
+    new JoystickButton(turretStick, BTN_SHOOTER_STOP)
+        .onTrue(new InstantCommand(() -> shooterSubsystem.stop(), shooterSubsystem));
 
-  // Auto shoot until empty (hold)
-  new JoystickButton(turretStick, BTN_SHOOTER_AUTOSHOOT_UNTIL_EMPTY)
-      .whileTrue(new frc.robot.commands.AutoShootUntilEmpty());
+    // Auto shoot until empty (hold)
+    new JoystickButton(turretStick, BTN_SHOOTER_AUTOSHOOT_UNTIL_EMPTY)
+        .whileTrue(new frc.robot.commands.AutoShootUntilEmpty());
 
-  // SysId routines (hold)
-  new JoystickButton(turretStick, BTN_SHOOTER_SYSID_QS_FWD)
-      .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-  new JoystickButton(turretStick, BTN_SHOOTER_SYSID_QS_REV)
-      .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-  new JoystickButton(turretStick, BTN_SHOOTER_SYSID_DYN_FWD)
-      .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
-  new JoystickButton(turretStick, BTN_SHOOTER_SYSID_DYN_REV)
-      .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
-}
-
+    // SysId routines (hold)
+    new JoystickButton(turretStick, BTN_SHOOTER_SYSID_QS_FWD)
+        .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+    new JoystickButton(turretStick, BTN_SHOOTER_SYSID_QS_REV)
+        .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+    new JoystickButton(turretStick, BTN_SHOOTER_SYSID_DYN_FWD)
+        .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
+    new JoystickButton(turretStick, BTN_SHOOTER_SYSID_DYN_REV)
+        .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+  }
 
   private void configureIntakeCalibrationBindings() {
-  // TODO: PLACEHOLDER - pick real button numbers that don’t conflict with hood calibration
-  final int BTN_INTAKE_SEED_ZERO = 1;
-  final int BTN_INTAKE_JOG_UP = 2;
-  final int BTN_INTAKE_JOG_DOWN = 3;
-  final int BTN_INTAKE_STEP_TOGGLE = 4;
+    // TODO: PLACEHOLDER - pick real button numbers that don’t conflict with hood
+    // calibration
+    final int BTN_INTAKE_SEED_ZERO = 1;
+    final int BTN_INTAKE_JOG_UP = 2;
+    final int BTN_INTAKE_JOG_DOWN = 3;
+    final int BTN_INTAKE_STEP_TOGGLE = 4;
 
-  final int BTN_INTAKE_SYSID_QS_FWD = 9;
-  final int BTN_INTAKE_SYSID_QS_REV = 10;
-  final int BTN_INTAKE_SYSID_DYN_FWD = 11;
-  final int BTN_INTAKE_SYSID_DYN_REV = 12;
+    final int BTN_INTAKE_SYSID_QS_FWD = 9;
+    final int BTN_INTAKE_SYSID_QS_REV = 10;
+    final int BTN_INTAKE_SYSID_DYN_FWD = 11;
+    final int BTN_INTAKE_SYSID_DYN_REV = 12;
 
-  final double JOG_DUTY = Constants.OperatorConstants.IntakeConstants.CAL_PIVOT_JOG_DUTY;
+    final double JOG_DUTY = Constants.OperatorConstants.IntakeConstants.CAL_PIVOT_JOG_DUTY;
 
-  final double STEP_LOW_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_LOW_DEG;
-  final double STEP_HIGH_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_HIGH_DEG;
+    final double STEP_LOW_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_LOW_DEG;
+    final double STEP_HIGH_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_HIGH_DEG;
 
-  // Seed zero (press)
-  new JoystickButton(turretStick, BTN_INTAKE_SEED_ZERO)
-      .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
+    // Seed zero (press)
+    new JoystickButton(turretStick, BTN_INTAKE_SEED_ZERO)
+        .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
 
-  // Jog UP (hold) - assume positive deploys (your instruction)
-  new JoystickButton(turretStick, BTN_INTAKE_JOG_UP)
-      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
-      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+    // Jog UP (hold) - assume positive deploys (your instruction)
+    new JoystickButton(turretStick, BTN_INTAKE_JOG_UP)
+        .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
+        .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
 
-  // Jog DOWN (hold)
-  new JoystickButton(turretStick, BTN_INTAKE_JOG_DOWN)
-      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
-      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+    // Jog DOWN (hold)
+    new JoystickButton(turretStick, BTN_INTAKE_JOG_DOWN)
+        .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
+        .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
 
-  // Step test toggle (press): alternate between two angles
-  new JoystickButton(turretStick, BTN_INTAKE_STEP_TOGGLE)
-      .onTrue(new InstantCommand(() -> {
-        double current = intakeSubsystem.getTargetPivotDeg();
-        double mid = (STEP_LOW_DEG + STEP_HIGH_DEG) * 0.5;
-        double next = (current < mid) ? STEP_HIGH_DEG : STEP_LOW_DEG;
-        intakeSubsystem.setTargetPivotDeg(next);
-      }));
+    // Step test toggle (press): alternate between two angles
+    new JoystickButton(turretStick, BTN_INTAKE_STEP_TOGGLE)
+        .onTrue(new InstantCommand(() -> {
+          double current = intakeSubsystem.getTargetPivotDeg();
+          double mid = (STEP_LOW_DEG + STEP_HIGH_DEG) * 0.5;
+          double next = (current < mid) ? STEP_HIGH_DEG : STEP_LOW_DEG;
+          intakeSubsystem.setTargetPivotDeg(next);
+        }));
 
-  // SysId routines (hold)
-  new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_FWD)
-      .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kForward));
-  new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_REV)
-      .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kReverse));
-  new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_FWD)
-      .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kForward));
-  new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_REV)
-      .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kReverse));
-}
+    // SysId routines (hold)
+    new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_FWD)
+        .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kForward));
+    new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_REV)
+        .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kReverse));
+    new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_FWD)
+        .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kForward));
+    new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_REV)
+        .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kReverse));
+  }
 
-    private void configureHoodCalibrationBindings() {
-    // Logitech Extreme 3D Pro suggested mapping (TODO: PLACEHOLDER change as desired)
-    final int BTN_JOG_DOWN = 5;   // TODO: PLACEHOLDER
-    final int BTN_JOG_UP = 6;     // TODO: PLACEHOLDER
-    final int BTN_SEED_ZERO = 7;  // TODO: PLACEHOLDER
+  private void configureHoodCalibrationBindings() {
+    // Logitech Extreme 3D Pro suggested mapping (TODO: PLACEHOLDER change as
+    // desired)
+    final int BTN_JOG_DOWN = 5; // TODO: PLACEHOLDER
+    final int BTN_JOG_UP = 6; // TODO: PLACEHOLDER
+    final int BTN_SEED_ZERO = 7; // TODO: PLACEHOLDER
     final int BTN_STEP_TOGGLE = 8; // TODO: PLACEHOLDER
 
     // SysId buttons (hold)
-    final int BTN_SYSID_QS_FWD = 9;   // TODO: PLACEHOLDER
-    final int BTN_SYSID_QS_REV = 10;  // TODO: PLACEHOLDER
+    final int BTN_SYSID_QS_FWD = 9; // TODO: PLACEHOLDER
+    final int BTN_SYSID_QS_REV = 10; // TODO: PLACEHOLDER
     final int BTN_SYSID_DYN_FWD = 11; // TODO: PLACEHOLDER
     final int BTN_SYSID_DYN_REV = 12; // TODO: PLACEHOLDER
 
@@ -347,7 +390,7 @@ public class RobotContainer {
     final double JOG_DUTY = 0.10; // TODO: PLACEHOLDER start low and increase carefully if needed
 
     // Step test angles (for PID tuning)
-    final double STEP_LOW_DEG = 5.0;   // TODO: PLACEHOLDER
+    final double STEP_LOW_DEG = 5.0; // TODO: PLACEHOLDER
     final double STEP_HIGH_DEG = 40.0; // TODO: PLACEHOLDER
 
     // Seed zero (press)
@@ -384,7 +427,6 @@ public class RobotContainer {
         .whileTrue(hoodSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
   }
 
-
   public Command stopRobotCommand() {
     System.out.println("***Stopping Robot");
     return driveSubsystem.applyRequest(() -> driveSubsystem.getDrive().withVelocityX(0) // Drive forward with negative Y
@@ -394,7 +436,6 @@ public class RobotContainer {
 
     );
   }
-
 
   public void setYaws() {
     new JoystickButton(xboxDriveController, 8)
@@ -415,7 +456,7 @@ public class RobotContainer {
     // return -xboxController.getLeftStickX();
     // SmartDashboard.putNumber("Y-Axis: ", -xboxDriveController.getRightStickX());
     return -xboxDriveController.getLeftStickX();
-    //return 0;
+    // return 0;
   }
 
   private double getDriverOmegaAxis() {
@@ -429,7 +470,7 @@ public class RobotContainer {
       boolean shouldResetOdometryToStartingPose, boolean flipTrajectory) {
 
     // alex test
-    //System.out.println("Start drive routine");
+    // System.out.println("Start drive routine");
 
     try {
       // Load the path you want to follow using its name in the GUI
@@ -453,8 +494,9 @@ public class RobotContainer {
         // System.out.println("Rigth before driving with reset");
 
         return Commands.sequence(
-           // new InstantCommand(
-                //() -> questNavSubsystem.resetQuestOdometry(new Pose3d(TrajectoryHelper.flipQuestPoseRed(startPose)))),
+            // new InstantCommand(
+            // () -> questNavSubsystem.resetQuestOdometry(new
+            // Pose3d(TrajectoryHelper.flipQuestPoseRed(startPose)))),
             AutoBuilder.resetOdom(startPose), new WaitCommand(0), AutoBuilder.followPath(path));
 
         // return Commands.sequence(AutoBuilder.resetOdom(startPose));
@@ -469,43 +511,42 @@ public class RobotContainer {
     }
   }
 
-   public static Command runTrajectory2Poses(boolean shouldResetOdometryToStartingPose, Pose2d startPose, Pose2d endPose) {
+  public static Command runTrajectory2Poses(boolean shouldResetOdometryToStartingPose, Pose2d startPose,
+      Pose2d endPose) {
     try {
       List<Waypoint> pathWaypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
 
       if (!shouldResetOdometryToStartingPose) {
         PathPlannerPath path = new PathPlannerPath(
-          pathWaypoints,
-          AutoConstants.pathConstraints,
-          null,
-          new GoalEndState(0, endPose.getRotation()));
+            pathWaypoints,
+            AutoConstants.pathConstraints,
+            null,
+            new GoalEndState(0, endPose.getRotation()));
         path.preventFlipping = true;
         // System.out.println("== Driving from " + startPose + " to " + endPose);
         return AutoBuilder.followPath(path);
       } else { // reset odometry, then follow the path
         PathPlannerPath path = new PathPlannerPath(
-          pathWaypoints,
-          AutoConstants.pathConstraints,
-          new IdealStartingState(0, startPose.getRotation()),
-          new GoalEndState(2, endPose.getRotation()));
+            pathWaypoints,
+            AutoConstants.pathConstraints,
+            new IdealStartingState(0, startPose.getRotation()),
+            new GoalEndState(2, endPose.getRotation()));
         path.preventFlipping = true;
         // System.out.println("== Driving from " + startPose + " to " + endPose);
 
         // Keep the original CTRE pose reset behavior, but perform it at schedule-time.
-        // AutoBuilder.resetOdom(startPose) is the PathPlanner-friendly reset; we run it too.
+        // AutoBuilder.resetOdom(startPose) is the PathPlanner-friendly reset; we run it
+        // too.
         return Commands.sequence(
             Commands.runOnce(() -> driveSubsystem.resetCTREPose(startPose), driveSubsystem),
             AutoBuilder.resetOdom(startPose),
-            AutoBuilder.followPath(path)
-        );
+            AutoBuilder.followPath(path));
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
       return Commands.none();
     }
   }
-
-  
 
   // alex test
   // public static Command testCommand2() {
@@ -537,100 +578,102 @@ public class RobotContainer {
 
   public static void testAuto() {
     new JoystickButton(xboxDriveController, 1)
-      .onTrue(new InstantCommand(()->odometryUpdateSubsystem.updateQuestAndState(
-        new Pose2d(3.5, 4.0, new Rotation2d())
-      )));
+        .onTrue(new InstantCommand(() -> odometryUpdateSubsystem.updateQuestAndState(
+            new Pose2d(3.5, 4.0, new Rotation2d()))));
   }
 
   public static void testTurretShooter() {
     // new JoystickButton(turretStick, 1)
-    //     .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, Constants.OperatorConstants.Shooter.RPM_STEP));
+    // .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem,
+    // Constants.OperatorConstants.Shooter.RPM_STEP));
 
     // new JoystickButton(turretStick, 2)
-    //     .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem, -Constants.OperatorConstants.Shooter.RPM_STEP));
+    // .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem,
+    // -Constants.OperatorConstants.Shooter.RPM_STEP));
 
-    //new JoystickButton(turretStick, 3).whileTrue(new ShooterEnableCommand(shooterSubsystem));
+    // new JoystickButton(turretStick, 3).whileTrue(new
+    // ShooterEnableCommand(shooterSubsystem));
 
-
-    //new JoystickButton(turretStick, 5).whileTrue(new TurretJogCommand(turretSubsystem, -0.25));
-    //new JoystickButton(turretStick, 6).whileTrue(new TurretJogCommand(turretSubsystem, 0.25));
+    // new JoystickButton(turretStick, 5).whileTrue(new
+    // TurretJogCommand(turretSubsystem, -0.25));
+    // new JoystickButton(turretStick, 6).whileTrue(new
+    // TurretJogCommand(turretSubsystem, 0.25));
 
     // =============================
-// Turret Manual Jog (Simulation)
-// =============================
+    // Turret Manual Jog (Simulation)
+    // =============================
 
-// new JoystickButton(turretStick, 3)
-//         .whileTrue(Commands.startEnd(
-//             () -> m_kraken.setDutyCycle(1.0),
-//             () -> m_kraken.stop(),
-//             m_kraken
-//         ));
-// Hold A → rotate turret left
-// new JoystickButton(turretStick, 3).whileTrue(
-//     Commands.runEnd(
-//         () -> turretSubsystem.setVoltageVolts(-12),
-//         () -> turretSubsystem.stop(),
-//         turretSubsystem
-//     )
-// );
+    // new JoystickButton(turretStick, 3)
+    // .whileTrue(Commands.startEnd(
+    // () -> m_kraken.setDutyCycle(1.0),
+    // () -> m_kraken.stop(),
+    // m_kraken
+    // ));
+    // Hold A → rotate turret left
+    // new JoystickButton(turretStick, 3).whileTrue(
+    // Commands.runEnd(
+    // () -> turretSubsystem.setVoltageVolts(-12),
+    // () -> turretSubsystem.stop(),
+    // turretSubsystem
+    // )
+    // );
 
-// // Hold B → rotate turret right
-// new JoystickButton(turretStick, 4).whileTrue(
-//     Commands.runEnd(
-//         () -> turretSubsystem.setVoltageVolts(12),
-//         () -> turretSubsystem.stop(),
-//         turretSubsystem
-//     )
-// );
+    // // Hold B → rotate turret right
+    // new JoystickButton(turretStick, 4).whileTrue(
+    // Commands.runEnd(
+    // () -> turretSubsystem.setVoltageVolts(12),
+    // () -> turretSubsystem.stop(),
+    // turretSubsystem
+    // )
+    // );
 
     // new JoystickButton(turretStick, 3).whileTrue(
-    //   Commands.runEnd(
-    //     () -> hopperSubsystem.setStageDuty(1.0),
-    //     () -> hopperSubsystem.stop(),
-    //     hopperSubsystem)
+    // Commands.runEnd(
+    // () -> hopperSubsystem.setStageDuty(1.0),
+    // () -> hopperSubsystem.stop(),
+    // hopperSubsystem)
     // );
 
     // new JoystickButton(turretStick, 4).whileTrue(
-    //   Commands.runEnd(
-    //     () -> hopperSubsystem.setStageDuty(-1.0),
-    //     () -> hopperSubsystem.stop(),
-    //     hopperSubsystem)
+    // Commands.runEnd(
+    // () -> hopperSubsystem.setStageDuty(-1.0),
+    // () -> hopperSubsystem.stop(),
+    // hopperSubsystem)
     // );
 
     // new JoystickButton(turretStick, 5).whileTrue(
-    //   Commands.runEnd(
-    //     () -> hopperSubsystem.setStageDuty(0.5),
-    //     () -> hopperSubsystem.stop(),
-    //     hopperSubsystem)
+    // Commands.runEnd(
+    // () -> hopperSubsystem.setStageDuty(0.5),
+    // () -> hopperSubsystem.stop(),
+    // hopperSubsystem)
     // );
 
-    
     // new JoystickButton(xboxDriveController, 1).whileTrue(
-    //   Commands.runEnd(
-    //     () -> shooterSubsystem.setDutyCycle(.32),
-    //     () -> shooterSubsystem.stop(),
-    //     shooterSubsystem)
+    // Commands.runEnd(
+    // () -> shooterSubsystem.setDutyCycle(.32),
+    // () -> shooterSubsystem.stop(),
+    // shooterSubsystem)
     // );
-    
+
     // new JoystickButton(xboxDriveController, 2).whileTrue(
-    //   Commands.runEnd(
-    //     () -> shooterSubsystem.setDutyCycle(-.32),
-    //     () -> shooterSubsystem.stop(),
-    //     shooterSubsystem)
+    // Commands.runEnd(
+    // () -> shooterSubsystem.setDutyCycle(-.32),
+    // () -> shooterSubsystem.stop(),
+    // shooterSubsystem)
     // );
 
     // new JoystickButton(xboxDriveController, 3).whileTrue(
-    //   Commands.runEnd(
-    //     () -> hoodSubsystem.setDutyCycle(0.125),
-    //     () -> hoodSubsystem.stop(),
-    //     hoodSubsystem)
+    // Commands.runEnd(
+    // () -> hoodSubsystem.setDutyCycle(0.125),
+    // () -> hoodSubsystem.stop(),
+    // hoodSubsystem)
     // );
 
     // new JoystickButton(xboxDriveController, 4).whileTrue(
-    //   Commands.runEnd(
-    //     () -> hoodSubsystem.setDutyCycle(-0.125),
-    //     () -> hoodSubsystem.stop(),
-    //     hoodSubsystem)
+    // Commands.runEnd(
+    // () -> hoodSubsystem.setDutyCycle(-0.125),
+    // () -> hoodSubsystem.stop(),
+    // hoodSubsystem)
     // );
 
   }
