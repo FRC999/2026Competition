@@ -344,7 +344,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     if (okToFire) {
       state = VolleyState.FIRING;
-      RobotContainer.transferSubsystem.runFeed();
+      RobotContainer.transferSubsystem.runFeedMetered();
     } else {
       state = VolleyState.ARMING;
       // Keep staged; if ball not at throat yet, keep moving it.
