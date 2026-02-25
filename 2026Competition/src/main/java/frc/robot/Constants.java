@@ -65,7 +65,7 @@ public static final class EnabledSubsystems {
   public static final boolean chasis = true;
   public static final boolean odometry = true;
   public static final boolean ll = false;
-  public static final boolean questnav = false;
+  public static final boolean questnav = true;
   public static final boolean intake = false;
   public static final boolean shooter = false;
   public static final boolean turret = false;
@@ -83,7 +83,7 @@ public static final class EnabledSubsystems {
 		public static final boolean imu = true;
 		public static final boolean chassis = true;
 		public static final boolean ll = false;
-		public static final boolean questnav = false;
+		public static final boolean questnav = true;
     public static final boolean intake = false;
     public static final boolean shooter = false;
     public static final boolean turret = false;
@@ -681,6 +681,21 @@ public static final class Transfer {
   public static final double STAGE_RPS = 20.0; // TODO: placeholder, tune on robot
   /** Feeding target speed in rotor RPS (closed-loop). */
   public static final double FEED_RPS = 60.0;  // TODO: placeholder, tune on robot
+
+    // ---------------- Metered firing (rate + speed) ----------------
+  // Goal: eject ONE ball at a controlled speed, then wait a minimum interval before ejecting next.
+  // TODO: Placeholders until robot is fully built and ball dynamics are tested.
+  /** Desired ejection rate in balls/sec (how often you allow an eject). */
+  public static final double EJECT_BALLS_PER_SEC = 2.0; // TODO: placeholder (ex: 2 balls/sec)
+
+  /** Minimum time between the *start* of ejections (derived from EJECT_BALLS_PER_SEC). */
+  public static final double EJECT_MIN_INTERVAL_S = 1.0 / EJECT_BALLS_PER_SEC; // TODO: placeholder
+
+  /**
+   * Safety timeout: if throat never clears during an eject, stop anyway to avoid running forever.
+   * This is a protection against sensor issues or unexpected ball behavior.
+   */
+  public static final double EJECT_MAX_TIME_S = 0.35; // TODO: placeholder
 
   /**
    * When a ball is already at the throat, staging should stop to avoid jamming/compressing.

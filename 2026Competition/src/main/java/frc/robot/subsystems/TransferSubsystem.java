@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
@@ -69,6 +70,16 @@ public class TransferSubsystem extends SubsystemBase {
   private double velRps = 0.0;
   private double commandedDuty = 0.0;
   private double commandedRps = 0.0;
+
+    // ---------------- Metered eject state ----------------
+  private enum EjectState { IDLE, EJECTING, COOLDOWN }
+  private EjectState ejectState = EjectState.IDLE;
+
+  /** Timestamp when current eject started (sec). */
+  private double ejectStartTs = -1.0;
+
+  /** Timestamp when last eject started (sec) - used for rate limiting. */
+  private double lastEjectStartTs = -1.0;
 
   // ---------------- SysId Characterization ----------------
   private final SysIdRoutine sysIdRoutine =
@@ -179,8 +190,74 @@ public class TransferSubsystem extends SubsystemBase {
   /** Run transfer at the configured feed speed (closed-loop) to inject a ball into the shooter. */
   public void runFeed() {
     if (!EnabledSubsystems.transfer) { return; }
-    
+
     runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
+  }
+
+    /**
+   * Metered feed/eject:
+   * - Ejects ONE ball by running at FEED_RPS until the throat sensor clears (ball leaves throat).
+   * - Rate-limits how often ejection can start (EJECT_MIN_INTERVAL_S).
+   * - Uses EJECT_MAX_TIME_S as a safety timeout.
+   *
+   * Call this repeatedly while you "want to fire" (e.g., in AutoShootSupervisor FIRING state).
+   */
+  public void runFeedMetered() {
+    if (!EnabledSubsystems.transfer) { return; }
+
+    double now = Timer.getFPGATimestamp();
+
+    // If we don't currently have a ball at the throat, just stage (but don't shove if already occupied).
+    if (!hasBallAtThroat()) {
+      ejectState = EjectState.IDLE;
+      runStage();
+      return;
+    }
+
+    // Rate limiting: don't start a new eject too frequently.
+    boolean intervalOk = (lastEjectStartTs < 0.0)
+        || (now - lastEjectStartTs) >= Constants.OperatorConstants.Transfer.EJECT_MIN_INTERVAL_S;
+
+    switch (ejectState) {
+      case IDLE:
+        if (!intervalOk) {
+          // Hold: throat is full, but we're waiting for rate interval.
+          runVelocityRps(0.0);
+          ejectState = EjectState.COOLDOWN;
+          return;
+        }
+        // Start an eject
+        ejectState = EjectState.EJECTING;
+        ejectStartTs = now;
+        lastEjectStartTs = now;
+        runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
+        return;
+
+      case EJECTING:
+        // Continue ejecting until throat clears OR safety timeout trips.
+        boolean cleared = !hasBallAtThroat();
+        boolean timedOut = (now - ejectStartTs) >= Constants.OperatorConstants.Transfer.EJECT_MAX_TIME_S;
+
+        if (cleared || timedOut) {
+          // Stop after one-ball ejection; next loop will stage/re-fill.
+          runVelocityRps(0.0);
+          ejectState = EjectState.COOLDOWN;
+          return;
+        }
+
+        runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
+        return;
+
+      case COOLDOWN:
+      default:
+        // During cooldown, keep staged but do not compress into throat.
+        runStage();
+        // Once interval is OK again and throat is full, allow next eject cycle.
+        if (intervalOk && hasBallAtThroat()) {
+          ejectState = EjectState.IDLE;
+        }
+        return;
+    }
   }
 
   /** @return true if a ball is detected at transfer entry (after spindexer). */
