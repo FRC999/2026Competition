@@ -42,7 +42,7 @@ public class AutoMainOneRight extends SequentialCommandGroup {
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceRight_BlueTrenchRight2", false, false),
           //new StopIntake(),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralHubRight", false, false),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTower", false, false)
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTower(Under)", false, false)
           //.alongWith(new AutoShootUntilEmpty())
     );
   }

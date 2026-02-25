@@ -3,29 +3,29 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 5.778,
-        "y": 2.505
+        "x": 5.7784819277108435,
+        "y": 7.389807228915663
       },
       "prevControl": null,
       "nextControl": {
-        "x": 4.915192771084337,
-        "y": 2.526975903614458
+        "x": 5.7784819277108435,
+        "y": 6.711936741480549
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 1.5494578313253013,
-        "y": 3.6
+        "x": 5.7784819277108435,
+        "y": 2.505120481927711
       },
       "prevControl": {
-        "x": 1.9319277108433734,
-        "y": 2.516048192771084
+        "x": 5.7784819277108435,
+        "y": 2.755120481927711
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "BlueTower"
+      "linkedName": null
     }
   ],
   "rotationTargets": [],
@@ -42,7 +42,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 180.0
+    "rotation": -90.0
   },
   "reversed": false,
   "folder": null,

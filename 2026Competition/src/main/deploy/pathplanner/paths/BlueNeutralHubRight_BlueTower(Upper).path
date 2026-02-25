@@ -3,32 +3,37 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 0.6232524964336661,
-        "y": 6.0
+        "x": 5.9423975903614465,
+        "y": 3.3684096385542173
       },
       "prevControl": null,
       "nextControl": {
-        "x": 1.2313694721825963,
-        "y": 5.917574893009986
+        "x": 6.303012048192771,
+        "y": 3.6088192771084344
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 3.522,
-        "y": 5.718
+        "x": 5.756626506024096,
+        "y": 5.870855421686747
       },
       "prevControl": {
-        "x": 3.210984308131241,
-        "y": 5.749372325249644
+        "x": 6.4559999999999995,
+        "y": 5.945240963855422
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "BlueBumpLeft2"
     }
   ],
-  "rotationTargets": [],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 0.07047619047618371,
+      "rotationDegrees": 32.520344774102036
+    }
+  ],
   "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [],
@@ -48,7 +53,7 @@
   "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 180.0
+    "rotation": 0.0
   },
   "useDefaultConstraints": true
 }
