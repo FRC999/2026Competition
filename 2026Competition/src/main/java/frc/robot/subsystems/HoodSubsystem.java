@@ -130,11 +130,13 @@ public class HoodSubsystem extends SubsystemBase {
             ? InvertedValue.Clockwise_Positive
             : InvertedValue.CounterClockwise_Positive);
 
-    CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
-        .withSupplyCurrentLimitEnable(true)
-        .withSupplyCurrentLimit(Constants.OperatorConstants.Hood.SUPPLY_CURRENT_LIMIT_A)
-        .withStatorCurrentLimitEnable(true)
-        .withStatorCurrentLimit(Constants.OperatorConstants.Hood.STATOR_CURRENT_LIMIT_A);
+    CurrentLimitsConfigs limits = new CurrentLimitsConfigs();
+    limits.SupplyCurrentLimitEnable = true;
+    limits.SupplyCurrentLimit = Constants.OperatorConstants.Hood.SUPPLY_CURRENT_LIMIT_A;
+    limits.SupplyCurrentLowerLimit = Constants.OperatorConstants.Hood.SUPPLY_CURRENT_LOWER_LIMIT_A;
+    limits.SupplyCurrentLowerTime = Constants.OperatorConstants.Hood.SUPPLY_CURRENT_LOWER_TIME_S;
+    limits.StatorCurrentLimitEnable = true;
+    limits.StatorCurrentLimit = Constants.OperatorConstants.Hood.STATOR_CURRENT_LIMIT_A;
 
     Slot0Configs slot0 = new Slot0Configs()
         .withKP(Constants.OperatorConstants.Hood.kP)

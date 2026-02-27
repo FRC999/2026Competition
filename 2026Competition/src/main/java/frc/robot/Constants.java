@@ -441,6 +441,8 @@ public final class Constants {
       public static final double SIM_MAX_DUTY_CYCLE = 1.0;
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //TODO: <Set turret supply lower limit (A) for brief spikes>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //TODO: <Set turret supply lower time (s)>
 
       /** Placeholder gains (Position control). Tune after SysId. */
       public static final double kP = 40.0;
@@ -518,6 +520,8 @@ public final class Constants {
 
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //TODO: <Set hood supply lower limit (A) for brief spikes>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //TODO: <Set hood supply lower time (s)>
 
       // --- Range + conversion (PLACEHOLDERS until measured on real robot) ---
       // Fully down = 0 degrees and 0 motor rotations.
@@ -583,6 +587,8 @@ public final class Constants {
       public static final double MAX_DUTY_CYCLE = 0.8;
       public static final double SUPPLY_CURRENT_LIMIT_A = 60.0;
       public static final double STATOR_CURRENT_LIMIT_A = 60.0;
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //TODO: <Set shooter supply lower limit (A) for brief spikes; often > SUPPLY_CURRENT_LIMIT_A>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //TODO: <Set shooter supply lower time (s) before clamping to SUPPLY_CURRENT_LIMIT_A>
 
       /** Velocity control gains (placeholders). */
       public static final double kP = 0.155; // 0.165
@@ -687,6 +693,11 @@ public final class Constants {
       /** Higher duty for supplying transfer while shooting. */
       public static final double SUPPLY_DUTY = 0.45;
 
+      public static final double SUPPLY_CURRENT_LIMIT_A = 20; //TODO: <Enter spindexer supply current limit (A)>
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = 30; //TODO: <Enter spindexer supply lower limit (A)>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //TODO: <Enter spindexer supply lower time (s)>
+      public static final double STATOR_CURRENT_LIMIT_A = 20; //TODO: <Enter spindexer stator current limit (A)>
+
       /** Simulation placeholders. */
       public static final double SIM_GEAR_RATIO = 1.0;
       public static final double SIM_J_KGM2 = 0.02;
@@ -758,6 +769,8 @@ public final class Constants {
       // performance.
       public static final double SUPPLY_CURRENT_LIMIT_A = 35.0; // TODO: verify/tune
       public static final double STATOR_CURRENT_LIMIT_A = 60.0; // TODO: verify/tune
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //TODO: <Enter transfer supply lower limit (A)>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //TODO: <Enter transfer supply lower time (s)>
 
       /** Simulation placeholders. */
       public static final double SIM_GEAR_RATIO = 1.0;
