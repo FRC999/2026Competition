@@ -3,16 +3,16 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 5.811265060240963,
+        "x": 5.81,
         "y": 4.636024096385543
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.789409638554216,
+        "x": 5.788144578313252,
         "y": 5.182409638554216
       },
       "isLocked": false,
-      "linkedName": "BlueNeutralHubLeft"
+      "linkedName": null
     },
     {
       "anchor": {

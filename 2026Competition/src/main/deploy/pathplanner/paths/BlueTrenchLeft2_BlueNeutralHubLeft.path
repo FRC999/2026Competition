@@ -3,24 +3,24 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 5.297662650602409,
-        "y": 7.411662650602409
+        "x": 5.647,
+        "y": 7.45
       },
       "prevControl": null,
       "nextControl": {
-        "x": 6.401361445783133,
-        "y": 7.51001204819277
+        "x": 6.195077409415997,
+        "y": 7.45
       },
       "isLocked": false,
-      "linkedName": "BlueTrenchLeft2"
+      "linkedName": null
     },
     {
       "anchor": {
-        "x": 5.811265060240963,
+        "x": 5.81,
         "y": 4.636024096385543
       },
       "prevControl": {
-        "x": 5.865903614457831,
+        "x": 5.864638554216867,
         "y": 5.171481927710844
       },
       "nextControl": null,
@@ -53,7 +53,7 @@
   "folder": null,
   "idealStartingState": {
     "velocity": 2.0,
-    "rotation": 180.0
+    "rotation": 0.0
   },
   "useDefaultConstraints": true
 }
