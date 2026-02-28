@@ -292,7 +292,7 @@ public static final class EnabledSubsystems {
         public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
 						11, // driveMotorID
 						12, // angleMotorID
-						31, // CanCoder Id
+						21, // CanCoder Id
 						// -0.296142578125, // angleOffset of cancoder to mark zero-position
 						-0.474365, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
@@ -303,7 +303,7 @@ public static final class EnabledSubsystems {
         public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord( // Front Right
 						13, // driveMotorID
 						14, // angleMotorID
-						21, // CanCoder ID						// 0.041015625, // angleOffset of cancoder to mark zero-position
+						23, // CanCoder ID						// 0.041015625, // angleOffset of cancoder to mark zero-position
 						-0.498047, // angleOffset of cancoder to mark zero-position
 						true, // Inversion for drive motor
 						false, // Inversion for angle motor
@@ -313,7 +313,7 @@ public static final class EnabledSubsystems {
         public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord( // Back Left
 						15, // driveMotorID
 						16, // angleMotorID
-						34, // CanCoder ID
+						25, // CanCoder ID
 						// -0.296142578125, // angleOffset of cancoder to mark zero-position
 						0.003174, // angleOffset of cancoder to mark zero-position
 						false, // Inversion for drive motor
@@ -323,7 +323,7 @@ public static final class EnabledSubsystems {
         public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord( // Back Right
 						17, // driveMotorID
 						18, // angleMotorID
-						23, // CanCoder ID
+						27, // CanCoder ID
 						// 0.326171875, // angleOffset of cancoder to mark zero-position
 						//0.0576171875, // angleOffset of cancoder to mark zero-position
 						0.001953, // angleOffset of cancoder to mark zero-position
