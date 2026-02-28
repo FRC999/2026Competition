@@ -3,29 +3,29 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 2.4127469879518073,
-        "y": 2.024301204819277
+        "x": 0.6232524964336661,
+        "y": 6.0
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.204539728341179,
-        "y": 2.1626837797535234
+        "x": 2.434602409638554,
+        "y": 7.673927710843374
       },
       "isLocked": false,
-      "linkedName": "BlueAllianceRight"
+      "linkedName": null
     },
     {
       "anchor": {
-        "x": 1.5494578313253013,
-        "y": 3.6
+        "x": 3.793223965763195,
+        "y": 7.379643366619116
       },
       "prevControl": {
-        "x": 1.7297055287111889,
-        "y": 3.4267638386852055
+        "x": 3.5438592908055115,
+        "y": 7.361831604122138
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "BlueTower"
+      "linkedName": null
     }
   ],
   "rotationTargets": [],
@@ -47,8 +47,8 @@
   "reversed": false,
   "folder": null,
   "idealStartingState": {
-    "velocity": 1.5,
-    "rotation": 90.0
+    "velocity": 0,
+    "rotation": 180.0
   },
   "useDefaultConstraints": true
 }

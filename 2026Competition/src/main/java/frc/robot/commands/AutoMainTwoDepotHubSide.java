@@ -35,13 +35,14 @@ public class AutoMainTwoDepotHubSide extends SequentialCommandGroup {
             //.alongWith(new AutoShootUntilEmpty())
             //.alongWith(new WaitCommand(1))
             //.andThen(new StartIntake()),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTrenchLeft2", false, false)
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTrenchLeft", false, false)
             //.andThen(new StopIntake())
             //.alongWith(new AutoShootUntilEmpty()),
             ,
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft2_BlueNeutralHubRight", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft_BlueTrenchLeft2", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft2_BlueNeutralHubLeft", false, false),
           //new StartIntake(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTower", false, false)
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubLeft_BlueTower", false, false)
           //new StopIntake(),
             //.alongWith(new AutoShootUntilEmpty())
 

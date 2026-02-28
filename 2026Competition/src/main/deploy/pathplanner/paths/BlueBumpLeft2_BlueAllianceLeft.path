@@ -3,16 +3,16 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 5.81,
-        "y": 5.93
+        "x": 5.756626506024096,
+        "y": 5.870855421686747
       },
       "prevControl": null,
       "nextControl": {
-        "x": 6.059999418059158,
-        "y": 5.930539416427109
+        "x": 6.006625924083255,
+        "y": 5.871394838113856
       },
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "BlueBumpLeft2"
     },
     {
       "anchor": {
@@ -42,13 +42,13 @@
   },
   "goalEndState": {
     "velocity": 0.0,
-    "rotation": 70.01689347809999
+    "rotation": -90.0
   },
   "reversed": false,
   "folder": null,
   "idealStartingState": {
     "velocity": 1.5,
-    "rotation": 119.99999999999999
+    "rotation": 0.0
   },
   "useDefaultConstraints": true
 }
