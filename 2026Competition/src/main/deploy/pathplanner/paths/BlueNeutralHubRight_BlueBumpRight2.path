@@ -8,8 +8,8 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 6.1500240963855415,
-        "y": 2.9422289156626507
+        "x": 6.43271041369472,
+        "y": 3.0969472182596305
       },
       "isLocked": false,
       "linkedName": "BlueNeutralHubRight"
@@ -42,7 +42,7 @@
   },
   "goalEndState": {
     "velocity": 1.5,
-    "rotation": -160.0
+    "rotation": 90.0
   },
   "reversed": false,
   "folder": null,

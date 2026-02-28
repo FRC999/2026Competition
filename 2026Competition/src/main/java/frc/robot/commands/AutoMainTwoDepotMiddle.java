@@ -35,17 +35,17 @@ public class AutoMainTwoDepotMiddle extends SequentialCommandGroup {
             //.alongWith(new WaitCommand(1))
             //.andThen(new StartIntake()),
           ,
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueAllianceLeft", false, false)
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTrenchLeft", false, false)
             //.andThen(new StopIntake())
             //.alongWith(new AutoShootUntilEmpty()),
           ,
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceLeft_BlueBumpLeft", false, false),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueNeutralLeftMiddle", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft_BlueTrenchLeft2", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft2_BlueNeutralLeft", false, false),
           //new StartIntake(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeft_BlueNeutralRight", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeft_BlueNeutralLeftMiddle", false, false),
           //new StopIntake(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueAllianceRight", false, false),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceRight_BlueTower", false, false)
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeftMiddle_BlueNeutralHubLeft", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubLeft_BlueTower", false, false)
             //.alongWith(new AutoShootUntilEmpty())
 
     );
