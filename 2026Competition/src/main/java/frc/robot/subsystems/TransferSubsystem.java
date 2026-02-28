@@ -19,7 +19,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
-import edu.wpi.first.wpilibj.DigitalInput;
+import com.ctre.phoenix6.hardware.CANrange;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
@@ -38,13 +38,17 @@ import frc.robot.Constants.EnabledSubsystems;
  * TransferSubsystem
  *
  * Purpose:
- * - Meter balls from the spindexer into the turret/shooter with consistent velocity and minimal spin.
- * - "Stage" a ball at the shooter throat (exit of transfer) so the shot can happen immediately when allowed.
+ * - Meter balls from the spindexer into the turret/shooter with consistent
+ * velocity and minimal spin.
+ * - "Stage" a ball at the shooter throat (exit of transfer) so the shot can
+ * happen immediately when allowed.
  *
  * Recommended sensor layout (your chosen 2-sensor setup):
- * - ENTRY sensor: placed just AFTER the spindexer handoff, inside the transfer tunnel.
- *   This avoids false triggers from spindexer blades.
- * - THROAT sensor: placed at the exit of transfer (right before the shooter/turret throat).
+ * - ENTRY sensor: placed just AFTER the spindexer handoff, inside the transfer
+ * tunnel.
+ * This avoids false triggers from spindexer blades.
+ * - THROAT sensor: placed at the exit of transfer (right before the
+ * shooter/turret throat).
  *
  * Hardware:
  * - One motor today. You reserved IDs for a second motor later.
@@ -54,11 +58,15 @@ public class TransferSubsystem extends SubsystemBase {
   private TalonFX motor;
   private DutyCycleOut duty;
 
-  // Sensors (beam breaks are typical). Wiring convention varies; we invert using constants.
-  private final DigitalInput entrySensor =
-      new DigitalInput(Constants.OperatorConstants.Transfer.ENTRY_SENSOR_DIO);
-  private final DigitalInput throatSensor =
-      new DigitalInput(Constants.OperatorConstants.Transfer.THROAT_SENSOR_DIO);
+  // Sensors (beam breaks are typical). Wiring convention varies; we invert using
+  // constants.
+  // Sensors (CANrange). We read via StatusSignals so we can refresh them in
+  // periodic().
+  private CANrange entryCanrange;
+  private CANrange throatCanrange;
+
+  private StatusSignal<Boolean> entryDetectedSig;
+  private StatusSignal<Boolean> throatDetectedSig;
 
   // Closed-loop velocity (primary control mode)
   private VelocityDutyCycle velocityDuty = new VelocityDutyCycle(0.0);
@@ -71,8 +79,11 @@ public class TransferSubsystem extends SubsystemBase {
   private double commandedDuty = 0.0;
   private double commandedRps = 0.0;
 
-    // ---------------- Metered eject state ----------------
-  private enum EjectState { IDLE, EJECTING, COOLDOWN }
+  // ---------------- Metered eject state ----------------
+  private enum EjectState {
+    IDLE, EJECTING, COOLDOWN
+  }
+
   private EjectState ejectState = EjectState.IDLE;
 
   /** Timestamp when current eject started (sec). */
@@ -82,13 +93,12 @@ public class TransferSubsystem extends SubsystemBase {
   private double lastEjectStartTs = -1.0;
 
   // ---------------- SysId Characterization ----------------
-  private final SysIdRoutine sysIdRoutine =
-      new SysIdRoutine(
-          new SysIdRoutine.Config(
-              Volts.per(Seconds).of(Constants.OperatorConstants.SysId.TRANSFER_RAMP_RATE_V_PER_S),
-              Volts.of(Constants.OperatorConstants.SysId.TRANSFER_STEP_V),
-              Seconds.of(Constants.OperatorConstants.SysId.TRANSFER_TIMEOUT_S)),
-          new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "transfer"));
+  private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          Volts.per(Seconds).of(Constants.OperatorConstants.SysId.TRANSFER_RAMP_RATE_V_PER_S),
+          Volts.of(Constants.OperatorConstants.SysId.TRANSFER_STEP_V),
+          Seconds.of(Constants.OperatorConstants.SysId.TRANSFER_TIMEOUT_S)),
+      new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "transfer"));
 
   private boolean isSysIdEnabled() {
     if (!Constants.OperatorConstants.SysId.ENABLE_SYSID) {
@@ -99,25 +109,33 @@ public class TransferSubsystem extends SubsystemBase {
 
   // ---------------- Simulation ----------------
   private final boolean isSim = RobotBase.isSimulation();
-  private final FlywheelSim transferSim =
-      new FlywheelSim(
-          LinearSystemId.createFlywheelSystem(
-              DCMotor.getKrakenX60(1),
-              Constants.OperatorConstants.Transfer.SIM_GEAR_RATIO,
-              Constants.OperatorConstants.Transfer.SIM_J_KGM2),
-          DCMotor.getKrakenX60(1));
+  private final FlywheelSim transferSim = new FlywheelSim(
+      LinearSystemId.createFlywheelSystem(
+          DCMotor.getKrakenX60(1),
+          Constants.OperatorConstants.Transfer.SIM_GEAR_RATIO,
+          Constants.OperatorConstants.Transfer.SIM_J_KGM2),
+      DCMotor.getKrakenX60(1));
   private double simPosRot = 0.0;
 
   public TransferSubsystem() {
     if (!EnabledSubsystems.transfer) {
       return;
     }
+
+    entryCanrange =
+    new CANrange(Constants.OperatorConstants.Transfer.ENTRY_CANRANGE_ID,
+                 Constants.OperatorConstants.Transfer.CANBUS_NAME);
+throatCanrange =
+    new CANrange(Constants.OperatorConstants.Transfer.THROAT_CANRANGE_ID,
+                 Constants.OperatorConstants.Transfer.CANBUS_NAME);
+
+entryDetectedSig = entryCanrange.getIsDetected();
+throatDetectedSig = throatCanrange.getIsDetected();
     duty = new DutyCycleOut(0.0);
-    motor =
-        new TalonFX(
-            Constants.OperatorConstants.Transfer.MOTOR_ID,
-            Constants.OperatorConstants.Transfer.CANBUS_NAME);
-        // ---------------- Motor configuration ----------------
+    motor = new TalonFX(
+        Constants.OperatorConstants.Transfer.MOTOR_ID,
+        Constants.OperatorConstants.Transfer.CANBUS_NAME);
+    // ---------------- Motor configuration ----------------
     var cfg = new TalonFXConfiguration();
 
     // Coast requested
@@ -125,16 +143,12 @@ public class TransferSubsystem extends SubsystemBase {
 
     // Current limits (reasonable defaults; TODO verify/tune)
     cfg.CurrentLimits.SupplyCurrentLimitEnable = true;
-    cfg.CurrentLimits.SupplyCurrentLimit =
-        Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LIMIT_A;
-    cfg.CurrentLimits.SupplyCurrentLowerLimit =
-        Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LOWER_LIMIT_A;
-    cfg.CurrentLimits.SupplyCurrentLowerTime =
-        Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LOWER_TIME_S;
+    cfg.CurrentLimits.SupplyCurrentLimit = Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LIMIT_A;
+    cfg.CurrentLimits.SupplyCurrentLowerLimit = Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LOWER_LIMIT_A;
+    cfg.CurrentLimits.SupplyCurrentLowerTime = Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LOWER_TIME_S;
 
     cfg.CurrentLimits.StatorCurrentLimitEnable = true;
-    cfg.CurrentLimits.StatorCurrentLimit =
-        Constants.OperatorConstants.Transfer.STATOR_CURRENT_LIMIT_A;
+    cfg.CurrentLimits.StatorCurrentLimit = Constants.OperatorConstants.Transfer.STATOR_CURRENT_LIMIT_A;
 
     // Slot0 closed-loop gains (TODO placeholders)
     cfg.Slot0.kS = Constants.OperatorConstants.Transfer.VEL_kS;
@@ -144,7 +158,7 @@ public class TransferSubsystem extends SubsystemBase {
     cfg.Slot0.kD = Constants.OperatorConstants.Transfer.VEL_kD;
 
     motor.getConfigurator().apply(cfg);
-    
+
     positionSig = motor.getPosition();
     velocitySig = motor.getVelocity();
     motorVoltageSig = motor.getMotorVoltage();
@@ -155,9 +169,11 @@ public class TransferSubsystem extends SubsystemBase {
     motor.optimizeBusUtilization();
   }
 
-   /** Run transfer at a raw duty cycle in [-1, +1]. */
+  /** Run transfer at a raw duty cycle in [-1, +1]. */
   public void runDuty(double dutyCycle) {
-    if (!EnabledSubsystems.transfer) { return; }
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
 
     commandedDuty = dutyCycle;
     motor.setControl(duty.withOutput(dutyCycle));
@@ -165,7 +181,9 @@ public class TransferSubsystem extends SubsystemBase {
 
   /** Run transfer at a target rotor speed in RPS (closed-loop). */
   public void runVelocityRps(double targetRps) {
-    if (!EnabledSubsystems.transfer) { return; }
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
 
     commandedRps = targetRps;
     motor.setControl(velocityDuty.withVelocity(targetRps));
@@ -173,16 +191,23 @@ public class TransferSubsystem extends SubsystemBase {
 
   /** Stop transfer. */
   public void stop() {
-    if (!EnabledSubsystems.transfer) { return; }
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
 
     commandedDuty = 0.0;
     commandedRps = 0.0;
     runDuty(0.0);
   }
 
-    /** Run transfer at the configured staging speed (closed-loop), but do not push if throat is already occupied. */
+  /**
+   * Run transfer at the configured staging speed (closed-loop), but do not push
+   * if throat is already occupied.
+   */
   public void runStage() {
-    if (!EnabledSubsystems.transfer) { return; }
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
 
     if (hasBallAtThroat()) {
       runVelocityRps(Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
@@ -191,27 +216,37 @@ public class TransferSubsystem extends SubsystemBase {
     runVelocityRps(Constants.OperatorConstants.Transfer.STAGE_RPS);
   }
 
-  /** Run transfer at the configured feed speed (closed-loop) to inject a ball into the shooter. */
+  /**
+   * Run transfer at the configured feed speed (closed-loop) to inject a ball into
+   * the shooter.
+   */
   public void runFeed() {
-    if (!EnabledSubsystems.transfer) { return; }
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
 
     runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
   }
 
-    /**
+  /**
    * Metered feed/eject:
-   * - Ejects ONE ball by running at FEED_RPS until the throat sensor clears (ball leaves throat).
+   * - Ejects ONE ball by running at FEED_RPS until the throat sensor clears (ball
+   * leaves throat).
    * - Rate-limits how often ejection can start (EJECT_MIN_INTERVAL_S).
    * - Uses EJECT_MAX_TIME_S as a safety timeout.
    *
-   * Call this repeatedly while you "want to fire" (e.g., in AutoShootSupervisor FIRING state).
+   * Call this repeatedly while you "want to fire" (e.g., in AutoShootSupervisor
+   * FIRING state).
    */
   public void runFeedMetered() {
-    if (!EnabledSubsystems.transfer) { return; }
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
 
     double now = Timer.getFPGATimestamp();
 
-    // If we don't currently have a ball at the throat, just stage (but don't shove if already occupied).
+    // If we don't currently have a ball at the throat, just stage (but don't shove
+    // if already occupied).
     if (!hasBallAtThroat()) {
       ejectState = EjectState.IDLE;
       runStage();
@@ -266,16 +301,18 @@ public class TransferSubsystem extends SubsystemBase {
 
   /** @return true if a ball is detected at transfer entry (after spindexer). */
   public boolean hasBallAtEntry() {
-    boolean raw = entrySensor.get();
-    return Constants.OperatorConstants.Transfer.ENTRY_SENSOR_INVERTED ? !raw : raw;
+  if (!EnabledSubsystems.transfer || entryDetectedSig == null) {
+    return false;
   }
+  return Boolean.TRUE.equals(entryDetectedSig.getValue());
+}
 
-  /** @return true if a ball is detected at the shooter throat (transfer exit). */
-  public boolean hasBallAtThroat() {
-    boolean raw = throatSensor.get();
-    return Constants.OperatorConstants.Transfer.THROAT_SENSOR_INVERTED ? !raw : raw;
+public boolean hasBallAtThroat() {
+  if (!EnabledSubsystems.transfer || throatDetectedSig == null) {
+    return false;
   }
-
+  return Boolean.TRUE.equals(throatDetectedSig.getValue());
+}
   public double getCommandedDuty() {
     return commandedDuty;
   }
@@ -336,7 +373,7 @@ public class TransferSubsystem extends SubsystemBase {
       return;
     }
 
-    BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
+    BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig, entryDetectedSig, throatDetectedSig);
     posRot = positionSig.getValueAsDouble();
     velRps = velocitySig.getValueAsDouble();
 
@@ -384,7 +421,6 @@ public class TransferSubsystem extends SubsystemBase {
     simState.setRawRotorPosition(simPosRot);
     simState.setRotorVelocity(rps);
 
-    
   }
 
 }

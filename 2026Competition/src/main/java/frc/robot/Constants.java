@@ -710,13 +710,11 @@ public final class Constants {
       public static final int MOTOR2_ID = 52; // reserved optional second transfer motor
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
-      /** Sensor at transfer entry (just AFTER the spindexer handoff). */
-      public static final int ENTRY_SENSOR_DIO = 0; // TODO set
-      public static final boolean ENTRY_SENSOR_INVERTED = false; // raw==true means ball present
+      /** CANrange at transfer entry (just AFTER the spindexer handoff). */
+      public static final int ENTRY_CANRANGE_ID = 58;
 
-      /** Sensor at shooter throat (exit of transfer). */
-      public static final int THROAT_SENSOR_DIO = 1; // TODO set
-      public static final boolean THROAT_SENSOR_INVERTED = false; // raw==true means ball present
+      /** CANrange at shooter throat (exit of transfer). */
+      public static final int THROAT_CANRANGE_ID = 59;
 
       /** Slow speed to keep balls staged without slamming them into the shooter. */
       public static final double STAGE_DUTY = 0.20;
