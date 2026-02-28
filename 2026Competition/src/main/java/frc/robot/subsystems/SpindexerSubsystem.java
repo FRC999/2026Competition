@@ -28,6 +28,8 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 
 /**
  * SpindexerSubsystem
@@ -81,6 +83,7 @@ public class SpindexerSubsystem extends SubsystemBase {
           DCMotor.getKrakenX60(1));
   private double simPosRot = 0.0;
 
+  // @SuppressWarnings("unused")
   public SpindexerSubsystem() {
     if (!EnabledSubsystems.spindexer) {
       return;
@@ -90,6 +93,19 @@ public class SpindexerSubsystem extends SubsystemBase {
         new TalonFX(
             Constants.OperatorConstants.Spindexer.MOTOR_ID,
             Constants.OperatorConstants.Spindexer.CANBUS_NAME);
+            
+    // ---------------- Current limits (spindexer) ----------------
+    final var limits = new CurrentLimitsConfigs();
+    limits.SupplyCurrentLimitEnable = true;
+    limits.SupplyCurrentLimit = Constants.OperatorConstants.Spindexer.SUPPLY_CURRENT_LIMIT_A;
+    limits.SupplyCurrentLowerLimit = Constants.OperatorConstants.Spindexer.SUPPLY_CURRENT_LOWER_LIMIT_A;
+    limits.SupplyCurrentLowerTime = Constants.OperatorConstants.Spindexer.SUPPLY_CURRENT_LOWER_TIME_S;
+    limits.StatorCurrentLimitEnable = true;
+    limits.StatorCurrentLimit = Constants.OperatorConstants.Spindexer.STATOR_CURRENT_LIMIT_A;
+    final var cfg = new TalonFXConfiguration();
+    cfg.CurrentLimits = limits;
+    motor.getConfigurator().apply(cfg);
+    
 
     positionSig = motor.getPosition();
     velocitySig = motor.getVelocity();

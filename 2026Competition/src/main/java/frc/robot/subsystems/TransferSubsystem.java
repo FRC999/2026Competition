@@ -127,6 +127,10 @@ public class TransferSubsystem extends SubsystemBase {
     cfg.CurrentLimits.SupplyCurrentLimitEnable = true;
     cfg.CurrentLimits.SupplyCurrentLimit =
         Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LIMIT_A;
+    cfg.CurrentLimits.SupplyCurrentLowerLimit =
+        Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LOWER_LIMIT_A;
+    cfg.CurrentLimits.SupplyCurrentLowerTime =
+        Constants.OperatorConstants.Transfer.SUPPLY_CURRENT_LOWER_TIME_S;
 
     cfg.CurrentLimits.StatorCurrentLimitEnable = true;
     cfg.CurrentLimits.StatorCurrentLimit =

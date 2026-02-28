@@ -251,11 +251,13 @@ public class TurretSubsystem extends SubsystemBase {
       .withInverted(motorInvertedValue());
 
   // Current limits
-  CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
-      .withSupplyCurrentLimitEnable(true)
-      .withSupplyCurrentLimit(Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LIMIT_A)
-      .withStatorCurrentLimitEnable(true)
-      .withStatorCurrentLimit(Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A);
+  CurrentLimitsConfigs limits = new CurrentLimitsConfigs();
+  limits.SupplyCurrentLimitEnable = true;
+  limits.SupplyCurrentLimit = Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LIMIT_A;
+  limits.SupplyCurrentLowerLimit = Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LOWER_LIMIT_A;
+  limits.SupplyCurrentLowerTime = Constants.OperatorConstants.Turret.SUPPLY_CURRENT_LOWER_TIME_S;
+  limits.StatorCurrentLimitEnable = true;
+  limits.StatorCurrentLimit = Constants.OperatorConstants.Turret.STATOR_CURRENT_LIMIT_A;
 
   // Slot0 gains for hardware position loop (voltage-based in Phoenix 6)
   Slot0Configs slot0 = new Slot0Configs()

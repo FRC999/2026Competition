@@ -1,5 +1,10 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.units.Units.Volts;
+
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
@@ -9,38 +14,31 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
-import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
-import com.ctre.phoenix6.controls.VoltageOut;
-import edu.wpi.first.units.measure.Angle;
-
-import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.units.measure.Voltage;
-import edu.wpi.first.math.MathUtil;
-import static edu.wpi.first.units.Units.Volts;
-import static edu.wpi.first.units.Units.Seconds;
-import static edu.wpi.first.units.Units.Rotations;
-import static edu.wpi.first.units.Units.RotationsPerSecond;
-
 import frc.robot.Constants;
-import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.Constants.DebugTelemetrySubsystems;
+import frc.robot.Constants.EnabledSubsystems;
 
 /** Kraken X60 shooter prototype (TalonFX, Phoenix 6). */
 public class ShooterSubsystem extends SubsystemBase {
@@ -139,11 +137,13 @@ public class ShooterSubsystem extends SubsystemBase {
                 ? InvertedValue.Clockwise_Positive
                 : InvertedValue.CounterClockwise_Positive);
 
-    CurrentLimitsConfigs limits = new CurrentLimitsConfigs()
-        .withSupplyCurrentLimitEnable(true)
-        .withSupplyCurrentLimit(Constants.OperatorConstants.Shooter.SUPPLY_CURRENT_LIMIT_A)
-        .withStatorCurrentLimitEnable(true)
-        .withStatorCurrentLimit(Constants.OperatorConstants.Shooter.STATOR_CURRENT_LIMIT_A);
+    CurrentLimitsConfigs limits = new CurrentLimitsConfigs();
+    limits.SupplyCurrentLimitEnable = true;
+    limits.SupplyCurrentLimit = Constants.OperatorConstants.Shooter.SUPPLY_CURRENT_LIMIT_A;
+    limits.SupplyCurrentLowerLimit = Constants.OperatorConstants.Shooter.SUPPLY_CURRENT_LOWER_LIMIT_A;
+    limits.SupplyCurrentLowerTime = Constants.OperatorConstants.Shooter.SUPPLY_CURRENT_LOWER_TIME_S;
+    limits.StatorCurrentLimitEnable = true;
+    limits.StatorCurrentLimit = Constants.OperatorConstants.Shooter.STATOR_CURRENT_LIMIT_A;
 
     Slot0Configs slot0 = new Slot0Configs()
         .withKP(Constants.OperatorConstants.Shooter.kP)
@@ -166,6 +166,11 @@ public class ShooterSubsystem extends SubsystemBase {
     shooterFollower.setControl(new Follower(
         Constants.OperatorConstants.Shooter.LEADER_CAN_ID,
         alignment));
+
+    // Apply SAME current limits to follower motor as well
+    TalonFXConfiguration followerCfg = new TalonFXConfiguration();
+    followerCfg.CurrentLimits = limits;
+    shooterFollower.getConfigurator().apply(followerCfg);
 }
 
   // ---------------- Public API ----------------
