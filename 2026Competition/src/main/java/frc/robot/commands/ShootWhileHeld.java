@@ -21,8 +21,6 @@ import frc.robot.subsystems.AutoShootSupervisorSubsystem;
  *  - stops drivetrain output if it was holding
  */
 public class ShootWhileHeld extends Command {
-
-  private final AutoShootSupervisorSubsystem supervisor;
   private final AutoShootSupervisorSubsystem.ShotMode mode;
   private final boolean holdDriveHeading;
 
@@ -30,11 +28,9 @@ public class ShootWhileHeld extends Command {
   private double headingSetpointDeg = 0.0;
 
   public ShootWhileHeld(
-      AutoShootSupervisorSubsystem supervisor,
       AutoShootSupervisorSubsystem.ShotMode mode,
       boolean holdDriveHeading
   ) {
-    this.supervisor = supervisor;
     this.mode = mode;
     this.holdDriveHeading = holdDriveHeading;
 
@@ -61,8 +57,8 @@ public class ShootWhileHeld extends Command {
 
   @Override
   public void initialize() {
-    supervisor.setShotMode(mode);
-    supervisor.setShootRequested(true);
+    RobotContainer.autoShootSupervisorSubsystem.setShotMode(mode);
+    RobotContainer.autoShootSupervisorSubsystem.setShootRequested(true);
 
     if (holdDriveHeading) {
       // Capture heading at the moment the button is pressed
@@ -97,10 +93,10 @@ public class ShootWhileHeld extends Command {
   @Override
   public void end(boolean interrupted) {
     // Immediately stop feeding by clearing shoot request
-    supervisor.setShootRequested(false);
+    RobotContainer.autoShootSupervisorSubsystem.setShootRequested(false);
 
     // Return to default moving mode so next RT press behaves normally
-    supervisor.setShotMode(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO);
+    RobotContainer.autoShootSupervisorSubsystem.setShotMode(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO);
 
     if (holdDriveHeading) {
       RobotContainer.driveSubsystem.drive(0.0, 0.0, 0.0);

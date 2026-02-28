@@ -248,21 +248,18 @@ public class RobotContainer {
     // Trigger 3: MOVING shot while held (no drivetrain hold)
     new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3)
         .whileTrue(new ShootWhileHeld(
-            autoShootSupervisorSubsystem,
             AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO,
             false));
 
     // Button 6: STATIC HUB BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 6)
         .whileTrue(new ShootWhileHeld(
-            autoShootSupervisorSubsystem,
             AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
             true));
 
     // Button Y: STATIC TOWER BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, XboxController.Button.kY.value)
         .whileTrue(new ShootWhileHeld(
-            autoShootSupervisorSubsystem,
             AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
             true));
 
