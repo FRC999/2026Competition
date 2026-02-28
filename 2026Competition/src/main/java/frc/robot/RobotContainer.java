@@ -273,6 +273,11 @@ public class RobotContainer {
 
   }
 
+  public static void resetQuestNav() {
+    new JoystickButton(xboxDriveController, 1)
+      .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose3d())));
+  }
+
   private void configureShooterCalibrationBindings() {
     // TODO: PLACEHOLDER - pick real button numbers (ok to reuse across subsystems
     // if you disable others)
