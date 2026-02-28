@@ -237,9 +237,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     // Compute desired turret angle now (deg in turret-forward frame) using
     // predicted robot heading at release time.
-    
-    final boolean isStaticForPredict =
-    (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE);
+
+    final boolean isStaticForPredict = (shotMode == ShotMode.STATIC_HUB_BASE)
+        || (shotMode == ShotMode.STATIC_TOWER_BASE);
     final double omegaForPredict = isStaticForPredict ? 0.0 : omega;
 
     desiredTurretDeg = computeDesiredTurretDeg(
@@ -247,8 +247,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         omegaForPredict,
         Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
         lastSolution.yawFieldRad,
-        Constants.OperatorConstants.Turret.ZERO_POINTS_ROBOT_BACK
-    );
+        Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG);
 
     desiredTurretDeg = chooseSoftLimitedEquivalent(desiredTurretDeg, now);
 
@@ -424,12 +423,16 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       double omegaRadPerSec,
       double dtReleaseSec,
       double desiredYawFieldRad,
-      boolean zeroPointsRobotBack) {
+      double turretZeroOffsetFromRobotFwdDeg) {
+
     double predictedHeading = robotHeadingFieldRad + omegaRadPerSec * dtReleaseSec;
     double robotRelative = MathUtil.angleModulus(desiredYawFieldRad - predictedHeading);
-    if (zeroPointsRobotBack) {
-      robotRelative = MathUtil.angleModulus(robotRelative - Math.PI);
-    }
+
+    // Convert robot-forward-relative yaw into turret-frame degrees where turret "0"
+    // is your defined zero direction.
+    robotRelative = MathUtil.angleModulus(
+        robotRelative - Math.toRadians(turretZeroOffsetFromRobotFwdDeg));
+
     return Math.toDegrees(robotRelative);
   }
 
@@ -448,22 +451,28 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
    * briefly so we don't fire mid-swing.
    */
   private double chooseSoftLimitedEquivalent(double desiredDeg, double nowTs) {
-    double soft = Constants.OperatorConstants.Turret.SOFT_AIM_LIMIT_DEG;
+    // Asymmetric soft limits (inside the hard mechanical stops).
+    double softMin = Constants.OperatorConstants.Turret.SOFT_AIM_MIN_DEG;
+    double softMax = Constants.OperatorConstants.Turret.SOFT_AIM_MAX_DEG;
     double margin = Constants.OperatorConstants.Turret.LIMIT_MARGIN_DEG;
 
     double currentDeg = RobotContainer.turretSubsystem.getContinuousAngleDeg();
 
+    // Candidate(s): keep this structure so you can add ±360 equivalents later if
+    // desired.
     double[] cands = new double[] { desiredDeg };
     double best = Double.NaN;
     double bestScore = Double.POSITIVE_INFINITY;
 
     for (double c : cands) {
-      if (c < -soft || c > soft)
+      if (c < softMin || c > softMax) {
         continue;
+      }
+
       double travel = Math.abs(c - currentDeg);
 
       // Edge penalty: discourage living within 'margin' of the soft ends.
-      double edgeDist = Math.min(Math.abs(soft - c), Math.abs(-soft - c));
+      double edgeDist = Math.min(Math.abs(softMax - c), Math.abs(c - softMin));
       double edgePenalty = edgeDist < margin ? (margin - edgeDist) * 5.0 : 0.0;
 
       double score = travel + edgePenalty;
@@ -475,11 +484,11 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     if (Double.isNaN(best)) {
       // If the target can't be reached within the soft range, clamp.
-      best = MathUtil.clamp(desiredDeg, -soft, soft);
+      best = MathUtil.clamp(desiredDeg, softMin, softMax);
     }
 
     // Flip state + shoot suppression when near edge.
-    boolean nearEdgeNow = Math.abs(best) >= (soft - margin);
+    boolean nearEdgeNow = (best <= (softMin + margin)) || (best >= (softMax - margin));
     if (nearEdgeNow && !avoidingEdge) {
       avoidingEdge = true;
       suppressShootUntilTs = nowTs + Constants.OperatorConstants.AutoShoot.FLIP_SUPPRESS_SEC;

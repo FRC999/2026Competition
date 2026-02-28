@@ -697,7 +697,7 @@ public class RobotContainer {
     // 4: capture absolute ticks candidate (copy into ABS_FORWARD_TICKS manually)
     JoystickButton capture = new JoystickButton(turretStick, 4);
     capture.onTrue(new InstantCommand(
-        () -> RobotContainer.turretSubsystem.calibrationCaptureAbsForwardTicksCandidate(),
+        () -> RobotContainer.turretSubsystem.calibrationCaptureAbsZeroTicksCandidate(),
         RobotContainer.turretSubsystem));
 
     // 5-9: Motion Magic step targets
