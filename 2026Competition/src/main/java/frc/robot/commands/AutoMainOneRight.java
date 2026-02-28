@@ -10,6 +10,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import frc.robot.Robot;
 import frc.robot.RobotContainer;
 import frc.robot.lib.TrajectoryHelper;
 
@@ -35,11 +36,13 @@ public class AutoMainOneRight extends SequentialCommandGroup {
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueNeutralRightMiddle", false, false),
           //new StopIntake(),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRightMiddle_BlueNeutralHubRight", false, false),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueBumpRight2", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTrenchRight2", false, false),
           //new AutoShootUntilEmpty(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpRight2_BlueAllianceRight", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueTrenchRight", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueAllianceRight", false, false),
           //new StartIntake(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceRight_BlueTrenchRight2", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceRight_BlueTrenchRight", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueTrenchRight2", false, false),
           //new StopIntake(),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralHubRight", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTower(Under)", false, false)

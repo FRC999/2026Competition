@@ -8,11 +8,11 @@
       },
       "prevControl": null,
       "nextControl": {
-        "x": 7.6360057061340925,
-        "y": 3.5368616262482178
+        "x": 7.723614457831324,
+        "y": 4.035
       },
       "isLocked": false,
-      "linkedName": "BlueNeutralRightMiddle"
+      "linkedName": null
     },
     {
       "anchor": {
@@ -20,12 +20,12 @@
         "y": 3.3684096385542173
       },
       "prevControl": {
-        "x": 6.433881185225925,
-        "y": 3.3570259010363857
+        "x": 5.986108433734939,
+        "y": 4.00221686746988
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "BlueNeutralHubRight"
+      "linkedName": null
     }
   ],
   "rotationTargets": [],
@@ -42,7 +42,7 @@
   },
   "goalEndState": {
     "velocity": 2.0,
-    "rotation": 90.0
+    "rotation": -90.001
   },
   "reversed": false,
   "folder": null,

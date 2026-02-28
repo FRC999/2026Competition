@@ -23,21 +23,24 @@ public class AutoStrategyOne extends SequentialCommandGroup {
   /** Creates a new AutoStrategyOne. */
   public AutoStrategyOne() {
     addCommands(
-      // IMPORTANT: sample drive pose at schedule-time (dynamic start), not at auto construction time.
-    //new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new Pose2d(3.884, 6.966, new Rotation2d()))),
-      new DeferredCommand(
-          () -> RobotContainer.runTrajectory2Poses(
-              true,
-              //new Pose2d(3.884, 6.966, new Rotation2d()),
-              RobotContainer.driveSubsystem.getPose(),
-              TrajectoryHelper.AutoDesiredPoses.BlueDepot),
-          Set.of(RobotContainer.driveSubsystem)),
-          //.alongWith(new AutoShootUntilEmpty())
-        //.alongWith(new WaitCommand(1).andThen(new StartIntake())),
-      //new StopIntake(),
-      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower", false, false)
-       //.alongWith(new AutoShootUntilEmpty())
-        //TODO: NEED TO ADD CLIMBING COMMANDS HERE
+        // IMPORTANT: sample drive pose at schedule-time (dynamic start), not at auto
+        // construction time.
+        // new InstantCommand(()->RobotContainer.driveSubsystem.resetPose(new
+        // Pose2d(3.884, 6.966, new Rotation2d()))),
+        new DeferredCommand(
+            () -> RobotContainer.runTrajectory2Poses(
+                true,
+                // new Pose2d(3.884, 6.966, new Rotation2d()),
+                RobotContainer.driveSubsystem.getPose(),
+                new Pose2d(TrajectoryHelper.AutoDesiredPoses.BlueDepot.getTranslation(),
+                    new Rotation2d(Math.toRadians(180)))),
+            Set.of(RobotContainer.driveSubsystem)),
+        // .alongWith(new AutoShootUntilEmpty())
+        // .alongWith(new WaitCommand(1).andThen(new StartIntake())),
+        // new StopIntake(),
+        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueTower", false, false)
+    // .alongWith(new AutoShootUntilEmpty())
+    // TODO: NEED TO ADD CLIMBING COMMANDS HERE
     );
   }
 }

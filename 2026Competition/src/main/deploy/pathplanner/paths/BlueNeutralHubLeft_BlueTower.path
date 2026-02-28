@@ -3,12 +3,12 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 5.811265060240963,
+        "x": 5.81,
         "y": 4.636024096385543
       },
       "prevControl": null,
       "nextControl": {
-        "x": 7.526915662650602,
+        "x": 7.525650602409638,
         "y": 5.105915662650602
       },
       "isLocked": false,
@@ -25,13 +25,17 @@
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "BlueTower"
+      "linkedName": null
     }
   ],
   "rotationTargets": [
     {
+      "waypointRelativePos": 0.25643153526971685,
+      "rotationDegrees": -135.0
+    },
+    {
       "waypointRelativePos": 0.7,
-      "rotationDegrees": -90.0
+      "rotationDegrees": -135.0
     }
   ],
   "constraintZones": [],
