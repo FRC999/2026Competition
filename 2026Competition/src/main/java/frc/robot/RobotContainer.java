@@ -270,6 +270,9 @@ public class RobotContainer {
     new POVButton(xboxDriveController, 180)
         .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeStowedDeg));
 
+    new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
+        .onTrue(new StartIntake())
+        .onFalse(new StopIntake());
   }
 
   public static void resetQuestNav() {
