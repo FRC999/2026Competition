@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -51,8 +52,12 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
   private TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle table;
 
-  // Driver request flag
+  // Driver request flag (set by commands)
   private boolean shootRequested = false;
+
+  // Teleop-only trench safety interlock
+  private boolean trenchLockoutActive = false;
+  private boolean wasInTrenchZone = false;
 
   private VolleyState state = VolleyState.IDLE;
 
@@ -93,6 +98,14 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
    */
   public void setShootRequested(boolean requested) {
     if (requested && !shootRequested) {
+
+      // Teleop trench lockout clears only on a fresh shoot press.
+      // (This matches your requirement: lockout clears when driver "runs shoot again".)
+      // DO NOT affect autos.
+      if (DriverStation.isTeleopEnabled()) {
+        trenchLockoutActive = false;
+      }
+
       // Rising edge: latch ball estimate at start of volley.
       latchBallsRemainingFromDashboard();
       avoidingEdge = false;
@@ -128,10 +141,11 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     // Treat this as telemetry (not required for correct behavior) and gate it.
     if (Constants.DebugTelemetrySubsystems.supervisor) {
-      SmartDashboard.putNumber("Hopper/BallsEstimate", ballsRemaining);
+      SmartDashboard.putNumber("AutoShoot/BallsLatched", ballsRemaining);
     }
   }
 
+  // Shot mode: moving solver vs static presets (existing behavior)
   public enum ShotMode {
     MOVING_AUTO,
     STATIC_HUB_BASE,
@@ -140,8 +154,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
   private ShotMode shotMode = ShotMode.MOVING_AUTO;
 
-  public void setShotMode(ShotMode newMode) {
-    shotMode = newMode;
+  public void setShotMode(ShotMode mode) {
+    shotMode = mode;
   }
 
   public ShotMode getShotMode() {
@@ -156,6 +170,38 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     }
 
     final double now = Timer.getFPGATimestamp();
+
+    // ------------------------------------------------------------------
+    // Teleop-only trench safety interlock (DO NOT affect autos)
+    //
+    // Behavior:
+    // - If we ENTER a trench zone while shootRequested is true, lock out shooting
+    //   and force hood to neutral.
+    // - Lockout clears only when the driver schedules shooting again (i.e. a fresh
+    //   rising edge of setShootRequested(true)), implemented in setShootRequested().
+    // ------------------------------------------------------------------
+    final boolean teleopEnabled = DriverStation.isTeleopEnabled();
+    boolean effectiveShootRequested = shootRequested;
+
+    if (teleopEnabled) {
+      Pose2d pose = RobotContainer.driveSubsystem.getPose();
+      boolean inTrenchZone = isInTrenchZoneAllianceAware(pose.getX(), pose.getY());
+      boolean enteredTrenchZone = !wasInTrenchZone && inTrenchZone;
+
+      if (!trenchLockoutActive && enteredTrenchZone && shootRequested) {
+        trenchLockoutActive = true;
+      }
+
+      wasInTrenchZone = inTrenchZone;
+
+      if (trenchLockoutActive) {
+        effectiveShootRequested = false;
+
+        // Force hood to neutral continuously while locked out so nothing can
+        // re-command it upward during trench traversal.
+        RobotContainer.hoodSubsystem.setTargetAngleRad(Constants.OperatorConstants.Hood.NEUTRAL_ANGLE_RAD);
+      }
+    }
 
     // --- 1) Compute target position ---
     Translation2d target2d = getAllianceHubTarget();
@@ -252,7 +298,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     desiredTurretDeg = chooseSoftLimitedEquivalent(desiredTurretDeg, now);
 
     // Always aim if enabled OR if shooting is requested.
-    boolean aimEnabled = Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || shootRequested;
+    boolean aimEnabled = Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || effectiveShootRequested;
     if (aimEnabled && Double.isFinite(desiredTurretDeg)) {
       RobotContainer.turretSubsystem.goToAngleDeg(desiredTurretDeg);
     }
@@ -272,14 +318,22 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       SmartDashboard.putBoolean("AutoShoot/ShooterReady", shooterReady);
       SmartDashboard.putBoolean("AutoShoot/BallAtThroat", ballAtThroat);
       SmartDashboard.putBoolean("AutoShoot/Suppress", suppress);
+      SmartDashboard.putBoolean("AutoShoot/TrenchLockoutActive", trenchLockoutActive);
     }
 
-    // If not requested, keep system safe.
-    if (!shootRequested) {
+    // If not requested (or lockout active), keep system safe.
+    if (!effectiveShootRequested) {
       state = VolleyState.IDLE;
       RobotContainer.transferSubsystem.stop();
       RobotContainer.spindexerSubsystem.stop();
       RobotContainer.shooterSubsystem.stop();
+
+      // Teleop requirement: when the driver releases shoot, return hood to neutral.
+      // DO NOT affect autos.
+      if (teleopEnabled) {
+        RobotContainer.hoodSubsystem.setTargetAngleRad(Constants.OperatorConstants.Hood.NEUTRAL_ANGLE_RAD);
+      }
+
       publishTelemetry();
       return;
     }
@@ -322,12 +376,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     // Gate to actually fire:
     boolean okToFire = turretAimed && shooterReady && ballAtThroat;
 
-    // ------------------------------------------------------------------
     // Additional gating for STATIC shots: robot must be effectively stopped
-    // ------------------------------------------------------------------
-    // ------------------------------------------------------------------
-    // Additional gating for STATIC shots: robot must be effectively stopped
-    // ------------------------------------------------------------------
     if (shotMode == ShotMode.STATIC_HUB_BASE
         || shotMode == ShotMode.STATIC_TOWER_BASE) {
 
@@ -409,6 +458,68 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     return new Translation2d(Constants.FieldTargets.HUB_BLUE_X, Constants.FieldTargets.HUB_BLUE_Y);
   }
 
+  // ------------------------------------------------------------
+  // Trench safety zone helpers (teleop-only usage)
+  // ------------------------------------------------------------
+  private static boolean isInTrenchZoneAllianceAware(double poseX, double poseY) {
+    // Define zones in BLUE-alliance field coordinates, then mirror across the field
+    // length for RED. This assumes your field coordinate frame is the standard one
+    // where alliance mirroring is an X flip. If your odometry uses a different
+    // convention, you MUST adjust the mirroring (otherwise zones will be wrong).
+    var alliance = DriverStation.getAlliance();
+    boolean isRed = alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
+
+    // Convert current pose into the BLUE frame for zone checks.
+    double xBlueFrame = isRed
+        ? (Constants.OperatorConstants.FieldGeometry.FIELD_LENGTH_METERS - poseX)
+        : poseX;
+
+    // NOTE: Y is not mirrored here. If you end up needing a Y mirror for your
+    // coordinate system, mirror it consistently for both zones.
+    double yBlueFrame = poseY;
+
+    // Zone 1
+    if (isInRect(
+        xBlueFrame,
+        yBlueFrame,
+        Constants.OperatorConstants.FieldGeometry.BLUE_TRENCH_ZONE1_MIN_X_METERS,
+        Constants.OperatorConstants.FieldGeometry.BLUE_TRENCH_ZONE1_MAX_X_METERS,
+        Constants.OperatorConstants.FieldGeometry.BLUE_TRENCH_ZONE1_MIN_Y_METERS,
+        Constants.OperatorConstants.FieldGeometry.BLUE_TRENCH_ZONE1_MAX_Y_METERS)) {
+      return true;
+    }
+
+    // Zone 2
+    if (isInRect(
+        xBlueFrame,
+        yBlueFrame,
+        Constants.OperatorConstants.FieldGeometry.BLUE_TRENCH_ZONE2_MIN_X_METERS,
+        Constants.OperatorConstants.FieldGeometry.BLUE_TRENCH_ZONE2_MAX_X_METERS,
+        Constants.OperatorConstants.FieldGeometry.BLUE_TRENCH_ZONE2_MIN_Y_METERS,
+        Constants.OperatorConstants.FieldGeometry.BLUE_TRENCH_ZONE2_MAX_Y_METERS)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private static boolean isInRect(
+      double x,
+      double y,
+      double minX,
+      double maxX,
+      double minY,
+      double maxY) {
+
+    // Defensive: tolerate accidental min/max reversal.
+    double loX = Math.min(minX, maxX);
+    double hiX = Math.max(minX, maxX);
+    double loY = Math.min(minY, maxY);
+    double hiY = Math.max(minY, maxY);
+
+    return (x >= loX) && (x <= hiX) && (y >= loY) && (y <= hiY);
+  }
+
   /**
    * Convert a desired field yaw (radians) into turret-forward-frame degrees.
    *
@@ -469,40 +580,37 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         continue;
       }
 
-      double travel = Math.abs(c - currentDeg);
+      // Penalty for living near edges
+      double edgePenalty = 0.0;
+      if (c < softMin + margin) {
+        edgePenalty = (softMin + margin) - c;
+      } else if (c > softMax - margin) {
+        edgePenalty = c - (softMax - margin);
+      }
 
-      // Edge penalty: discourage living within 'margin' of the soft ends.
-      double edgeDist = Math.min(Math.abs(softMax - c), Math.abs(c - softMin));
-      double edgePenalty = edgeDist < margin ? (margin - edgeDist) * 5.0 : 0.0;
+      // Prefer small motion from current
+      double motionPenalty = Math.abs(c - currentDeg);
 
-      double score = travel + edgePenalty;
+      double score = motionPenalty + 10.0 * edgePenalty;
       if (score < bestScore) {
         bestScore = score;
         best = c;
       }
     }
 
-    if (Double.isNaN(best)) {
-      // If the target can't be reached within the soft range, clamp.
+    // If nothing fit, just clamp (and suppress firing briefly).
+    if (!Double.isFinite(best)) {
       best = MathUtil.clamp(desiredDeg, softMin, softMax);
-    }
 
-    // Flip state + shoot suppression when near edge.
-    boolean nearEdgeNow = (best <= (softMin + margin)) || (best >= (softMax - margin));
-    if (nearEdgeNow && !avoidingEdge) {
-      avoidingEdge = true;
-      suppressShootUntilTs = nowTs + Constants.OperatorConstants.AutoShoot.FLIP_SUPPRESS_SEC;
-    }
-    if (!nearEdgeNow && avoidingEdge) {
+      // If we're near an edge, treat it as "avoiding" and suppress feed briefly.
+      boolean nearEdge = best < softMin + margin || best > softMax - margin;
+      if (nearEdge && !avoidingEdge) {
+        avoidingEdge = true;
+        suppressShootUntilTs = nowTs + Constants.OperatorConstants.AutoShoot.FLIP_SUPPRESS_SEC;      } else if (!nearEdge) {
+        avoidingEdge = false;
+      }
+    } else {
       avoidingEdge = false;
-    }
-
-    // If we chose a different branch (±360), it will look like a big step; suppress
-    // briefly.
-    if (Math.abs(best - desiredDeg) > 180.0) {
-      suppressShootUntilTs = Math.max(
-          suppressShootUntilTs,
-          nowTs + Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC);
     }
 
     return best;
@@ -514,8 +622,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     }
 
     SmartDashboard.putString("AutoShoot/State", state.toString());
-    SmartDashboard.putNumber("AutoShoot/BallsRemaining", ballsRemaining);
+    SmartDashboard.putBoolean("AutoShoot/ShootRequested", shootRequested);
     SmartDashboard.putNumber("AutoShoot/DesiredTurretDeg", desiredTurretDeg);
+    SmartDashboard.putNumber("AutoShoot/BallsRemaining", ballsRemaining);
+    SmartDashboard.putBoolean("AutoShoot/AvoidingEdge", avoidingEdge);
     SmartDashboard.putNumber("AutoShoot/SuppressUntilTs", suppressShootUntilTs);
     SmartDashboard.putNumber("AutoShoot/LastSol/Rpm", lastSolution.shooterRpmCommand);
     SmartDashboard.putNumber("AutoShoot/LastSol/HoodDeg", Math.toDegrees(lastSolution.hoodCommandAngleRad));

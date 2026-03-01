@@ -563,6 +563,13 @@ public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
       // Physical angle clamps used by setTargetAngleRad()
       public static final double MIN_ANGLE_RAD = Math.toRadians(HOOD_MIN_ANGLE_DEG); // TODO: PLACEHOLDER
       public static final double MAX_ANGLE_RAD = Math.toRadians(HOOD_MAX_ANGLE_DEG); // TODO: PLACEHOLDER
+      /**
+      * Neutral (safe) hood angle used in teleop when not shooting and during trench lockout.
+      *
+      * IMPORTANT: Set this to the maximum hood angle that stays under your 22-inch height rule.
+      */
+      public static final double NEUTRAL_ANGLE_DEG = 0.0; // TODO: SET ME (safe default = 0 deg/down)
+      public static final double NEUTRAL_ANGLE_RAD = Math.toRadians(NEUTRAL_ANGLE_DEG);
 
       /** Placeholder gains (Position control). Tune after SysId. */
       public static final double kP = 40.0;
@@ -822,6 +829,32 @@ public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
        * measurement.
        */
       public static final double HUB_OPENING_CENTER_Z_METERS = 0.0;
+
+      
+      /**
+       * Field length in meters, used for alliance mirroring (RED <-> BLUE).
+       *
+       * IMPORTANT: Set this to the official 2026 field length for your coordinate frame.
+       */
+      public static final double FIELD_LENGTH_METERS = 0.0; // TODO: SET ME
+
+      /**
+       * Teleop trench safety zones, defined in BLUE-alliance field coordinates (meters).
+       *
+       * These are axis-aligned rectangles (min/max X/Y). For RED alliance, the pose X is
+       * mirrored using FIELD_LENGTH_METERS.
+       *
+       * IMPORTANT: You MUST set these numbers; leaving them at 0 will make the zone detection wrong.
+       */
+      public static final double BLUE_TRENCH_ZONE1_MIN_X_METERS = 0.0; // TODO: SET ME
+      public static final double BLUE_TRENCH_ZONE1_MAX_X_METERS = 0.0; // TODO: SET ME
+      public static final double BLUE_TRENCH_ZONE1_MIN_Y_METERS = 0.0; // TODO: SET ME
+      public static final double BLUE_TRENCH_ZONE1_MAX_Y_METERS = 0.0; // TODO: SET ME
+
+      public static final double BLUE_TRENCH_ZONE2_MIN_X_METERS = 0.0; // TODO: SET ME
+      public static final double BLUE_TRENCH_ZONE2_MAX_X_METERS = 0.0; // TODO: SET ME
+      public static final double BLUE_TRENCH_ZONE2_MIN_Y_METERS = 0.0; // TODO: SET ME
+      public static final double BLUE_TRENCH_ZONE2_MAX_Y_METERS = 0.0; // TODO: SET ME
     }
 
     /** Turret geometry needed by the solver. */
