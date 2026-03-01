@@ -384,6 +384,9 @@ public final class Constants {
       /** Absolute encoder tick value that corresponds to turret pointing forward. */
       public static final int ABS_FORWARD_TICKS = 1282;
 
+      public static final int ABS_ZERO_TICKS =
+    (ABS_FORWARD_TICKS - (ABS_TICKS_PER_REV / 4) + ABS_TICKS_PER_REV) % ABS_TICKS_PER_REV;
+
       /**
        * Boot assumption: at robot power-on, turret is within +/- 180 degrees of
        * forward.
@@ -392,8 +395,8 @@ public final class Constants {
       public static final double BOOT_MAX_ABS_DEG = 180.0;
 
       /** Mechanical safe range relative to forward (degrees). */
-      public static final double MIN_ANGLE_DEG = -180.0;
-      public static final double MAX_ANGLE_DEG = 180.0;
+      public static final double MIN_ANGLE_DEG = -165.0; // CW hard stop
+      public static final double MAX_ANGLE_DEG = 155.0;  // CCW hard stop
 
       /**
        * "Soft" limit for auto-aiming (degrees from your turret ZERO). Your notes
@@ -405,7 +408,14 @@ public final class Constants {
        * the edge.
        */
       // public static final double SOFT_AIM_LIMIT_DEG = 200.0;
-      public static final double SOFT_AIM_LIMIT_DEG = 180.0; // Changed
+      public static final double SOFT_AIM_MARGIN_DEG = 5.0;
+
+/**
+ * Soft limits used by auto-aim to avoid living on the hard stops.
+ * These should stay INSIDE MIN_ANGLE_DEG/MAX_ANGLE_DEG.
+ */
+public static final double SOFT_AIM_MIN_DEG = MIN_ANGLE_DEG + SOFT_AIM_MARGIN_DEG;
+public static final double SOFT_AIM_MAX_DEG = MAX_ANGLE_DEG - SOFT_AIM_MARGIN_DEG;
       /**
        * Soft limit for auto-aiming (degrees from your turret zero).
        * For a ±180 turret, this MUST be <= 180 or you can accidentally select ±360
@@ -414,11 +424,14 @@ public final class Constants {
       // TODO: Consider setting slightly inside hard limit (e.g. 175-179) once you
       // verify real margins.
 
+  
       /**
-       * True if your turret "ZERO" (and ABS_FORWARD_TICKS reference) points toward
-       * the ROBOT BACK.
-       */
-      public static final boolean ZERO_POINTS_ROBOT_BACK = true;
+ * Turret "0 deg" direction, expressed as an offset from ROBOT FORWARD.
+ *
+ * Convention: robot-relative angles are +CCW (left). If turret zero points 90° left,
+ * then this constant is +90.
+ */
+public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.

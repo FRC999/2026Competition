@@ -39,8 +39,9 @@ public class AutoMainOneLeft extends SequentialCommandGroup {
           //new AutoShootUntilEmpty(),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueAllianceLeft", false, false),
           //new StartIntake(), 
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceLeft_BlueTrenchLeft2", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceLeft_BlueTrenchLeft", false, false),
           //new StopIntake(),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft_BlueTrenchLeft2", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft2_BlueNeutralHubLeft", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubLeft_BlueTower", false, false)
           //.alongWith(new AutoShootUntilEmpty())
