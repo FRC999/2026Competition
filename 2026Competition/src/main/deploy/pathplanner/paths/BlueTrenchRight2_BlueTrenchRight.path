@@ -3,25 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 5.9423975903614465,
-        "y": 3.3684096385542173
+        "x": 5.669,
+        "y": 0.65
       },
       "prevControl": null,
       "nextControl": {
-        "x": 6.43271041369472,
-        "y": 3.0969472182596305
+        "x": 4.669,
+        "y": 0.6500000000000001
       },
       "isLocked": false,
-      "linkedName": "BlueNeutralHubRight"
+      "linkedName": null
     },
     {
       "anchor": {
-        "x": 5.669,
-        "y": 2.1
+        "x": 3.5,
+        "y": 0.65
       },
       "prevControl": {
-        "x": 5.876831325301204,
-        "y": 2.330277108433736
+        "x": 4.5,
+        "y": 0.6499999999999999
       },
       "nextControl": null,
       "isLocked": false,
@@ -41,7 +41,7 @@
     "unlimited": false
   },
   "goalEndState": {
-    "velocity": 1.5,
+    "velocity": 3.0,
     "rotation": 90.0
   },
   "reversed": false,

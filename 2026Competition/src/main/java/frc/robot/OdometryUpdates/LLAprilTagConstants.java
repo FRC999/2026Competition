@@ -10,28 +10,20 @@ import edu.wpi.first.math.util.Units;
 public class LLAprilTagConstants {
     public static final class LLVisionConstants {
 
-    public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2025ReefscapeAndyMark; // Field Layout - changes year-to-year
+    public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2026RebuiltAndymark; // Field Layout - changes year-to-year
 	
 	/** Limelight IMU mode for MT2: 0=external only, 1=external seeds LL IMU, 2=internal. */
 	public static final int LL_IMU_MODE = 1;
 		
 	public static enum LLCamera {
 
-			LLLEFT(
-				"limelight-fl"
+			LLBACKLEFT(
+				"limelight-bl"
 			),
 
-			LLRIGHT(
-				"limelight-fr"
-			),
-			LLLEFTUP (
-				"limelight-l"
-			)
-			// ,
-			// LLBACK(
-			// 	"limelight-back"
-			// )
-			;
+			LLBACKRIGHT(
+				"limelight-br"
+			);
 			private String cameraname;
 			private boolean prevCleared; // Set to true if nothing was seen last time
 			public boolean isPrevCleared() {

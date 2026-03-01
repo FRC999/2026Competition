@@ -127,10 +127,10 @@ public class TurretSubsystem extends SubsystemBase {
   /** continuous target angle (deg) in [-340, +340] */
   private double targetDeg = 0.0;
 
-  /** forward reference in degrees in the absolute sensor frame */
-  private final double forwardDeg =
-      (Constants.OperatorConstants.Turret.ABS_FORWARD_TICKS
-          / (double) Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV) * 360.0;
+ /** turret ZERO reference in degrees in the absolute sensor frame */
+private final double forwardDeg =
+    (Constants.OperatorConstants.Turret.ABS_ZERO_TICKS
+        / (double) Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV) * 360.0;
 
   // ---------------- Continuous wrap toggling ----------------
 
@@ -702,13 +702,13 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   /**
-   * Calibration: capture absolute ticks at current turret pose to manually set
-   * ABS_FORWARD_TICKS.
-   */
-  public void calibrationCaptureAbsForwardTicksCandidate() {
-    int ticks = getAbsoluteTicks();
-    SmartDashboard.putNumber("Turret/Cal/AbsForwardTicksCandidate", ticks);
-  }
+ * Calibration: capture absolute ticks at current turret pose to manually set
+ * ABS_ZERO_TICKS.
+ */
+public void calibrationCaptureAbsZeroTicksCandidate() {
+  int ticks = getAbsoluteTicks();
+  SmartDashboard.putNumber("Turret/Cal/AbsZeroTicksCandidate", ticks);
+}
 
   /**
    * Calibration: go to a turret angle using Motion Magic (wrap disabled,

@@ -3,13 +3,13 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 6.2,
-        "y": 3.6
+        "x": 5.9423975903614465,
+        "y": 3.3684096385542173
       },
       "prevControl": null,
       "nextControl": {
-        "x": 6.346722891566266,
-        "y": 2.352132530120481
+        "x": 6.089120481927712,
+        "y": 2.120542168674698
       },
       "isLocked": false,
       "linkedName": null
@@ -20,18 +20,18 @@
         "y": 3.6
       },
       "prevControl": {
-        "x": 1.5057469879518082,
-        "y": 1.3358554216867469
+        "x": 2.1614096385542165,
+        "y": 1.9040963855421684
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": "BlueTower"
+      "linkedName": null
     }
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.6,
-      "rotationDegrees": 90.0
+      "waypointRelativePos": 0.2464730290456474,
+      "rotationDegrees": 135.0
     }
   ],
   "constraintZones": [],
@@ -53,7 +53,7 @@
   "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 90.0
+    "rotation": 90.001
   },
   "useDefaultConstraints": true
 }

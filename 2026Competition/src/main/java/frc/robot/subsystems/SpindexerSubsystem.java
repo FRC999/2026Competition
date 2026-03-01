@@ -48,6 +48,11 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   private double commandedDuty = 0.0;
 
+    // --- Calibration state (for calibration bindings + AdvantageScope visibility) ---
+  private String calMode = "OFF";
+  private double calBaseDutySet = 0.0;
+  private double calSupplyDutySet = 0.0;
+
   // Status signals (for telemetry + SysId logs)
   private StatusSignal<Angle> positionSig;
   private StatusSignal<AngularVelocity> velocitySig;
@@ -138,6 +143,26 @@ public class SpindexerSubsystem extends SubsystemBase {
     runDuty(Constants.OperatorConstants.Spindexer.SUPPLY_DUTY);
   }
 
+    /** Calibration-only: run base using a live-tunable duty cycle. */
+  public void runBaseCal(double baseDutySet) {
+    calMode = "CAL_BASE";
+    calBaseDutySet = baseDutySet;
+    runDuty(baseDutySet);
+  }
+
+  /** Calibration-only: run supply using a live-tunable duty cycle. */
+  public void runSupplyCal(double supplyDutySet) {
+    calMode = "CAL_SUPPLY";
+    calSupplyDutySet = supplyDutySet;
+    runDuty(supplyDutySet);
+  }
+
+  /** Calibration-only: stop and mark mode. */
+  public void stopCal() {
+    calMode = "CAL_STOP";
+    stop();
+  }
+
   /** @return last duty commanded to the motor (telemetry/debug). */
   public double getCommandedDuty() {
     return commandedDuty;
@@ -207,6 +232,10 @@ public class SpindexerSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("Spindexer/DutyCmd", commandedDuty);
       SmartDashboard.putNumber("Spindexer/PosRot", posRot);
       SmartDashboard.putNumber("Spindexer/VelRps", velRps);
+      // --- Calibration visibility (always present; used by calibration bindings) ---
+      SmartDashboard.putString("Spindexer/Cal/Mode", calMode);
+      SmartDashboard.putNumber("Spindexer/Cal/BaseDutySet", calBaseDutySet);
+      SmartDashboard.putNumber("Spindexer/Cal/SupplyDutySet", calSupplyDutySet);
     }
   }
 

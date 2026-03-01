@@ -194,11 +194,7 @@ public class IntakeSubsystem extends SubsystemBase {
     intakePivotMotor.setSafetyEnabled(false);
     intakePivotFollowerMotor.getConfigurator().apply(new TalonFXConfiguration());
     intakePivotFollowerMotor.setSafetyEnabled(false);
-
-    // Follower setup (hardware-follow)
-    intakePivotFollowerMotor.getConfigurator().apply(new TalonFXConfiguration());
-    intakePivotFollowerMotor.setSafetyEnabled(false);
-
+    
     // Match neutral/inversion behavior by following leader.
     // If the motors are mirrored mechanically, set opposeLeader true.
     final MotorAlignmentValue alignment =

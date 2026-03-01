@@ -216,10 +216,12 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      configureShooterCalibrationBindings(); // <-- add this
+      configureShooterCalibrationBindings(); 
       configureHoodCalibrationBindings();
       configureIntakeCalibrationBindings();
       configureTurretCalibrationBindings();
+      configureTransferCalibrationBindings();  
+      configureSpindexerCalibrationBindings();
     }
     competitionXBOXButtonBindings();
   }
@@ -248,21 +250,18 @@ public class RobotContainer {
     // Trigger 3: MOVING shot while held (no drivetrain hold)
     new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3)
         .whileTrue(new ShootWhileHeld(
-            autoShootSupervisorSubsystem,
             AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO,
             false));
 
     // Button 6: STATIC HUB BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 3)
         .whileTrue(new ShootWhileHeld(
-            autoShootSupervisorSubsystem,
             AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
             true));
 
     // Button Y: STATIC TOWER BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 2)
         .whileTrue(new ShootWhileHeld(
-            autoShootSupervisorSubsystem,
             AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
             true));
 
@@ -276,6 +275,106 @@ public class RobotContainer {
   public static void resetQuestNav() {
     new JoystickButton(xboxDriveController, 1)
       .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose3d())));
+  }
+
+    private void configureTransferCalibrationBindings() {
+    // Transfer calibration buttons (turretStick has only 12 buttons).
+    // IMPORTANT: Enable ONLY this calibration binding set when using it,
+    // or you will conflict with turret/shooter/hood calibration bindings.
+
+    final int BTN_STAGE_HOLD = 1;
+    final int BTN_FEED_HOLD  = 2;
+    final int BTN_STOP_PRESS = 3;
+
+    final int BTN_STAGE_UP   = 4;
+    final int BTN_STAGE_DOWN = 5;
+    final int BTN_FEED_UP    = 6;
+    final int BTN_FEED_DOWN  = 7;
+
+    // Live-tunable setpoints (no redeploy required)
+    final double[] stageRpsSet = new double[] { Constants.OperatorConstants.Transfer.STAGE_RPS };
+    final double[] feedRpsSet  = new double[] { Constants.OperatorConstants.Transfer.FEED_RPS };
+
+    // If throat is blocked, stage should stop (or creep). Use your constant.
+    final double blockedStageRps = Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS;
+
+    // Steps (junior-friendly)
+    final double STAGE_STEP_RPS = 2.0;
+    final double FEED_STEP_RPS  = 5.0;
+
+    // Stage (hold)
+    new JoystickButton(turretStick, BTN_STAGE_HOLD)
+        .whileTrue(new RunCommand(() -> transferSubsystem.runStageCal(stageRpsSet[0], blockedStageRps), transferSubsystem))
+        .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
+
+    // Feed (hold)
+    new JoystickButton(turretStick, BTN_FEED_HOLD)
+        .whileTrue(new RunCommand(() -> transferSubsystem.runFeedCal(feedRpsSet[0]), transferSubsystem))
+        .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
+
+    // Stop (press)
+    new JoystickButton(turretStick, BTN_STOP_PRESS)
+        .onTrue(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
+
+    // Adjust stage setpoint
+    new JoystickButton(turretStick, BTN_STAGE_UP)
+        .onTrue(new InstantCommand(() -> stageRpsSet[0] += STAGE_STEP_RPS));
+    new JoystickButton(turretStick, BTN_STAGE_DOWN)
+        .onTrue(new InstantCommand(() -> stageRpsSet[0] = Math.max(0.0, stageRpsSet[0] - STAGE_STEP_RPS)));
+
+    // Adjust feed setpoint
+    new JoystickButton(turretStick, BTN_FEED_UP)
+        .onTrue(new InstantCommand(() -> feedRpsSet[0] += FEED_STEP_RPS));
+    new JoystickButton(turretStick, BTN_FEED_DOWN)
+        .onTrue(new InstantCommand(() -> feedRpsSet[0] = Math.max(0.0, feedRpsSet[0] - FEED_STEP_RPS)));
+  }
+
+    private void configureSpindexerCalibrationBindings() {
+    // Spindexer calibration buttons (turretStick has only 12 buttons).
+    // IMPORTANT: Enable ONLY this calibration binding set when using it.
+
+    final int BTN_BASE_HOLD   = 1;
+    final int BTN_SUPPLY_HOLD = 2;
+    final int BTN_STOP_PRESS  = 3;
+
+    final int BTN_BASE_UP     = 4;
+    final int BTN_BASE_DOWN   = 5;
+    final int BTN_SUPPLY_UP   = 6;
+    final int BTN_SUPPLY_DOWN = 7;
+
+    // Live-tunable setpoints (no redeploy required)
+    final double[] baseDutySet   = new double[] { Constants.OperatorConstants.Spindexer.BASE_DUTY };
+    final double[] supplyDutySet = new double[] { Constants.OperatorConstants.Spindexer.SUPPLY_DUTY };
+
+    final double DUTY_STEP = 0.05;
+
+    java.util.function.DoubleUnaryOperator clamp = (v) -> Math.max(-1.0, Math.min(1.0, v));
+
+    // Base (hold)
+    new JoystickButton(turretStick, BTN_BASE_HOLD)
+        .whileTrue(new RunCommand(() -> spindexerSubsystem.runBaseCal(baseDutySet[0]), spindexerSubsystem))
+        .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
+
+    // Supply (hold)
+    new JoystickButton(turretStick, BTN_SUPPLY_HOLD)
+        .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupplyCal(supplyDutySet[0]), spindexerSubsystem))
+        .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
+
+    // Stop (press)
+    new JoystickButton(turretStick, BTN_STOP_PRESS)
+        .onTrue(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
+
+    // Adjust base duty
+    new JoystickButton(turretStick, BTN_BASE_UP)
+        .onTrue(new InstantCommand(() -> baseDutySet[0] = clamp.applyAsDouble(baseDutySet[0] + DUTY_STEP)));
+    new JoystickButton(turretStick, BTN_BASE_DOWN)
+        .onTrue(new InstantCommand(() -> baseDutySet[0] = clamp.applyAsDouble(baseDutySet[0] - DUTY_STEP)));
+
+    // Adjust supply duty
+    new JoystickButton(turretStick, BTN_SUPPLY_UP)
+        .onTrue(new InstantCommand(() -> supplyDutySet[0] = clamp.applyAsDouble(supplyDutySet[0] + DUTY_STEP)));
+    new JoystickButton(turretStick, BTN_SUPPLY_DOWN)
+        .onTrue(new InstantCommand(() -> supplyDutySet[0] = clamp.applyAsDouble(supplyDutySet[0] - DUTY_STEP)));
   }
 
   private void configureShooterCalibrationBindings() {
@@ -700,7 +799,7 @@ public class RobotContainer {
     // 4: capture absolute ticks candidate (copy into ABS_FORWARD_TICKS manually)
     JoystickButton capture = new JoystickButton(turretStick, 4);
     capture.onTrue(new InstantCommand(
-        () -> RobotContainer.turretSubsystem.calibrationCaptureAbsForwardTicksCandidate(),
+        () -> RobotContainer.turretSubsystem.calibrationCaptureAbsZeroTicksCandidate(),
         RobotContainer.turretSubsystem));
 
     // 5-9: Motion Magic step targets
