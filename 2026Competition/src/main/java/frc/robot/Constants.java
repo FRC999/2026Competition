@@ -63,28 +63,27 @@ public final class Constants {
 
   public static final class EnabledSubsystems {
 
-  public static final boolean chasis = true;
-  public static final boolean odometry = true;
-  public static final boolean ll = false;
-  public static final boolean questnav = true;
-  public static final boolean intake = false;
-  public static final boolean shooter = false;
-  public static final boolean turret = false;
-  public static final boolean hood = false;
-  public static final boolean hopper = false;
-  public static final boolean spindexer = false;
-  public static final boolean transfer = false;
-  public static final boolean climber = false;
-  public static final boolean supervisor = false;
-}
+    public static final boolean chasis = true;
+    public static final boolean odometry = true;
+    public static final boolean ll = false;
+    public static final boolean questnav = true;
+    public static final boolean intake = false;
+    public static final boolean shooter = false;
+    public static final boolean turret = false;
+    public static final boolean hood = false;
+    public static final boolean hopper = false;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
+    public static final boolean climber = false;
+    public static final boolean supervisor = false;
+  }
 
-
-	public static final class DebugTelemetrySubsystems {  
-		public static final boolean odometry = true;
-		public static final boolean imu = true;
-		public static final boolean chassis = true;
-		public static final boolean ll = false;
-		public static final boolean questnav = true;
+  public static final class DebugTelemetrySubsystems {
+    public static final boolean odometry = true;
+    public static final boolean imu = true;
+    public static final boolean chassis = true;
+    public static final boolean ll = false;
+    public static final boolean questnav = true;
     public static final boolean intake = false;
     public static final boolean shooter = false;
     public static final boolean turret = false;
@@ -294,51 +293,50 @@ public final class Constants {
        * false);
        */
 
-          // 2026 Constants
-        
-        public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
-						11, // driveMotorID
-						12, // angleMotorID
-						21, // CanCoder Id
-						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						-0.474365, // angleOffset of cancoder to mark zero-position
-						false, // Inversion for drive motor
-						false, // Inversion for angle motor
-						false // inversion for CANcoder
-				);
-       
-        public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord( // Front Right
-						13, // driveMotorID
-						14, // angleMotorID
-						23, // CanCoder ID						// 0.041015625, // angleOffset of cancoder to mark zero-position
-						-0.498047, // angleOffset of cancoder to mark zero-position
-						true, // Inversion for drive motor
-						false, // Inversion for angle motor
-						false // inversion for CANcoder
-				);
+      // 2026 Constants
 
-        public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord( // Back Left
-						15, // driveMotorID
-						16, // angleMotorID
-						25, // CanCoder ID
-						// -0.296142578125, // angleOffset of cancoder to mark zero-position
-						0.003174, // angleOffset of cancoder to mark zero-position
-						false, // Inversion for drive motor
-						false, // Inversion for angle motor
-						false // inversion for CANcoder
-				);
-        public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord( // Back Right
-						17, // driveMotorID
-						18, // angleMotorID
-						27, // CanCoder ID
-						// 0.326171875, // angleOffset of cancoder to mark zero-position
-						//0.0576171875, // angleOffset of cancoder to mark zero-position
-						0.001953, // angleOffset of cancoder to mark zero-position
-						true, // Inversion for drive motor
-						false, // Inversion for angle motor
-						false // inversion for CANcoder
-				);
+      public static final SwerveModuleConstantsRecord MOD0 = new SwerveModuleConstantsRecord( // Front Left,
+          11, // driveMotorID
+          12, // angleMotorID
+          21, // CanCoder Id
+          // -0.296142578125, // angleOffset of cancoder to mark zero-position
+          -0.474365, // angleOffset of cancoder to mark zero-position
+          false, // Inversion for drive motor
+          false, // Inversion for angle motor
+          false // inversion for CANcoder
+      );
 
+      public static final SwerveModuleConstantsRecord MOD1 = new SwerveModuleConstantsRecord( // Front Right
+          13, // driveMotorID
+          14, // angleMotorID
+          23, // CanCoder ID // 0.041015625, // angleOffset of cancoder to mark zero-position
+          -0.498047, // angleOffset of cancoder to mark zero-position
+          true, // Inversion for drive motor
+          false, // Inversion for angle motor
+          false // inversion for CANcoder
+      );
+
+      public static final SwerveModuleConstantsRecord MOD2 = new SwerveModuleConstantsRecord( // Back Left
+          15, // driveMotorID
+          16, // angleMotorID
+          25, // CanCoder ID
+          // -0.296142578125, // angleOffset of cancoder to mark zero-position
+          0.003174, // angleOffset of cancoder to mark zero-position
+          false, // Inversion for drive motor
+          false, // Inversion for angle motor
+          false // inversion for CANcoder
+      );
+      public static final SwerveModuleConstantsRecord MOD3 = new SwerveModuleConstantsRecord( // Back Right
+          17, // driveMotorID
+          18, // angleMotorID
+          27, // CanCoder ID
+          // 0.326171875, // angleOffset of cancoder to mark zero-position
+          // 0.0576171875, // angleOffset of cancoder to mark zero-position
+          0.001953, // angleOffset of cancoder to mark zero-position
+          true, // Inversion for drive motor
+          false, // Inversion for angle motor
+          false // inversion for CANcoder
+      );
 
     }
 
@@ -384,8 +382,8 @@ public final class Constants {
       /** Absolute encoder tick value that corresponds to turret pointing forward. */
       public static final int ABS_FORWARD_TICKS = 1282;
 
-      public static final int ABS_ZERO_TICKS =
-    (ABS_FORWARD_TICKS - (ABS_TICKS_PER_REV / 4) + ABS_TICKS_PER_REV) % ABS_TICKS_PER_REV;
+      public static final int ABS_ZERO_TICKS = (ABS_FORWARD_TICKS - (ABS_TICKS_PER_REV / 4) + ABS_TICKS_PER_REV)
+          % ABS_TICKS_PER_REV;
 
       /**
        * Boot assumption: at robot power-on, turret is within +/- 180 degrees of
@@ -396,7 +394,7 @@ public final class Constants {
 
       /** Mechanical safe range relative to forward (degrees). */
       public static final double MIN_ANGLE_DEG = -165.0; // CW hard stop
-      public static final double MAX_ANGLE_DEG = 155.0;  // CCW hard stop
+      public static final double MAX_ANGLE_DEG = 155.0; // CCW hard stop
 
       /**
        * "Soft" limit for auto-aiming (degrees from your turret ZERO). Your notes
@@ -410,12 +408,12 @@ public final class Constants {
       // public static final double SOFT_AIM_LIMIT_DEG = 200.0;
       public static final double SOFT_AIM_MARGIN_DEG = 5.0;
 
-/**
- * Soft limits used by auto-aim to avoid living on the hard stops.
- * These should stay INSIDE MIN_ANGLE_DEG/MAX_ANGLE_DEG.
- */
-public static final double SOFT_AIM_MIN_DEG = MIN_ANGLE_DEG + SOFT_AIM_MARGIN_DEG;
-public static final double SOFT_AIM_MAX_DEG = MAX_ANGLE_DEG - SOFT_AIM_MARGIN_DEG;
+      /**
+       * Soft limits used by auto-aim to avoid living on the hard stops.
+       * These should stay INSIDE MIN_ANGLE_DEG/MAX_ANGLE_DEG.
+       */
+      public static final double SOFT_AIM_MIN_DEG = MIN_ANGLE_DEG + SOFT_AIM_MARGIN_DEG;
+      public static final double SOFT_AIM_MAX_DEG = MAX_ANGLE_DEG - SOFT_AIM_MARGIN_DEG;
       /**
        * Soft limit for auto-aiming (degrees from your turret zero).
        * For a ±180 turret, this MUST be <= 180 or you can accidentally select ±360
@@ -423,14 +421,14 @@ public static final double SOFT_AIM_MAX_DEG = MAX_ANGLE_DEG - SOFT_AIM_MARGIN_DE
        */
       // verify real margins.
 
-  
       /**
- * Turret "0 deg" direction, expressed as an offset from ROBOT FORWARD.
- *
- * Convention: robot-relative angles are +CCW (left). If turret zero points 90° left,
- * then this constant is +90.
- */
-public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
+       * Turret "0 deg" direction, expressed as an offset from ROBOT FORWARD.
+       *
+       * Convention: robot-relative angles are +CCW (left). If turret zero points 90°
+       * left,
+       * then this constant is +90.
+       */
+      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
@@ -533,6 +531,9 @@ public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
 
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // TODO: <Set hood supply lower
+                                                                                        // limit (A) for brief spikes>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // TODO: <Set hood supply lower time (s)>
       public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //<Set hood supply lower limit (A) for brief spikes>
       public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //<Set hood supply lower time (s)>
 
@@ -563,10 +564,12 @@ public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
       public static final double MIN_ANGLE_RAD = Math.toRadians(HOOD_MIN_ANGLE_DEG); // TODO: PLACEHOLDER
       public static final double MAX_ANGLE_RAD = Math.toRadians(HOOD_MAX_ANGLE_DEG); // TODO: PLACEHOLDER
       /**
-      * Neutral (safe) hood angle used in teleop when not shooting and during trench lockout.
-      *
-      * IMPORTANT: Set this to the maximum hood angle that stays under your 22-inch height rule.
-      */
+       * Neutral (safe) hood angle used in teleop when not shooting and during trench
+       * lockout.
+       *
+       * IMPORTANT: Set this to the maximum hood angle that stays under your 22-inch
+       * height rule.
+       */
       public static final double NEUTRAL_ANGLE_DEG = 0.0; // TODO: SET ME (safe default = 0 deg/down)
       public static final double NEUTRAL_ANGLE_RAD = Math.toRadians(NEUTRAL_ANGLE_DEG);
 
@@ -607,8 +610,12 @@ public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
       public static final double MAX_DUTY_CYCLE = 0.8;
       public static final double SUPPLY_CURRENT_LIMIT_A = 60.0;
       public static final double STATOR_CURRENT_LIMIT_A = 60.0;
-      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //TODO: <Set shooter supply lower limit (A) for brief spikes; often > SUPPLY_CURRENT_LIMIT_A>
-      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //TODO: <Set shooter supply lower time (s) before clamping to SUPPLY_CURRENT_LIMIT_A>
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // TODO: <Set shooter supply
+                                                                                        // lower limit (A) for brief
+                                                                                        // spikes; often >
+                                                                                        // SUPPLY_CURRENT_LIMIT_A>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // TODO: <Set shooter supply lower time (s) before
+                                                                    // clamping to SUPPLY_CURRENT_LIMIT_A>
 
       /** Velocity control gains (placeholders). */
       public static final double kP = 0.155; // 0.165
@@ -713,10 +720,10 @@ public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
       /** Higher duty for supplying transfer while shooting. */
       public static final double SUPPLY_DUTY = 0.45;
 
-      public static final double SUPPLY_CURRENT_LIMIT_A = 20; //TODO: <Enter spindexer supply current limit (A)>
-      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = 30; //TODO: <Enter spindexer supply lower limit (A)>
-      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //TODO: <Enter spindexer supply lower time (s)>
-      public static final double STATOR_CURRENT_LIMIT_A = 20; //TODO: <Enter spindexer stator current limit (A)>
+      public static final double SUPPLY_CURRENT_LIMIT_A = 20; // TODO: <Enter spindexer supply current limit (A)>
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = 30; // TODO: <Enter spindexer supply lower limit (A)>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // TODO: <Enter spindexer supply lower time (s)>
+      public static final double STATOR_CURRENT_LIMIT_A = 20; // TODO: <Enter spindexer stator current limit (A)>
 
       /** Simulation placeholders. */
       public static final double SIM_GEAR_RATIO = 1.0;
@@ -729,39 +736,51 @@ public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
       public static final int MOTOR2_ID = 52; // reserved optional second transfer motor
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
-      /** CANrange at transfer entry (just AFTER the spindexer handoff). */
-      public static final int ENTRY_CANRANGE_ID = 58;
+      /** IR beam-break at transfer entry (just AFTER spindexer handoff). */
+      public static final int ENTRY_SENSOR_DIO = 0;
+      /** Default assumes HIGH when blocked. */
+      // TODO: Verify IR beam-break polarity (HIGH when blocked?)
+      public static final boolean ENTRY_SENSOR_INVERTED = false;
 
-      /** CANrange at shooter throat (exit of transfer). */
-      public static final int THROAT_CANRANGE_ID = 59;
+      /** IR beam-break at shooter throat (exit of transfer). */
+      public static final int THROAT_SENSOR_DIO = 1;
+      /** Default assumes HIGH when blocked. */
+      // TODO: Verify IR beam-break polarity (HIGH when blocked?)
+      public static final boolean THROAT_SENSOR_INVERTED = false;
 
       /** Slow speed to keep balls staged without slamming them into the shooter. */
       public static final double STAGE_DUTY = 0.20;
       /** Fast speed to inject a ball into the shooter. */
       public static final double FEED_DUTY = 0.85;
 
-    // ---------------- Closed-loop velocity targets (RPS) ----------------
-  // TODO: These setpoints are placeholders until the robot is fully built and you can test/measure
-  //       ideal transfer speeds with real balls.
-  /** Staging target speed in rotor RPS (closed-loop). */
-  public static final double STAGE_RPS = 20.0; // TODO: placeholder, tune on robot
-  /** Feeding target speed in rotor RPS (closed-loop). */
-  public static final double FEED_RPS = 60.0;  // TODO: placeholder, tune on robot
+      // ---------------- Closed-loop velocity targets (RPS) ----------------
+      // TODO: These setpoints are placeholders until the robot is fully built and you
+      // can test/measure
+      // ideal transfer speeds with real balls.
+      /** Staging target speed in rotor RPS (closed-loop). */
+      public static final double STAGE_RPS = 20.0; // TODO: placeholder, tune on robot
+      /** Feeding target speed in rotor RPS (closed-loop). */
+      public static final double FEED_RPS = 60.0; // TODO: placeholder, tune on robot
 
-    // ---------------- Metered firing (rate + speed) ----------------
-  // Goal: eject ONE ball at a controlled speed, then wait a minimum interval before ejecting next.
-  // TODO: Placeholders until robot is fully built and ball dynamics are tested.
-  /** Desired ejection rate in balls/sec (how often you allow an eject). */
-  public static final double EJECT_BALLS_PER_SEC = 2.0; // TODO: placeholder (ex: 2 balls/sec)
+      // ---------------- Metered firing (rate + speed) ----------------
+      // Goal: eject ONE ball at a controlled speed, then wait a minimum interval
+      // before ejecting next.
+      // TODO: Placeholders until robot is fully built and ball dynamics are tested.
+      /** Desired ejection rate in balls/sec (how often you allow an eject). */
+      public static final double EJECT_BALLS_PER_SEC = 2.0; // TODO: placeholder (ex: 2 balls/sec)
 
-  /** Minimum time between the *start* of ejections (derived from EJECT_BALLS_PER_SEC). */
-  public static final double EJECT_MIN_INTERVAL_S = 1.0 / EJECT_BALLS_PER_SEC; // TODO: placeholder
+      /**
+       * Minimum time between the *start* of ejections (derived from
+       * EJECT_BALLS_PER_SEC).
+       */
+      public static final double EJECT_MIN_INTERVAL_S = 1.0 / EJECT_BALLS_PER_SEC; // TODO: placeholder
 
-  /**
-   * Safety timeout: if throat never clears during an eject, stop anyway to avoid running forever.
-   * This is a protection against sensor issues or unexpected ball behavior.
-   */
-  public static final double EJECT_MAX_TIME_S = 0.35; // TODO: placeholder
+      /**
+       * Safety timeout: if throat never clears during an eject, stop anyway to avoid
+       * running forever.
+       * This is a protection against sensor issues or unexpected ball behavior.
+       */
+      public static final double EJECT_MAX_TIME_S = 0.35; // TODO: placeholder
 
       /**
        * When a ball is already at the throat, staging should stop to avoid
@@ -787,8 +806,9 @@ public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
       // performance.
       public static final double SUPPLY_CURRENT_LIMIT_A = 35.0; // TODO: verify/tune
       public static final double STATOR_CURRENT_LIMIT_A = 60.0; // TODO: verify/tune
-      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //TODO: <Enter transfer supply lower limit (A)>
-      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //TODO: <Enter transfer supply lower time (s)>
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // TODO: <Enter transfer supply
+                                                                                        // lower limit (A)>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // TODO: <Enter transfer supply lower time (s)>
 
       /** Simulation placeholders. */
       public static final double SIM_GEAR_RATIO = 1.0;
@@ -829,21 +849,24 @@ public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
        */
       public static final double HUB_OPENING_CENTER_Z_METERS = 0.0;
 
-      
       /**
        * Field length in meters, used for alliance mirroring (RED <-> BLUE).
        *
-       * IMPORTANT: Set this to the official 2026 field length for your coordinate frame.
+       * IMPORTANT: Set this to the official 2026 field length for your coordinate
+       * frame.
        */
       public static final double FIELD_LENGTH_METERS = 0.0; // TODO: SET ME
 
       /**
-       * Teleop trench safety zones, defined in BLUE-alliance field coordinates (meters).
+       * Teleop trench safety zones, defined in BLUE-alliance field coordinates
+       * (meters).
        *
-       * These are axis-aligned rectangles (min/max X/Y). For RED alliance, the pose X is
+       * These are axis-aligned rectangles (min/max X/Y). For RED alliance, the pose X
+       * is
        * mirrored using FIELD_LENGTH_METERS.
        *
-       * IMPORTANT: You MUST set these numbers; leaving them at 0 will make the zone detection wrong.
+       * IMPORTANT: You MUST set these numbers; leaving them at 0 will make the zone
+       * detection wrong.
        */
       public static final double BLUE_TRENCH_ZONE1_MIN_X_METERS = 0.0; // TODO: SET ME
       public static final double BLUE_TRENCH_ZONE1_MAX_X_METERS = 0.0; // TODO: SET ME
