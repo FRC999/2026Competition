@@ -79,6 +79,12 @@ public class TransferSubsystem extends SubsystemBase {
   private double commandedDuty = 0.0;
   private double commandedRps = 0.0;
 
+    // --- Calibration state (for calibration bindings + AdvantageScope visibility) ---
+  private String calMode = "OFF";
+  private double calStageRpsSet = 0.0;
+  private double calFeedRpsSet = 0.0;
+  private double calBlockedStageRpsSet = 0.0;
+
   // ---------------- Metered eject state ----------------
   private enum EjectState {
     IDLE, EJECTING, COOLDOWN
@@ -214,6 +220,32 @@ throatDetectedSig = throatCanrange.getIsDetected();
       return;
     }
     runVelocityRps(Constants.OperatorConstants.Transfer.STAGE_RPS);
+  }
+
+    /** Calibration-only: run stage using a live-tunable setpoint, with throat protection. */
+  public void runStageCal(double stageRpsSet, double blockedStageRpsSet) {
+    calMode = "CAL_STAGE";
+    calStageRpsSet = stageRpsSet;
+    calBlockedStageRpsSet = blockedStageRpsSet;
+
+    if (hasBallAtThroat()) {
+      runVelocityRps(blockedStageRpsSet);
+    } else {
+      runVelocityRps(stageRpsSet);
+    }
+  }
+
+  /** Calibration-only: run feed using a live-tunable setpoint. */
+  public void runFeedCal(double feedRpsSet) {
+    calMode = "CAL_FEED";
+    calFeedRpsSet = feedRpsSet;
+    runVelocityRps(feedRpsSet);
+  }
+
+  /** Calibration-only: stop and mark mode. */
+  public void stopCal() {
+    calMode = "CAL_STOP";
+    stop();
   }
 
   /**
@@ -387,6 +419,12 @@ public boolean hasBallAtThroat() {
     SmartDashboard.putNumber("Transfer/MotorVoltage", motorVoltageSig.getValueAsDouble());
     SmartDashboard.putBoolean("Transfer/BallAtEntry", hasBallAtEntry());
     SmartDashboard.putBoolean("Transfer/BallAtThroat", hasBallAtThroat());
+
+          // --- Calibration visibility (always present; used by calibration bindings) ---
+      SmartDashboard.putString("Transfer/Cal/Mode", calMode);
+      SmartDashboard.putNumber("Transfer/Cal/StageRpsSet", calStageRpsSet);
+      SmartDashboard.putNumber("Transfer/Cal/FeedRpsSet", calFeedRpsSet);
+      SmartDashboard.putNumber("Transfer/Cal/BlockedStageRpsSet", calBlockedStageRpsSet);
   }
 
   public double getSimCurrentDrawAmps() {
