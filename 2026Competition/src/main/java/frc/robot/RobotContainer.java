@@ -233,11 +233,11 @@ public class RobotContainer {
         .onTrue(new RetractIntakeSequence())
         .onFalse(new StopIntake());
 
-    new POVButton(xboxDriveController, 0)
+    new JoystickButton(xboxDriveController, 4)
         .onTrue(new ClimbUp())
         .onFalse(new StopClimb());
 
-    new POVButton(xboxDriveController, 180)
+    new JoystickButton(xboxDriveController, 1)
         .onTrue(new ClimbDown())
         .onFalse(new StopClimb());
 
@@ -253,23 +253,23 @@ public class RobotContainer {
             false));
 
     // Button 6: STATIC HUB BASE shot while held (drivetrain hold heading)
-    new JoystickButton(xboxDriveController, 6)
+    new JoystickButton(xboxDriveController, 3)
         .whileTrue(new ShootWhileHeld(
             autoShootSupervisorSubsystem,
             AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
             true));
 
     // Button Y: STATIC TOWER BASE shot while held (drivetrain hold heading)
-    new JoystickButton(xboxDriveController, XboxController.Button.kY.value)
+    new JoystickButton(xboxDriveController, 2)
         .whileTrue(new ShootWhileHeld(
             autoShootSupervisorSubsystem,
             AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
             true));
 
-    new JoystickButton(xboxDriveController, 1)
+    new POVButton(xboxDriveController, 0)
+        .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeDeployedDeg));        
+    new POVButton(xboxDriveController, 180)
         .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeStowedDeg));
-    new JoystickButton(xboxDriveController, 1)
-        .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeDeployedDeg));
 
   }
 
