@@ -10,6 +10,7 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.VelocityDutyCycle;
+import com.ctre.phoenix6.hardware.CANrange;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
@@ -19,7 +20,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
-import com.ctre.phoenix6.hardware.CANrange;
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
@@ -62,11 +63,9 @@ public class TransferSubsystem extends SubsystemBase {
   // constants.
   // Sensors (CANrange). We read via StatusSignals so we can refresh them in
   // periodic().
-  private CANrange entryCanrange;
-  private CANrange throatCanrange;
-
-  private StatusSignal<Boolean> entryDetectedSig;
-  private StatusSignal<Boolean> throatDetectedSig;
+  // IR beam-break sensors (DIO)
+  private DigitalInput entrySensor;
+  private DigitalInput throatSensor;
 
   // Closed-loop velocity (primary control mode)
   private VelocityDutyCycle velocityDuty = new VelocityDutyCycle(0.0);
@@ -79,7 +78,8 @@ public class TransferSubsystem extends SubsystemBase {
   private double commandedDuty = 0.0;
   private double commandedRps = 0.0;
 
-    // --- Calibration state (for calibration bindings + AdvantageScope visibility) ---
+  // --- Calibration state (for calibration bindings + AdvantageScope visibility)
+  // ---
   private String calMode = "OFF";
   private double calStageRpsSet = 0.0;
   private double calFeedRpsSet = 0.0;
@@ -128,15 +128,13 @@ public class TransferSubsystem extends SubsystemBase {
       return;
     }
 
-    entryCanrange =
-    new CANrange(Constants.OperatorConstants.Transfer.ENTRY_CANRANGE_ID,
-                 Constants.OperatorConstants.Transfer.CANBUS_NAME);
-throatCanrange =
-    new CANrange(Constants.OperatorConstants.Transfer.THROAT_CANRANGE_ID,
-                 Constants.OperatorConstants.Transfer.CANBUS_NAME);
+    // Initialize IR beam-break sensors
+    entrySensor = new DigitalInput(
+        Constants.OperatorConstants.Transfer.ENTRY_SENSOR_DIO);
 
-entryDetectedSig = entryCanrange.getIsDetected();
-throatDetectedSig = throatCanrange.getIsDetected();
+    throatSensor = new DigitalInput(
+        Constants.OperatorConstants.Transfer.THROAT_SENSOR_DIO);
+
     duty = new DutyCycleOut(0.0);
     motor = new TalonFX(
         Constants.OperatorConstants.Transfer.MOTOR_ID,
@@ -222,7 +220,10 @@ throatDetectedSig = throatCanrange.getIsDetected();
     runVelocityRps(Constants.OperatorConstants.Transfer.STAGE_RPS);
   }
 
-    /** Calibration-only: run stage using a live-tunable setpoint, with throat protection. */
+  /**
+   * Calibration-only: run stage using a live-tunable setpoint, with throat
+   * protection.
+   */
   public void runStageCal(double stageRpsSet, double blockedStageRpsSet) {
     calMode = "CAL_STAGE";
     calStageRpsSet = stageRpsSet;
@@ -333,18 +334,27 @@ throatDetectedSig = throatCanrange.getIsDetected();
 
   /** @return true if a ball is detected at transfer entry (after spindexer). */
   public boolean hasBallAtEntry() {
-  if (!EnabledSubsystems.transfer || entryDetectedSig == null) {
-    return false;
-  }
-  return Boolean.TRUE.equals(entryDetectedSig.getValue());
-}
+    if (!EnabledSubsystems.transfer || entrySensor == null) {
+      return false;
+    }
 
-public boolean hasBallAtThroat() {
-  if (!EnabledSubsystems.transfer || throatDetectedSig == null) {
-    return false;
+    boolean raw = entrySensor.get();
+    return Constants.OperatorConstants.Transfer.ENTRY_SENSOR_INVERTED
+        ? !raw
+        : raw;
   }
-  return Boolean.TRUE.equals(throatDetectedSig.getValue());
-}
+
+  public boolean hasBallAtThroat() {
+    if (!EnabledSubsystems.transfer || throatSensor == null) {
+      return false;
+    }
+
+    boolean raw = throatSensor.get();
+    return Constants.OperatorConstants.Transfer.THROAT_SENSOR_INVERTED
+        ? !raw
+        : raw;
+  }
+
   public double getCommandedDuty() {
     return commandedDuty;
   }
@@ -405,7 +415,7 @@ public boolean hasBallAtThroat() {
       return;
     }
 
-    BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig, entryDetectedSig, throatDetectedSig);
+    BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
     posRot = positionSig.getValueAsDouble();
     velRps = velocitySig.getValueAsDouble();
 
@@ -420,11 +430,11 @@ public boolean hasBallAtThroat() {
     SmartDashboard.putBoolean("Transfer/BallAtEntry", hasBallAtEntry());
     SmartDashboard.putBoolean("Transfer/BallAtThroat", hasBallAtThroat());
 
-          // --- Calibration visibility (always present; used by calibration bindings) ---
-      SmartDashboard.putString("Transfer/Cal/Mode", calMode);
-      SmartDashboard.putNumber("Transfer/Cal/StageRpsSet", calStageRpsSet);
-      SmartDashboard.putNumber("Transfer/Cal/FeedRpsSet", calFeedRpsSet);
-      SmartDashboard.putNumber("Transfer/Cal/BlockedStageRpsSet", calBlockedStageRpsSet);
+    // --- Calibration visibility (always present; used by calibration bindings) ---
+    SmartDashboard.putString("Transfer/Cal/Mode", calMode);
+    SmartDashboard.putNumber("Transfer/Cal/StageRpsSet", calStageRpsSet);
+    SmartDashboard.putNumber("Transfer/Cal/FeedRpsSet", calFeedRpsSet);
+    SmartDashboard.putNumber("Transfer/Cal/BlockedStageRpsSet", calBlockedStageRpsSet);
   }
 
   public double getSimCurrentDrawAmps() {
