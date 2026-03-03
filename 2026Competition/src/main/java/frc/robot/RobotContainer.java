@@ -223,7 +223,8 @@ public class RobotContainer {
       configureTransferCalibrationBindings();  
       configureSpindexerCalibrationBindings();
     }
-    competitionXBOXButtonBindings();
+    //competitionXBOXButtonBindings();
+    betaTesting();
   }
 
   private void competitionXBOXButtonBindings() {
@@ -259,7 +260,7 @@ public class RobotContainer {
             AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
             true));
 
-    // Button Y: STATIC TOWER BASE shot while held (drivetrain hold heading)
+    // Button B: STATIC TOWER BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 2)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
@@ -278,6 +279,22 @@ public class RobotContainer {
   public static void resetQuestNav() {
     new JoystickButton(xboxDriveController, 1)
       .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose3d())));
+  }
+
+  private void betaTesting() {
+    new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
+        .onTrue(new DeployIntakeSequence())
+        .onFalse(new StopIntake());
+
+        // Button B: STATIC TOWER BASE shot while held (drivetrain hold heading)
+    new JoystickButton(xboxDriveController, 2)
+        .whileTrue(new ShootWhileHeld(
+            AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
+            true));
+    
+    new JoystickButton(xboxDriveController, 3)
+        .whileTrue(new InstantCommand(() -> spindexerSubsystem.runBase()))
+        .whileFalse(new InstantCommand(() -> spindexerSubsystem.stop()));
   }
 
     private void configureTransferCalibrationBindings() {

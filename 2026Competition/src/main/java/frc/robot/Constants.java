@@ -63,19 +63,19 @@ public final class Constants {
 
   public static final class EnabledSubsystems {
 
-    public static final boolean chasis = true;
+    public static final boolean chasis = false;
     public static final boolean odometry = true;
     public static final boolean ll = false;
     public static final boolean questnav = true;
-    public static final boolean intake = false;
-    public static final boolean shooter = false;
+    public static final boolean intake = true;
+    public static final boolean shooter = true;
     public static final boolean turret = false;
     public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean spindexer = true;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
+    public static final boolean supervisor = true;
   }
 
   public static final class DebugTelemetrySubsystems {
@@ -627,7 +627,7 @@ public final class Constants {
       public static final double kA = 0.004; // 0.001
 
       /** Setpoint logic. */
-      public static final double DEFAULT_RPM = 3000.0;
+      public static final double DEFAULT_RPM = 2000.0;
       public static final double RPM_STEP = 50.0;
       public static final double READY_TOLERANCE_RPM = 75.0;
       public static final double READY_MIN_TIME_S = 0.20;
