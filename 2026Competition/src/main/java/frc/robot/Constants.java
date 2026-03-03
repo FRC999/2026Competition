@@ -531,9 +531,6 @@ public final class Constants {
 
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
-      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // TODO: <Set hood supply lower
-                                                                                        // limit (A) for brief spikes>
-      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // TODO: <Set hood supply lower time (s)>
       public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //<Set hood supply lower limit (A) for brief spikes>
       public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //<Set hood supply lower time (s)>
 
