@@ -129,7 +129,10 @@ public class IntakeSubsystem extends SubsystemBase {
 
 
     configureMotors();
-    configureStatusSignals();
+  configureStatusSignals();
+
+  // Seed pivot zero at boot (you guarantee intake starts fully retracted)
+  seedZeroFromRetractedHardStop();
   }
 
   private void configureStatusSignals() {

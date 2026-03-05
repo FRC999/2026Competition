@@ -158,7 +158,7 @@ public class ClimbSubsystem extends SubsystemBase {
     // false = same direction (most common when mechanically linked),
     // true  = opposite direction (mirrored mounting, etc.)
     boolean oppose = SmartDashboard.getBoolean("Climb/FollowerOpposeMaster", false);
-    climbMotorRight.setControl(new Follower(ClimbConstants.climbMotorLeftID, MotorAlignmentValue.Opposed));
+    //climbMotorRight.setControl(new Follower(ClimbConstants.climbMotorLeftID, MotorAlignmentValue.Opposed));
   }
 
   private void configureMotionMagicDutyCycle(TalonFXConfiguration config) {
