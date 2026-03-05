@@ -66,27 +66,27 @@ public final class Constants {
     public static final boolean chasis = false;
     public static final boolean odometry = true;
     public static final boolean ll = false;
-    public static final boolean questnav = true;
-    public static final boolean intake = true;
-    public static final boolean shooter = true;
-    public static final boolean turret = false;
+    public static final boolean questnav = false;
+    public static final boolean intake = false;
+    public static final boolean shooter = false;
+    public static final boolean turret = true;
     public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
-    public static final boolean supervisor = true;
+    public static final boolean supervisor = false;
   }
 
   public static final class DebugTelemetrySubsystems {
-    public static final boolean odometry = true;
-    public static final boolean imu = true;
-    public static final boolean chassis = true;
+    public static final boolean odometry = false;
+    public static final boolean imu = false;
+    public static final boolean chassis = false;
     public static final boolean ll = false;
-    public static final boolean questnav = true;
+    public static final boolean questnav = false;
     public static final boolean intake = false;
     public static final boolean shooter = false;
-    public static final boolean turret = false;
+    public static final boolean turret = true;
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
@@ -97,7 +97,7 @@ public final class Constants {
     public static final boolean smartDashboard = true;
 
     // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
-    public static final boolean calibration = false; // PLACEHOLDER set true only while calibrating
+    public static final boolean calibration = true; // PLACEHOLDER set true only while calibrating
   }
 
   public static final class AutoConstants {
@@ -382,8 +382,7 @@ public final class Constants {
       /** Absolute encoder tick value that corresponds to turret pointing forward. */
       public static final int ABS_FORWARD_TICKS = 1282;
 
-      public static final int ABS_ZERO_TICKS = (ABS_FORWARD_TICKS - (ABS_TICKS_PER_REV / 4) + ABS_TICKS_PER_REV)
-          % ABS_TICKS_PER_REV;
+      public static final int ABS_ZERO_TICKS = 1559;
 
       /**
        * Boot assumption: at robot power-on, turret is within +/- 180 degrees of
@@ -456,9 +455,9 @@ public final class Constants {
       public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // <Set turret supply lower time (s)>
 
       /** Placeholder gains (Position control). Tune after SysId. */
-      public static final double kP = 40.0;
+      public static final double kP = 53.0; //40.0
       public static final double kI = 0.0;
-      public static final double kD = 2.0;
+      public static final double kD = 2.1; //2.0
       public static final double kS = 0.0;
       public static final double kV = 0.0;
       public static final double kA = 0.0;
@@ -475,11 +474,11 @@ public final class Constants {
        * omega ~ 158–210 deg/s. Use cruise ~240 deg/s for headroom.
        */
       // TODO: Tune on real robot.
-      public static final double MM_CRUISE_DEG_PER_SEC = 240.0;
-      public static final double MM_ACCEL_DEG_PER_SEC2 = 1200.0;
+      public static final double MM_CRUISE_DEG_PER_SEC = 240.0; //240
+      public static final double MM_ACCEL_DEG_PER_SEC2 = 1200.0; //1200
 
       /** Simulation placeholders. */
-      public static final double SIM_GEAR_RATIO = 220.0 / 11.0; // pinion has 11 teeth, turret ring has 280
+      public static final double SIM_GEAR_RATIO = 220.0 / 20.0; // pinion has 20 teeth, turret ring has 280
       public static final double SIM_TURRET_J_KGM2 = 0.002;
       // Simulation-only: use a fixed supply so this subsystem doesn't collapse
       // RoboRIO voltage.
@@ -492,8 +491,8 @@ public final class Constants {
       public static final double SIM_STOP_OMEGA_EPS_RAD_PER_SEC = 0.10; // snap-to-zero threshold
 
       /** Gear ratio: motor pinion 11 teeth, turret ring 280 teeth. */
-      public static final double GEAR_RATIO_TURRET_ROT_PER_MOTOR_ROT = 11.0 / 280.0; // output / input
-      public static final double GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT = 280.0 / 11.0; // input / output
+      public static final double GEAR_RATIO_TURRET_ROT_PER_MOTOR_ROT = 20.0 / 220.0; // output / input
+      public static final double GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT = 220.0 / 20.0; // input / output
 
       /** Conversions for integrated sensor (motor rotations) <-> turret degrees. */
       public static final double MOTOR_ROT_PER_TURRET_DEG = GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT / 360.0;

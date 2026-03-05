@@ -828,25 +828,33 @@ public class RobotContainer {
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
                 Constants.OperatorConstants.Turret.CAL_STEP_SMALL_DEG),
-            RobotContainer.turretSubsystem));
+            RobotContainer.turretSubsystem))
+        .onFalse(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.stop()));
 
     new JoystickButton(turretStick, 7)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
                 -Constants.OperatorConstants.Turret.CAL_STEP_SMALL_DEG),
-            RobotContainer.turretSubsystem));
+            RobotContainer.turretSubsystem))
+        .onFalse(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.stop()));
 
     new JoystickButton(turretStick, 8)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
                 Constants.OperatorConstants.Turret.CAL_STEP_LARGE_DEG),
-            RobotContainer.turretSubsystem));
+            RobotContainer.turretSubsystem))
+        .onFalse(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.stop()));;
 
     new JoystickButton(turretStick, 9)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
                 -Constants.OperatorConstants.Turret.CAL_STEP_LARGE_DEG),
-            RobotContainer.turretSubsystem));
+            RobotContainer.turretSubsystem))
+        .onFalse(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.stop()));;
 
     // 10: toggle sweep (sweep motion runs from TurretSubsystem.periodic while
     // enabled)
@@ -854,6 +862,7 @@ public class RobotContainer {
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationToggleSweep(),
             RobotContainer.turretSubsystem));
+
 
     // 11/12: +kP / -kP
     new JoystickButton(turretStick, 11)

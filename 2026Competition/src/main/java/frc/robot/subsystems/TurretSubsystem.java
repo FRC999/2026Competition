@@ -707,7 +707,7 @@ private final double forwardDeg =
  */
 public void calibrationCaptureAbsZeroTicksCandidate() {
   int ticks = getAbsoluteTicks();
-  SmartDashboard.putNumber("Turret/Cal/AbsZeroTicksCandidate", ticks);
+  SmartDashboard.putNumber("Turret/AbsTicks", ticks);
 }
 
   /**
@@ -824,22 +824,22 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     } 
 
     // Calibration sweep: ping-pong between CAL_SWEEP_MIN_DEG and CAL_SWEEP_MAX_DEG.
-    if (isCalSweepEnabled) {
-      double t = Timer.getFPGATimestamp() - calSweepStartTimeSec;
+    // if (isCalSweepEnabled) {
+    //   double t = Timer.getFPGATimestamp() - calSweepStartTimeSec;
 
-      double period = Constants.OperatorConstants.Turret.CAL_SWEEP_PERIOD_SEC;
-      double minDeg = Constants.OperatorConstants.Turret.CAL_SWEEP_MIN_DEG;
-      double maxDeg = Constants.OperatorConstants.Turret.CAL_SWEEP_MAX_DEG;
+    //   double period = Constants.OperatorConstants.Turret.CAL_SWEEP_PERIOD_SEC;
+    //   double minDeg = Constants.OperatorConstants.Turret.CAL_SWEEP_MIN_DEG;
+    //   double maxDeg = Constants.OperatorConstants.Turret.CAL_SWEEP_MAX_DEG;
 
-      // Triangle wave in [0, 1]
-      double phase = (t % period) / period; // [0,1)
-      double tri = phase < 0.5 ? (phase * 2.0) : (2.0 - phase * 2.0);
+    //   // Triangle wave in [0, 1]
+    //   double phase = (t % period) / period; // [0,1)
+    //   double tri = phase < 0.5 ? (phase * 2.0) : (2.0 - phase * 2.0);
 
-      double cmdDeg = minDeg + (maxDeg - minDeg) * tri;
+    //   double cmdDeg = minDeg + (maxDeg - minDeg) * tri;
 
-      calibrationGoToAngleDeg(cmdDeg);
-      SmartDashboard.putNumber("Turret/Cal/SweepCmdDeg", cmdDeg);
-    }
+    //   calibrationGoToAngleDeg(cmdDeg);
+    //   SmartDashboard.putNumber("Turret/Cal/SweepCmdDeg", cmdDeg);
+    // }
 
     if (Constants.DebugTelemetrySubsystems.turret && turretArm != null) {
       turretArm.setAngle(wrapTo0To360(continuousDegUnclamped));
