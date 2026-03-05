@@ -54,7 +54,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private TalonFX intakePivotMotor;         // leader
   private TalonFX intakePivotFollowerMotor; // follower
 
-  private final MotionMagicVoltage motionMagicVoltage = new MotionMagicVoltage(0);
+  private final MotionMagicVoltage motionMagicVoltage = new MotionMagicVoltage(0).withEnableFOC(false);
   private double intakePivotEncoderZero = 0;
 
   private double targetPivotDeg = 0.0;

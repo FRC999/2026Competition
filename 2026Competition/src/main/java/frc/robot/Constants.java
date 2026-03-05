@@ -97,7 +97,7 @@ public final class Constants {
     public static final boolean smartDashboard = true;
 
     // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
-    public static final boolean calibration = false; // TODO: PLACEHOLDER set true only while calibrating
+    public static final boolean calibration = false; // PLACEHOLDER set true only while calibrating
   }
 
   public static final class AutoConstants {
@@ -419,7 +419,6 @@ public final class Constants {
        * For a ±180 turret, this MUST be <= 180 or you can accidentally select ±360
        * "equivalents".
        */
-      // TODO: Consider setting slightly inside hard limit (e.g. 175-179) once you
       // verify real margins.
 
       /**
@@ -453,10 +452,8 @@ public final class Constants {
       public static final double SIM_MAX_DUTY_CYCLE = 1.0;
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
-      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // TODO: <Set turret supply
-                                                                                        // lower limit (A) for brief
-                                                                                        // spikes>
-      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // TODO: <Set turret supply lower time (s)>
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // <Set turret supply lower limit (A) for brief spikes>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // <Set turret supply lower time (s)>
 
       /** Placeholder gains (Position control). Tune after SysId. */
       public static final double kP = 40.0;
@@ -534,9 +531,8 @@ public final class Constants {
 
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
-      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // TODO: <Set hood supply lower
-                                                                                        // limit (A) for brief spikes>
-      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // TODO: <Set hood supply lower time (s)>
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //<Set hood supply lower limit (A) for brief spikes>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //<Set hood supply lower time (s)>
 
       // --- Range + conversion (PLACEHOLDERS until measured on real robot) ---
       // Fully down = 0 degrees and 0 motor rotations.
@@ -553,7 +549,7 @@ public final class Constants {
 
       // --- Software limit margin ---
       // Since you have NO hard-stop at the top, keep a conservative margin.
-      public static final double SOFT_LIMIT_MARGIN_FRACTION = 0.10; // TODO: PLACEHOLDER (10% margin)
+      public static final double SOFT_LIMIT_MARGIN_FRACTION = 0.10; //PLACEHOLDER (10% margin)
 
       // Motor-rotation soft limits (0 = down hard-stop, up is constrained by forward
       // soft limit)
