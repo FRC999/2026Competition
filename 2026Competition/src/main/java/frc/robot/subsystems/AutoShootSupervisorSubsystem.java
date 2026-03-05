@@ -268,7 +268,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       lastSolution = new TurretHelpers.Solution(
           true, // valid
           0.0, // timeOfFlightS (unused in static mode)
-          yawFieldRad, // yawFieldRad (what we need for turret aiming)
+          12, // yawFieldRad (what we need for turret aiming)
           Double.NaN, // desiredBallOutputAngleRad (unused)
           Double.NaN, // desiredBallExitSpeedMps (unused)
           new Translation3d(), // ballExitVelocityRelativeToRobotExpressedInFieldFrame (unused)
