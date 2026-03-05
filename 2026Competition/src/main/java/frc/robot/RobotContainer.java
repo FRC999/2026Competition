@@ -223,8 +223,8 @@ public class RobotContainer {
       configureTransferCalibrationBindings();  
       configureSpindexerCalibrationBindings();
     }
-    //competitionXBOXButtonBindings();
-    betaTesting();
+    competitionXBOXButtonBindings();
+    //betaTesting();
   }
 
   private void competitionXBOXButtonBindings() {

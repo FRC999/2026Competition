@@ -66,12 +66,12 @@ public final class Constants {
     public static final boolean chasis = false;
     public static final boolean odometry = true;
     public static final boolean ll = false;
-    public static final boolean questnav = true;
+    public static final boolean questnav = false;
     public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = false;
-    public static final boolean hood = false;
-    public static final boolean hopper = false;
+    public static final boolean hood = true;
+    public static final boolean hopper = true;
     public static final boolean spindexer = true;
     public static final boolean transfer = true;
     public static final boolean climber = false;
@@ -84,14 +84,14 @@ public final class Constants {
     public static final boolean chassis = true;
     public static final boolean ll = false;
     public static final boolean questnav = true;
-    public static final boolean intake = false;
-    public static final boolean shooter = false;
+    public static final boolean intake = true;
+    public static final boolean shooter = true;
     public static final boolean turret = false;
-    public static final boolean hood = false;
+    public static final boolean hood = true;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
-    public static final boolean transfer = false;
-    public static final boolean climber = false;
+    public static final boolean spindexer = true;
+    public static final boolean transfer = true;
+    public static final boolean climber = true;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = true;
@@ -713,7 +713,7 @@ public final class Constants {
       public static final int MOTOR_ID = 50; // TODO set
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
       /** Low duty for circulation / keeping balls flowing. */
-      public static final double BASE_DUTY = 0.25;
+      public static final double BASE_DUTY = 1;
       /** Higher duty for supplying transfer while shooting. */
       public static final double SUPPLY_DUTY = 0.45;
 
@@ -755,7 +755,7 @@ public final class Constants {
       // can test/measure
       // ideal transfer speeds with real balls.
       /** Staging target speed in rotor RPS (closed-loop). */
-      public static final double STAGE_RPS = 20.0; // TODO: placeholder, tune on robot
+      public static final double STAGE_RPS = -2000.0; // TODO: placeholder, tune on robot
       /** Feeding target speed in rotor RPS (closed-loop). */
       public static final double FEED_RPS = 60.0; // TODO: placeholder, tune on robot
 
@@ -785,7 +785,7 @@ public final class Constants {
        * If you later prefer a very slow "creep hold", change this to a small nonzero
        * value.
        */
-      public static final double THROAT_BLOCKED_STAGE_RPS = 0.0; // TODO: placeholder (0 = stop)
+      public static final double THROAT_BLOCKED_STAGE_RPS = -2000; // TODO: placeholder (0 = stop)
 
       // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
       // TODO: All gains are placeholders and MUST be tuned on the real robot.
