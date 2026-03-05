@@ -54,7 +54,7 @@ public class HoodSubsystem extends SubsystemBase {
 
   private TalonFX hoodMotor;
 
-  private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0);
+  private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0).withEnableFOC(false);
   private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
 
   private StatusSignal<Angle> positionSig;

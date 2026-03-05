@@ -84,9 +84,9 @@ public class TurretSubsystem extends SubsystemBase {
   // Open-loop duty request (used for manual and SysId drive).
   private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
 
-  private final MotionMagicVoltage mmRequest = new MotionMagicVoltage(0).withSlot(0);
+  private final MotionMagicVoltage mmRequest = new MotionMagicVoltage(0).withSlot(0).withEnableFOC(false);
 																							  
-  private final VoltageOut voltageRequest = new VoltageOut(0);
+  private final VoltageOut voltageRequest = new VoltageOut(0).withEnableFOC(false);
 
   // Track what we last commanded so simulation can use true volts (not normalized output).
 

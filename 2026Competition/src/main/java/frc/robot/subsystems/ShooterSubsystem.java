@@ -48,7 +48,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private VelocityVoltage velocityRequest;
   private DutyCycleOut dutyRequest;
-  private final VoltageOut voltageRequest = new VoltageOut(0.0); // SysId should be true voltage
+  private final VoltageOut voltageRequest = new VoltageOut(0.0).withEnableFOC(false); // SysId should be true voltage
 
 
   private double targetRpm = 0.0;
@@ -114,7 +114,7 @@ public class ShooterSubsystem extends SubsystemBase {
     positionSig = shooterLeader.getPosition(); // SysId: log real position
     configureStatusSignals();
     dutyRequest = new DutyCycleOut(0);
-    velocityRequest = new VelocityVoltage(0).withSlot(0);
+    velocityRequest = new VelocityVoltage(0).withSlot(0).withEnableFOC(false);
 
   }
 

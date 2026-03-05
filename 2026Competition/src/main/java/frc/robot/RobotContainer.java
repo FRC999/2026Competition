@@ -216,21 +216,20 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      configureShooterCalibrationBindings(); 
-      configureHoodCalibrationBindings();
-      configureIntakeCalibrationBindings();
+      //configureShooterCalibrationBindings(); 
+      //configureHoodCalibrationBindings();
+      //configureIntakeCalibrationBindings();
       configureTurretCalibrationBindings();
-      configureTransferCalibrationBindings();  
-      configureSpindexerCalibrationBindings();
+      //configureTransferCalibrationBindings();  
+      //configureSpindexerCalibrationBindings();
     }
-    competitionXBOXButtonBindings();
+    //competitionXBOXButtonBindings();
     //betaTesting();
   }
 
   private void competitionXBOXButtonBindings() {
     new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
-        .onTrue(new DeployIntakeSequence())
-        .onFalse(new StopIntake());
+        .whileTrue(new DeployIntakeSequence());
 
     new JoystickButton(xboxDriveController, 5)
         .onTrue(new RetractIntakeSequence())
@@ -271,9 +270,6 @@ public class RobotContainer {
     new POVButton(xboxDriveController, 180)
         .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeStowedDeg));
 
-    new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
-        .onTrue(new StartIntake())
-        .onFalse(new StopIntake());
   }
 
   public static void resetQuestNav() {
