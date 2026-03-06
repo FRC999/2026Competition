@@ -69,11 +69,11 @@ public final class Constants {
     public static final boolean questnav = false;
     public static final boolean intake = false;
     public static final boolean shooter = false;
-    public static final boolean turret = true;
+    public static final boolean turret = false;
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
   }
@@ -86,10 +86,10 @@ public final class Constants {
     public static final boolean questnav = false;
     public static final boolean intake = false;
     public static final boolean shooter = false;
-    public static final boolean turret = true;
+    public static final boolean turret = false;
     public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
+    public static final boolean spindexer = false;
     public static final boolean transfer = true;
     public static final boolean climber = true;
     public static final boolean supervisor = false;
@@ -457,7 +457,7 @@ public final class Constants {
       /** Placeholder gains (Position control). Tune after SysId. */
       public static final double kP = 53.0; //40.0
       public static final double kI = 0.0;
-      public static final double kD = 2.1; //2.0
+      public static final double kD = 2.4; //2.0
       public static final double kS = 0.0;
       public static final double kV = 0.0;
       public static final double kA = 0.0;
@@ -538,11 +538,20 @@ public final class Constants {
       public static final double HOOD_MIN_ANGLE_DEG = 0.0; // TODO: PLACEHOLDER confirm 0 is correct
       public static final double HOOD_MAX_ANGLE_DEG = 62.0; // TODO: PLACEHOLDER measure real max angle
       public static final double HOOD_MAX_MOTOR_ROT = 22.0; // TODO: PLACEHOLDER measure real motor rotations at max
+
+      // Motion Magic profile (sensor units: motor rotations, rotations/sec, rotations/sec^2, rotations/sec^3)
+      // Start conservative; raise cruise/accel if too slow.
+      public static final double MM_CRUISE_VEL_RPS = 48.0;   // motor rotations per second
+      public static final double MM_ACCEL_RPS2     = 64.0;   // motor rotations per second^2
+      public static final double MM_JERK_RPS3      = 0.0;   // 0 disables jerk limiting (fine to start)
                                                             // angle
 
+      // Motor rotations tolerance for considering the hood "at target"
+      public static final double AT_TARGET_TOL_ROT = 0.02;
+
       // Conversion derived from measurements.
-      public static final double MOTOR_ROT_PER_DEG = HOOD_MAX_MOTOR_ROT / HOOD_MAX_ANGLE_DEG; // TODO: PLACEHOLDER until
-                                                                                              // both above are measured
+      public static final double MOTOR_ROT_PER_DEG = HOOD_MAX_MOTOR_ROT / HOOD_MAX_ANGLE_DEG; // 1:2.67 Ratio; 2.67 rot of motor = 1 of hood
+                                                                                              // 18 teeth on hood
       public static final double MOTOR_ROT_PER_RAD = MOTOR_ROT_PER_DEG * (180.0 / Math.PI); // TODO: PLACEHOLDER derived
                                                                                             // from above
 
@@ -570,16 +579,13 @@ public final class Constants {
       public static final double NEUTRAL_ANGLE_RAD = Math.toRadians(NEUTRAL_ANGLE_DEG);
 
       /** Placeholder gains (Position control). Tune after SysId. */
-      public static final double kP = 40.0;
+      public static final double kP = 53.0;
       public static final double kI = 0.0;
       public static final double kD = 2.0;
       public static final double kS = 0.0;
       public static final double kV = 0.0;
       public static final double kA = 0.0;
 
-      /** MotionMagic placeholders (rotations-based). */
-      public static final double MM_CRUISE_VEL_RPS = 1.0;
-      public static final double MM_ACCEL_RPS2 = 2.0;
 
       /** Simulation placeholders. */
       public static final double SIM_GEAR_RATIO = 1.0;

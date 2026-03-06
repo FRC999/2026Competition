@@ -219,8 +219,8 @@ public class RobotContainer {
       //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
       //configureIntakeCalibrationBindings();
-      configureTurretCalibrationBindings();
-      //configureTransferCalibrationBindings();  
+      //configureTurretCalibrationBindings();
+      configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
     }
     //competitionXBOXButtonBindings();
@@ -319,29 +319,29 @@ public class RobotContainer {
     final double FEED_STEP_RPS  = 5.0;
 
     // Stage (hold)
-    new JoystickButton(turretStick, BTN_STAGE_HOLD)
+    new JoystickButton(turretStick, 1)
         .whileTrue(new RunCommand(() -> transferSubsystem.runStageCal(stageRpsSet[0], blockedStageRps), transferSubsystem))
         .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
     // Feed (hold)
-    new JoystickButton(turretStick, BTN_FEED_HOLD)
+    new JoystickButton(turretStick, 2)
         .whileTrue(new RunCommand(() -> transferSubsystem.runFeedCal(feedRpsSet[0]), transferSubsystem))
         .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
     // Stop (press)
-    new JoystickButton(turretStick, BTN_STOP_PRESS)
+    new JoystickButton(turretStick, 3)
         .onTrue(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
     // Adjust stage setpoint
-    new JoystickButton(turretStick, BTN_STAGE_UP)
+    new JoystickButton(turretStick, 4)
         .onTrue(new InstantCommand(() -> stageRpsSet[0] += STAGE_STEP_RPS));
-    new JoystickButton(turretStick, BTN_STAGE_DOWN)
+    new JoystickButton(turretStick, 5)
         .onTrue(new InstantCommand(() -> stageRpsSet[0] = Math.max(0.0, stageRpsSet[0] - STAGE_STEP_RPS)));
 
     // Adjust feed setpoint
-    new JoystickButton(turretStick, BTN_FEED_UP)
+    new JoystickButton(turretStick, 6)
         .onTrue(new InstantCommand(() -> feedRpsSet[0] += FEED_STEP_RPS));
-    new JoystickButton(turretStick, BTN_FEED_DOWN)
+    new JoystickButton(turretStick, 7)
         .onTrue(new InstantCommand(() -> feedRpsSet[0] = Math.max(0.0, feedRpsSet[0] - FEED_STEP_RPS)));
   }
 
@@ -510,40 +510,41 @@ public class RobotContainer {
     final double JOG_DUTY = 0.10; // TODO: PLACEHOLDER start low and increase carefully if needed
 
     // Step test angles (for PID tuning)
-    final double STEP_LOW_DEG = 5.0; // TODO: PLACEHOLDER
-    final double STEP_HIGH_DEG = 40.0; // TODO: PLACEHOLDER
+    final double STEP_LOW_DEG = 5.0; 
+    final double STEP_HIGH_DEG = 15.0; 
+    final double STEP_VERY_LOW_DEG = 1.0;
 
     // Seed zero (press)
-    new JoystickButton(turretStick, BTN_SEED_ZERO)
+    new JoystickButton(turretStick, 7)
         .onTrue(new InstantCommand(() -> hoodSubsystem.seedZeroFromDownHardStop()));
-
+// 51, 14, 13, 12, 11, 41, 42, 43, 44
     // Jog UP (hold)
-    new JoystickButton(turretStick, BTN_JOG_UP)
+    new JoystickButton(turretStick, 6)
         .whileTrue(new RunCommand(() -> hoodSubsystem.setCalibrationDutyCycle(+JOG_DUTY), hoodSubsystem))
-        .onFalse(new InstantCommand(() -> hoodSubsystem.exitCalibrationOpenLoopHold()));
+        .onFalse(new InstantCommand(() -> hoodSubsystem.stop()));
 
     // Jog DOWN (hold)
-    new JoystickButton(turretStick, BTN_JOG_DOWN)
+    new JoystickButton(turretStick, 5)
         .whileTrue(new RunCommand(() -> hoodSubsystem.setCalibrationDutyCycle(-JOG_DUTY), hoodSubsystem))
-        .onFalse(new InstantCommand(() -> hoodSubsystem.exitCalibrationOpenLoopHold()));
+        .onFalse(new InstantCommand(() -> hoodSubsystem.stop()));
 
     // Step test toggle (press): alternates between two angles
-    new JoystickButton(turretStick, BTN_STEP_TOGGLE)
+    new JoystickButton(turretStick, 8)
         .onTrue(new InstantCommand(() -> {
           // Toggle by checking current target
           double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
-          double nextDeg = (currentDeg < (STEP_LOW_DEG + STEP_HIGH_DEG) * 0.5) ? STEP_HIGH_DEG : STEP_LOW_DEG;
+          double nextDeg = STEP_LOW_DEG;
           hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
         }));
 
     // SysId routines (hold)
-    new JoystickButton(turretStick, BTN_SYSID_QS_FWD)
+    new JoystickButton(turretStick, 9)
         .whileTrue(hoodSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-    new JoystickButton(turretStick, BTN_SYSID_QS_REV)
+    new JoystickButton(turretStick, 10)
         .whileTrue(hoodSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-    new JoystickButton(turretStick, BTN_SYSID_DYN_FWD)
+    new JoystickButton(turretStick, 11)
         .whileTrue(hoodSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
-    new JoystickButton(turretStick, BTN_SYSID_DYN_REV)
+    new JoystickButton(turretStick, 12)
         .whileTrue(hoodSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
   }
 
@@ -827,7 +828,7 @@ public class RobotContainer {
     new JoystickButton(turretStick, 6)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
-                Constants.OperatorConstants.Turret.CAL_STEP_SMALL_DEG),
+                30),
             RobotContainer.turretSubsystem))
         .onFalse(new InstantCommand(
             () -> RobotContainer.turretSubsystem.stop()));

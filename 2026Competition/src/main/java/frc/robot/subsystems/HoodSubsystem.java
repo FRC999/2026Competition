@@ -13,12 +13,15 @@ import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.SoftwareLimitSwitchConfigs;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
 
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.controls.NeutralOut;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -54,8 +57,8 @@ public class HoodSubsystem extends SubsystemBase {
 
   private TalonFX hoodMotor;
 
-  private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0).withEnableFOC(false);
-  private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
+  private final MotionMagicVoltage mmRequest = new MotionMagicVoltage(0).withSlot(0);  private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
+  private final NeutralOut neutralOut = new NeutralOut();
 
   private StatusSignal<Angle> positionSig;
   private StatusSignal<AngularVelocity> velocitySig;
@@ -69,10 +72,12 @@ public class HoodSubsystem extends SubsystemBase {
   private enum ControlMode {
     POSITION_CLOSED_LOOP,
     OPEN_LOOP_CALIBRATION,
-    SYSID_CHARACTERIZATION
+    SYSID_CHARACTERIZATION,
+    IDLE
   }
 
-  private ControlMode controlMode = ControlMode.POSITION_CLOSED_LOOP;
+  private ControlMode controlMode = ControlMode.IDLE;
+  
 
 
   // ---------------- Simulation ----------------
@@ -123,12 +128,17 @@ public class HoodSubsystem extends SubsystemBase {
     targetAngleRad = 0.0;
   }
 
-  private void configureHardware() {
+  private void  configureHardware() {
+    MotionMagicConfigs mm = new MotionMagicConfigs()
+      .withMotionMagicCruiseVelocity(Constants.OperatorConstants.Hood.MM_CRUISE_VEL_RPS)
+      .withMotionMagicAcceleration(Constants.OperatorConstants.Hood.MM_ACCEL_RPS2)
+      .withMotionMagicJerk(Constants.OperatorConstants.Hood.MM_JERK_RPS3);
+
     MotorOutputConfigs out = new MotorOutputConfigs()
-        .withNeutralMode(NeutralModeValue.Brake)
-        .withInverted(Constants.OperatorConstants.Hood.MOTOR_INVERTED
-            ? InvertedValue.Clockwise_Positive
-            : InvertedValue.CounterClockwise_Positive);
+      .withNeutralMode(NeutralModeValue.Brake)
+      .withInverted(Constants.OperatorConstants.Hood.MOTOR_INVERTED
+        ? InvertedValue.Clockwise_Positive
+        : InvertedValue.CounterClockwise_Positive);
 
     CurrentLimitsConfigs limits = new CurrentLimitsConfigs();
     limits.SupplyCurrentLimitEnable = true;
@@ -160,6 +170,7 @@ public class HoodSubsystem extends SubsystemBase {
         .withCurrentLimits(limits)
         .withSlot0(slot0)
         .withClosedLoopGeneral(cl)
+        .withMotionMagic(mm)
         .withSoftwareLimitSwitch(softLimits);
 
     hoodMotor.getConfigurator().apply(cfg);
@@ -302,6 +313,10 @@ public class HoodSubsystem extends SubsystemBase {
         .angularVelocity(RotationsPerSecond.of(getVelocityRps()));
   }
 
+  private boolean atTarget() {
+  return Math.abs(targetRot - getPositionRot()) <= Constants.OperatorConstants.Hood.AT_TARGET_TOL_ROT;
+  }
+
   @Override
   public void periodic() {
     if (!EnabledSubsystems.hood) {
@@ -312,9 +327,22 @@ public class HoodSubsystem extends SubsystemBase {
     positionRot = positionSig.getValueAsDouble();
     velocityRps = velocitySig.getValueAsDouble();
 
-    if (controlMode == ControlMode.POSITION_CLOSED_LOOP) {
-      hoodMotor.setControl(positionRequest.withPosition(targetRot));
-    }
+  switch (controlMode) {
+
+  case POSITION_CLOSED_LOOP:
+    if (atTarget()) {
+      hoodMotor.setControl(neutralOut);
+      controlMode = ControlMode.IDLE;
+    } else {
+      hoodMotor.setControl(mmRequest.withPosition(targetRot));    }
+    break;
+
+  case IDLE:
+    hoodMotor.setControl(neutralOut);
+    break;
+}
+
+  
 
 
     if (DebugTelemetrySubsystems.hood || DebugTelemetrySubsystems.calibration) {
@@ -327,9 +355,11 @@ public class HoodSubsystem extends SubsystemBase {
       double angleDeg = Math.toDegrees(targetAngleRad); // NOTE: target angle, not measured
       SmartDashboard.putNumber("Hood/TargetDeg", angleDeg);
 
+
       // Approximate measured angle from motor rotations using placeholder mapping:
       double measuredDeg = positionRot / Constants.OperatorConstants.Hood.MOTOR_ROT_PER_DEG; // TODO: PLACEHOLDER
       SmartDashboard.putNumber("Hood/AngleDeg", measuredDeg);
+        SmartDashboard.putNumber("Hood/ErrorDeg", measuredDeg - angleDeg);
 
       SmartDashboard.putNumber("Hood/MotorVoltage", motorVoltageSig.getValueAsDouble());
       SmartDashboard.putString("Hood/ControlMode", controlMode.name());
