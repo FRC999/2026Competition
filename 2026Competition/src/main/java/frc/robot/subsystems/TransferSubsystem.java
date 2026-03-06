@@ -229,9 +229,9 @@ public class TransferSubsystem extends SubsystemBase {
     calStageRpsSet = stageRpsSet;
     calBlockedStageRpsSet = blockedStageRpsSet;
 
-    if (hasBallAtThroat()) {
-      runVelocityRps(blockedStageRpsSet);
-    } else {
+     if (hasBallAtThroat()) {
+       runVelocityRps(blockedStageRpsSet);
+     } else {
       runVelocityRps(stageRpsSet);
     }
   }
@@ -348,6 +348,8 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer || throatSensor == null) {
       return false;
     }
+    // System.out.println("TransferSubsystem: throat sensor is NOT null");
+
 
     boolean raw = throatSensor.get();
     return Constants.OperatorConstants.Transfer.THROAT_SENSOR_INVERTED

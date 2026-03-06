@@ -91,7 +91,7 @@ public final class Constants {
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
     public static final boolean transfer = true;
-    public static final boolean climber = true;
+    public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = true;
@@ -717,15 +717,25 @@ public final class Constants {
     public static final class Spindexer {
       public static final int MOTOR_ID = 50; // TODO set
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
-      /** Low duty for circulation / keeping balls flowing. */
-      public static final double BASE_DUTY = 1;
-      /** Higher duty for supplying transfer while shooting. */
-      public static final double SUPPLY_DUTY = 0.45;
+
+      /** Low velocity for circulation / keeping balls flowing. Units: rotor RPS. */
+      public static final double BASE_RPS = 10.0;
+      /** Higher velocity for supplying transfer while shooting. Units: rotor RPS. */
+      public static final double SUPPLY_RPS = 25.0;
 
       public static final double SUPPLY_CURRENT_LIMIT_A = 20; // TODO: <Enter spindexer supply current limit (A)>
       public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = 30; // TODO: <Enter spindexer supply lower limit (A)>
       public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // TODO: <Enter spindexer supply lower time (s)>
       public static final double STATOR_CURRENT_LIMIT_A = 20; // TODO: <Enter spindexer stator current limit (A)>
+
+      // ---------------- Velocity Voltage tuning ----------------
+      // Units are in rotor rotations/sec and Phoenix slot gains.
+      // These are conservative starting values and must be tuned on the real robot.
+      public static final double VEL_kS = 0.0;
+      public static final double VEL_kV = 0.25;
+      public static final double VEL_kP = 2.0;
+      public static final double VEL_kI = 0.0;
+      public static final double VEL_kD = 0.0;
 
       /** Simulation placeholders. */
       public static final double SIM_GEAR_RATIO = 1.0;
@@ -739,16 +749,16 @@ public final class Constants {
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       /** IR beam-break at transfer entry (just AFTER spindexer handoff). */
-      public static final int ENTRY_SENSOR_DIO = 0;
+      public static final int ENTRY_SENSOR_DIO = 2;
       /** Default assumes HIGH when blocked. */
       // TODO: Verify IR beam-break polarity (HIGH when blocked?)
-      public static final boolean ENTRY_SENSOR_INVERTED = false;
+      public static final boolean ENTRY_SENSOR_INVERTED = true; //will say true when blocked
 
       /** IR beam-break at shooter throat (exit of transfer). */
       public static final int THROAT_SENSOR_DIO = 1;
       /** Default assumes HIGH when blocked. */
       // TODO: Verify IR beam-break polarity (HIGH when blocked?)
-      public static final boolean THROAT_SENSOR_INVERTED = false;
+      public static final boolean THROAT_SENSOR_INVERTED = true;
 
       /** Slow speed to keep balls staged without slamming them into the shooter. */
       public static final double STAGE_DUTY = 0.20;
@@ -760,9 +770,9 @@ public final class Constants {
       // can test/measure
       // ideal transfer speeds with real balls.
       /** Staging target speed in rotor RPS (closed-loop). */
-      public static final double STAGE_RPS = -2000.0; // TODO: placeholder, tune on robot
+      public static final double STAGE_RPS = -20; 
       /** Feeding target speed in rotor RPS (closed-loop). */
-      public static final double FEED_RPS = 60.0; // TODO: placeholder, tune on robot
+      public static final double FEED_RPS = -40.0; 
 
       // ---------------- Metered firing (rate + speed) ----------------
       // Goal: eject ONE ball at a controlled speed, then wait a minimum interval
@@ -790,18 +800,18 @@ public final class Constants {
        * If you later prefer a very slow "creep hold", change this to a small nonzero
        * value.
        */
-      public static final double THROAT_BLOCKED_STAGE_RPS = -2000; // TODO: placeholder (0 = stop)
+      public static final double THROAT_BLOCKED_STAGE_RPS = -7; // TODO: placeholder (0 = stop)
 
       // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
       // TODO: All gains are placeholders and MUST be tuned on the real robot.
       // Units:
       // - kS, kV are in "duty" terms because we use VelocityDutyCycle.
       // - kP is duty per (RPS error).
-      public static final double VEL_kS = 0.02; // TODO: placeholder
-      public static final double VEL_kV = 0.01; // TODO: placeholder
-      public static final double VEL_kP = 0.05; // TODO: placeholder
-      public static final double VEL_kI = 0.0; // TODO: placeholder
-      public static final double VEL_kD = 0.0; // TODO: placeholder
+      public static final double VEL_kS = 0.05; 
+      public static final double VEL_kV = 0.0120;  
+      public static final double VEL_kP = 0.07;
+      public static final double VEL_kI = 0.0; 
+      public static final double VEL_kD = 0.0;
 
       // ---------------- Motor safety defaults ----------------
       // Reasonable defaults (you authorized defaults). Tune as needed after measuring

@@ -271,6 +271,53 @@ public class RobotContainer {
         .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeStowedDeg));
 
   }
+    private void configureSpindexerCalibrationBindings() {
+    // Spindexer calibration buttons (turretStick has only 12 buttons).
+    // IMPORTANT: Enable ONLY this calibration binding set when using it.
+
+    final int BTN_BASE_HOLD   = 1;
+    final int BTN_SUPPLY_HOLD = 2;
+    final int BTN_STOP_PRESS  = 3;
+
+    final int BTN_BASE_UP     = 4;
+    final int BTN_BASE_DOWN   = 5;
+    final int BTN_SUPPLY_UP   = 6;
+    final int BTN_SUPPLY_DOWN = 7;
+
+    // Live-tunable setpoints (no redeploy required)
+    final double[] baseDutySet   = new double[] { Constants.OperatorConstants.Spindexer.BASE_RPS };
+    final double[] supplyDutySet = new double[] { Constants.OperatorConstants.Spindexer.SUPPLY_RPS };
+
+    final double DUTY_STEP = 0.05;
+
+    java.util.function.DoubleUnaryOperator clamp = (v) -> Math.max(-1.0, Math.min(1.0, v));
+
+    // Base (hold)
+    new JoystickButton(turretStick, 1)
+        .whileTrue(new RunCommand(() -> spindexerSubsystem.runBaseCal(baseDutySet[0]), spindexerSubsystem))
+        .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
+
+    // Supply (hold)
+    new JoystickButton(turretStick, 2)
+        .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupplyCal(supplyDutySet[0]), spindexerSubsystem))
+        .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
+
+    // Stop (press)
+    new JoystickButton(turretStick, 3)
+        .onTrue(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
+
+    // Adjust base duty
+    new JoystickButton(turretStick, 4)
+        .onTrue(new InstantCommand(() -> baseDutySet[0] = clamp.applyAsDouble(baseDutySet[0] + DUTY_STEP)));
+    new JoystickButton(turretStick, 5)
+        .onTrue(new InstantCommand(() -> baseDutySet[0] = clamp.applyAsDouble(baseDutySet[0] - DUTY_STEP)));
+
+    // Adjust supply duty
+    new JoystickButton(turretStick, 6)
+        .onTrue(new InstantCommand(() -> supplyDutySet[0] = clamp.applyAsDouble(supplyDutySet[0] + DUTY_STEP)));
+    new JoystickButton(turretStick, 7)
+        .onTrue(new InstantCommand(() -> supplyDutySet[0] = clamp.applyAsDouble(supplyDutySet[0] - DUTY_STEP)));
+  }
 
   public static void resetQuestNav() {
     new JoystickButton(xboxDriveController, 1)
@@ -345,53 +392,7 @@ public class RobotContainer {
         .onTrue(new InstantCommand(() -> feedRpsSet[0] = Math.max(0.0, feedRpsSet[0] - FEED_STEP_RPS)));
   }
 
-    private void configureSpindexerCalibrationBindings() {
-    // Spindexer calibration buttons (turretStick has only 12 buttons).
-    // IMPORTANT: Enable ONLY this calibration binding set when using it.
 
-    final int BTN_BASE_HOLD   = 1;
-    final int BTN_SUPPLY_HOLD = 2;
-    final int BTN_STOP_PRESS  = 3;
-
-    final int BTN_BASE_UP     = 4;
-    final int BTN_BASE_DOWN   = 5;
-    final int BTN_SUPPLY_UP   = 6;
-    final int BTN_SUPPLY_DOWN = 7;
-
-    // Live-tunable setpoints (no redeploy required)
-    final double[] baseDutySet   = new double[] { Constants.OperatorConstants.Spindexer.BASE_DUTY };
-    final double[] supplyDutySet = new double[] { Constants.OperatorConstants.Spindexer.SUPPLY_DUTY };
-
-    final double DUTY_STEP = 0.05;
-
-    java.util.function.DoubleUnaryOperator clamp = (v) -> Math.max(-1.0, Math.min(1.0, v));
-
-    // Base (hold)
-    new JoystickButton(turretStick, BTN_BASE_HOLD)
-        .whileTrue(new RunCommand(() -> spindexerSubsystem.runBaseCal(baseDutySet[0]), spindexerSubsystem))
-        .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
-
-    // Supply (hold)
-    new JoystickButton(turretStick, BTN_SUPPLY_HOLD)
-        .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupplyCal(supplyDutySet[0]), spindexerSubsystem))
-        .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
-
-    // Stop (press)
-    new JoystickButton(turretStick, BTN_STOP_PRESS)
-        .onTrue(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
-
-    // Adjust base duty
-    new JoystickButton(turretStick, BTN_BASE_UP)
-        .onTrue(new InstantCommand(() -> baseDutySet[0] = clamp.applyAsDouble(baseDutySet[0] + DUTY_STEP)));
-    new JoystickButton(turretStick, BTN_BASE_DOWN)
-        .onTrue(new InstantCommand(() -> baseDutySet[0] = clamp.applyAsDouble(baseDutySet[0] - DUTY_STEP)));
-
-    // Adjust supply duty
-    new JoystickButton(turretStick, BTN_SUPPLY_UP)
-        .onTrue(new InstantCommand(() -> supplyDutySet[0] = clamp.applyAsDouble(supplyDutySet[0] + DUTY_STEP)));
-    new JoystickButton(turretStick, BTN_SUPPLY_DOWN)
-        .onTrue(new InstantCommand(() -> supplyDutySet[0] = clamp.applyAsDouble(supplyDutySet[0] - DUTY_STEP)));
-  }
 
   private void configureShooterCalibrationBindings() {
     // TODO: PLACEHOLDER - pick real button numbers (ok to reuse across subsystems

@@ -7,8 +7,10 @@ import static edu.wpi.first.units.Units.Volts;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
-import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.configs.Slot0Configs;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -29,6 +31,7 @@ import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 
 /**
@@ -45,13 +48,17 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   private TalonFX motor;
   private final DutyCycleOut duty = new DutyCycleOut(0.0);
+  private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0).withSlot(0);
+
+  private double targetRps = 0.0;
+  private boolean velocityClosedLoopEnabled = false;
 
   private double commandedDuty = 0.0;
 
-    // --- Calibration state (for calibration bindings + AdvantageScope visibility) ---
+  // --- Calibration state (for calibration bindings + AdvantageScope visibility) ---
   private String calMode = "OFF";
-  private double calBaseDutySet = 0.0;
-  private double calSupplyDutySet = 0.0;
+  private double calBaseRpsSet = 0.0;
+  private double calSupplyRpsSet = 0.0;
 
   // Status signals (for telemetry + SysId logs)
   private StatusSignal<Angle> positionSig;
@@ -99,17 +106,7 @@ public class SpindexerSubsystem extends SubsystemBase {
             Constants.OperatorConstants.Spindexer.MOTOR_ID,
             Constants.OperatorConstants.Spindexer.CANBUS_NAME);
             
-    // ---------------- Current limits (spindexer) ----------------
-    final var limits = new CurrentLimitsConfigs();
-    limits.SupplyCurrentLimitEnable = true;
-    limits.SupplyCurrentLimit = Constants.OperatorConstants.Spindexer.SUPPLY_CURRENT_LIMIT_A;
-    limits.SupplyCurrentLowerLimit = Constants.OperatorConstants.Spindexer.SUPPLY_CURRENT_LOWER_LIMIT_A;
-    limits.SupplyCurrentLowerTime = Constants.OperatorConstants.Spindexer.SUPPLY_CURRENT_LOWER_TIME_S;
-    limits.StatorCurrentLimitEnable = true;
-    limits.StatorCurrentLimit = Constants.OperatorConstants.Spindexer.STATOR_CURRENT_LIMIT_A;
-    final var cfg = new TalonFXConfiguration();
-    cfg.CurrentLimits = limits;
-    motor.getConfigurator().apply(cfg);
+    configureHardware();
     
 
     positionSig = motor.getPosition();
@@ -122,39 +119,70 @@ public class SpindexerSubsystem extends SubsystemBase {
     motor.optimizeBusUtilization();
   }
 
-  /** Run spindexer at a duty cycle in [-1, +1]. */
   public void runDuty(double dutyCycle) {
+    velocityClosedLoopEnabled = false;
     commandedDuty = dutyCycle;
     motor.setControl(duty.withOutput(dutyCycle));
   }
 
+  private void configureHardware() {
+    final var limits = new CurrentLimitsConfigs();
+    limits.SupplyCurrentLimitEnable = true;
+    limits.SupplyCurrentLimit = Constants.OperatorConstants.Spindexer.SUPPLY_CURRENT_LIMIT_A;
+    limits.SupplyCurrentLowerLimit = Constants.OperatorConstants.Spindexer.SUPPLY_CURRENT_LOWER_LIMIT_A;
+    limits.SupplyCurrentLowerTime = Constants.OperatorConstants.Spindexer.SUPPLY_CURRENT_LOWER_TIME_S;
+    limits.StatorCurrentLimitEnable = true;
+    limits.StatorCurrentLimit = Constants.OperatorConstants.Spindexer.STATOR_CURRENT_LIMIT_A;
+
+    final var slot0 = new Slot0Configs();
+    slot0.kS = Constants.OperatorConstants.Spindexer.VEL_kS;
+    slot0.kV = Constants.OperatorConstants.Spindexer.VEL_kV;
+    slot0.kP = Constants.OperatorConstants.Spindexer.VEL_kP;
+    slot0.kI = Constants.OperatorConstants.Spindexer.VEL_kI;
+    slot0.kD = Constants.OperatorConstants.Spindexer.VEL_kD;
+
+    final var cfg = new TalonFXConfiguration();
+    cfg.CurrentLimits = limits;
+    cfg.Slot0 = slot0;
+
+    motor.getConfigurator().apply(cfg);
+  }
+  /** Run spindexer in closed-loop velocity mode using rotor RPS. */
+  public void runVelocityRps(double velocityRps) {
+    velocityClosedLoopEnabled = true;
+    targetRps = velocityRps;
+    motor.setControl(velocityRequest.withVelocity(velocityRps));
+  }
+
   /** Stop spindexer motor. */
   public void stop() {
+    velocityClosedLoopEnabled = false;
+    targetRps = 0.0;
     runDuty(0.0);
   }
 
-  /** Convenience: run at the configured "base circulation" duty. */
+  /** Convenience: run at the configured "base circulation" velocity. */
   public void runBase() {
-    runDuty(Constants.OperatorConstants.Spindexer.BASE_DUTY);
+    runVelocityRps(Constants.OperatorConstants.Spindexer.BASE_RPS);
   }
 
-  /** Convenience: run at the configured "shooting supply" duty. */
+  /** Convenience: run at the configured "shooting supply" velocity. */
   public void runSupply() {
-    runDuty(Constants.OperatorConstants.Spindexer.SUPPLY_DUTY);
+    runVelocityRps(Constants.OperatorConstants.Spindexer.SUPPLY_RPS);
   }
 
-    /** Calibration-only: run base using a live-tunable duty cycle. */
-  public void runBaseCal(double baseDutySet) {
+  /** Calibration-only: run base using a live-tunable velocity setpoint. */
+  public void runBaseCal(double baseRpsSet) {
     calMode = "CAL_BASE";
-    calBaseDutySet = baseDutySet;
-    runDuty(baseDutySet);
+    calBaseRpsSet = baseRpsSet;
+    runVelocityRps(baseRpsSet);
   }
 
-  /** Calibration-only: run supply using a live-tunable duty cycle. */
-  public void runSupplyCal(double supplyDutySet) {
+  /** Calibration-only: run supply using a live-tunable velocity setpoint. */
+  public void runSupplyCal(double supplyRpsSet) {
     calMode = "CAL_SUPPLY";
-    calSupplyDutySet = supplyDutySet;
-    runDuty(supplyDutySet);
+    calSupplyRpsSet = supplyRpsSet;
+    runVelocityRps(supplyRpsSet);
   }
 
   /** Calibration-only: stop and mark mode. */
@@ -228,14 +256,19 @@ public class SpindexerSubsystem extends SubsystemBase {
     posRot = positionSig.getValueAsDouble();
     velRps = velocitySig.getValueAsDouble();
 
+    if (velocityClosedLoopEnabled) {
+      motor.setControl(velocityRequest.withVelocity(targetRps));
+    }
+
     if (DebugTelemetrySubsystems.spindexer) {
       SmartDashboard.putNumber("Spindexer/DutyCmd", commandedDuty);
       SmartDashboard.putNumber("Spindexer/PosRot", posRot);
       SmartDashboard.putNumber("Spindexer/VelRps", velRps);
-      // --- Calibration visibility (always present; used by calibration bindings) ---
       SmartDashboard.putString("Spindexer/Cal/Mode", calMode);
-      SmartDashboard.putNumber("Spindexer/Cal/BaseDutySet", calBaseDutySet);
-      SmartDashboard.putNumber("Spindexer/Cal/SupplyDutySet", calSupplyDutySet);
+      SmartDashboard.putNumber("Spindexer/Cal/BaseRpsSet", calBaseRpsSet);
+      SmartDashboard.putNumber("Spindexer/Cal/SupplyRpsSet", calSupplyRpsSet);
+      SmartDashboard.putBoolean("Spindexer/VelocityClosedLoopEnabled", velocityClosedLoopEnabled);
+      SmartDashboard.putNumber("Spindexer/TargetRps", targetRps);
     }
   }
 
