@@ -392,8 +392,8 @@ public final class Constants {
       public static final double BOOT_MAX_ABS_DEG = 180.0;
 
       /** Mechanical safe range relative to forward (degrees). */
-      public static final double MIN_ANGLE_DEG = -165.0; // CW hard stop
-      public static final double MAX_ANGLE_DEG = 155.0; // CCW hard stop
+      public static final double MIN_ANGLE_DEG = -100.0; // CW hard stop
+      public static final double MAX_ANGLE_DEG = 100.0; // CCW hard stop
 
       /**
        * "Soft" limit for auto-aiming (degrees from your turret ZERO). Your notes
@@ -427,7 +427,7 @@ public final class Constants {
        * left,
        * then this constant is +90.
        */
-      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 90.0;
+      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 180.0;
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
