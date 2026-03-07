@@ -68,11 +68,11 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean questnav = false;
     public static final boolean intake = false;
-    public static final boolean shooter = false;
+    public static final boolean shooter = true;
     public static final boolean turret = false;
     public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
+    public static final boolean spindexer = true;
     public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
@@ -85,11 +85,11 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean questnav = false;
     public static final boolean intake = false;
-    public static final boolean shooter = false;
+    public static final boolean shooter = true;
     public static final boolean turret = false;
     public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
+    public static final boolean spindexer = true;
     public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
@@ -711,36 +711,71 @@ public final class Constants {
       public static final double STATIC_HOLD_MAX_OMEGA_DEG_PER_S = 180.0;
     }
 
-    /** SysId gating + default parameters. */
+/** Spindexer motor + tuning. */
+public static final class Spindexer {
+  public static final int MOTOR_ID = 50; // TODO set
+  public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
-    /** Spindexer motor + tuning. */
-    public static final class Spindexer {
-      public static final int MOTOR_ID = 50; // TODO set
-      public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
+  /** Low velocity for circulation / keeping balls flowing. Units: rotor RPS. */
+  public static final double BASE_RPS = 3.0;
+  /** Higher velocity for supplying transfer while shooting. Units: rotor RPS. */
+  public static final double SUPPLY_RPS = 25.0;
 
-      /** Low velocity for circulation / keeping balls flowing. Units: rotor RPS. */
-      public static final double BASE_RPS = 10.0;
-      /** Higher velocity for supplying transfer while shooting. Units: rotor RPS. */
-      public static final double SUPPLY_RPS = 25.0;
+  /**
+   * Current limits:
+   * Stator limit must be ABOVE the jam threshold, or anti-jam will never see the spike.
+   */
+  public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
+  public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = 60.0;
+  public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2;
+  public static final double STATOR_CURRENT_LIMIT_A = 60.0;
 
-      public static final double SUPPLY_CURRENT_LIMIT_A = 20; // TODO: <Enter spindexer supply current limit (A)>
-      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = 30; // TODO: <Enter spindexer supply lower limit (A)>
-      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // TODO: <Enter spindexer supply lower time (s)>
-      public static final double STATOR_CURRENT_LIMIT_A = 20; // TODO: <Enter spindexer stator current limit (A)>
+  // ---------------- Velocity Voltage tuning ----------------
+  // Units are in rotor rotations/sec and Phoenix slot gains.
+  public static final double VEL_kS = 0.0;
+  public static final double VEL_kV = 0.12925;
+  public static final double VEL_kP = 0.51;
+  public static final double VEL_kI = 0.0;
+  public static final double VEL_kD = 0.0;
 
-      // ---------------- Velocity Voltage tuning ----------------
-      // Units are in rotor rotations/sec and Phoenix slot gains.
-      // These are conservative starting values and must be tuned on the real robot.
-      public static final double VEL_kS = 0.0;
-      public static final double VEL_kV = 0.25;
-      public static final double VEL_kP = 2.0;
-      public static final double VEL_kI = 0.0;
-      public static final double VEL_kD = 0.0;
+  // ---------------- Anti-jam state machine ----------------
+  public static final boolean ANTI_JAM_ENABLED = false;
 
-      /** Simulation placeholders. */
-      public static final double SIM_GEAR_RATIO = 1.0;
-      public static final double SIM_J_KGM2 = 0.02;
-    }
+  /** Jam trigger threshold. User approved 40-60 A range; start in the middle. */
+  public static final double JAM_CURRENT_THRESHOLD_A = 50.0;
+
+  /** Require jam condition to persist this long before reversing. */
+  public static final double JAM_CONFIRM_TIME_S = 0.10;
+
+  /**
+   * Only evaluate jam logic when target speed is meaningfully above zero.
+   * Prevents false triggers during tiny test speeds.
+   */
+  public static final double JAM_MIN_TARGET_RPS = 8.0;
+
+  /**
+   * Velocity-collapse detector:
+   * if actual speed falls below this fraction of target while current is high,
+   * we treat it as a real jam.
+   */
+  public static final double JAM_MIN_VELOCITY_RATIO = 0.50;
+
+  /** Brief reverse to release ball compression. */
+  public static final double UNJAM_REVERSE_DUTY = -0.30;
+  public static final double UNJAM_REVERSE_TIME_S = 0.20;
+
+  /** Optional gentle forward settle phase after reverse. */
+  public static final boolean ENABLE_UNJAM_SETTLE_FORWARD = true;
+  public static final double UNJAM_SETTLE_FORWARD_RPS = 6.0;
+  public static final double UNJAM_SETTLE_TIME_S = 0.20;
+
+  /** Minimum time between unjam events to prevent oscillation. */
+  public static final double UNJAM_COOLDOWN_S = 0.50;
+
+  /** Simulation placeholders. */
+  public static final double SIM_GEAR_RATIO = 1.0;
+  public static final double SIM_J_KGM2 = 0.02;
+}
 
     /** Transfer motor + sensors + tuning. */
     public static final class Transfer {
