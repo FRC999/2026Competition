@@ -3,7 +3,6 @@
 // the WPILib BSD license file in the root directory of this project.
 
 package frc.robot.subsystems;
-
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
@@ -11,11 +10,13 @@ import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.Follower;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.PositionDutyCycle;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.MathUtil;
@@ -28,16 +29,14 @@ import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
-import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
-
 
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
@@ -46,18 +45,22 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.MotionMagicDutyCycleConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.PositionDutyCycleConstants;
+import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.RollerVelocityVoltageConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 
 public class IntakeSubsystem extends SubsystemBase {
-    private TalonFX intakeRollerMotor;
+  private TalonFX intakeRollerMotor;
 
   private TalonFX intakePivotMotor;         // leader
   private TalonFX intakePivotFollowerMotor; // follower
 
   private final MotionMagicVoltage motionMagicVoltage = new MotionMagicVoltage(0).withEnableFOC(false);
-  private double intakePivotEncoderZero = 0;
+  private final VelocityVoltage rollerVelocityVoltage =
+      new VelocityVoltage(0).withEnableFOC(false).withSlot(RollerVelocityVoltageConstants.slot);
 
+  private double intakePivotEncoderZero = 0;
   private double targetPivotDeg = 0.0;
+  private double rollerTargetRps = 0.0;
   private boolean pivotZeroed = false;
 
   // Status signals (telemetry + SysId logs)
@@ -170,17 +173,24 @@ public class IntakeSubsystem extends SubsystemBase {
 
     TalonFXConfiguration pidRollerConfig = new TalonFXConfiguration().withMotorOutput(motorRollerConfig);
 
-         // ---------------- Current limits (roller) ----------------
+    // ---------------- Current limits (roller) ----------------
     final var rollerCurrentLimits = new CurrentLimitsConfigs();
     rollerCurrentLimits.SupplyCurrentLimitEnable = true;
     rollerCurrentLimits.SupplyCurrentLimit = IntakeConstants.ROLLER_SUPPLY_CURRENT_LIMIT_A;
     rollerCurrentLimits.SupplyCurrentLowerLimit = IntakeConstants.ROLLER_SUPPLY_CURRENT_LOWER_LIMIT_A;
     rollerCurrentLimits.SupplyCurrentLowerTime = IntakeConstants.ROLLER_SUPPLY_CURRENT_LOWER_TIME_S;
 
-     rollerCurrentLimits.StatorCurrentLimitEnable = true;
-     rollerCurrentLimits.StatorCurrentLimit = IntakeConstants.ROLLER_STATOR_CURRENT_LIMIT_A;
+    rollerCurrentLimits.StatorCurrentLimitEnable = true;
+    rollerCurrentLimits.StatorCurrentLimit = IntakeConstants.ROLLER_STATOR_CURRENT_LIMIT_A;
 
-     pidRollerConfig.CurrentLimits = rollerCurrentLimits;
+    pidRollerConfig.CurrentLimits = rollerCurrentLimits;
+
+    // ---------------- VelocityVoltage gains (roller) ----------------
+    pidRollerConfig.Slot0.kS = RollerVelocityVoltageConstants.intake_kS;
+    pidRollerConfig.Slot0.kV = RollerVelocityVoltageConstants.intake_kV;
+    pidRollerConfig.Slot0.kP = RollerVelocityVoltageConstants.intake_kP;
+    pidRollerConfig.Slot0.kI = RollerVelocityVoltageConstants.intake_kI;
+    pidRollerConfig.Slot0.kD = RollerVelocityVoltageConstants.intake_kD;
 
     StatusCode statusRoller = StatusCode.StatusCodeNotInitialized;
     for (int i = 0; i < 5; ++i) {
@@ -197,16 +207,14 @@ public class IntakeSubsystem extends SubsystemBase {
     intakePivotMotor.setSafetyEnabled(false);
     intakePivotFollowerMotor.getConfigurator().apply(new TalonFXConfiguration());
     intakePivotFollowerMotor.setSafetyEnabled(false);
-    
-    // Match neutral/inversion behavior by following leader.
-    // If the motors are mirrored mechanically, set opposeLeader true.
+
     final MotorAlignmentValue alignment =
-    IntakeConstants.intakePivotFollowerOpposeLeader
-        ? MotorAlignmentValue.Opposed
-        : MotorAlignmentValue.Aligned;
+        IntakeConstants.intakePivotFollowerOpposeLeader
+            ? MotorAlignmentValue.Opposed
+            : MotorAlignmentValue.Aligned;
 
     intakePivotFollowerMotor.setControl(new Follower(IntakeConstants.intakePivotMotorId, alignment));
-    
+
     var motorPivotConfig = new MotorOutputConfigs();
     motorPivotConfig.NeutralMode = NeutralModeValue.Coast;
     motorPivotConfig.Inverted =
@@ -218,37 +226,34 @@ public class IntakeSubsystem extends SubsystemBase {
 
     TalonFXConfiguration pidPivotConfig = new TalonFXConfiguration().withMotorOutput(motorPivotConfig);
 
-         // ---------------- Current limits (pivot leader + follower) ----------------
+    // ---------------- Current limits (pivot leader + follower) ----------------
     final var pivotCurrentLimits = new CurrentLimitsConfigs();
     pivotCurrentLimits.SupplyCurrentLimitEnable = true;
     pivotCurrentLimits.SupplyCurrentLimit = IntakeConstants.PIVOT_SUPPLY_CURRENT_LIMIT_A;
     pivotCurrentLimits.SupplyCurrentLowerLimit = IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A;
     pivotCurrentLimits.SupplyCurrentLowerTime = IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_TIME_S;
 
-     pivotCurrentLimits.StatorCurrentLimitEnable = true;
-     pivotCurrentLimits.StatorCurrentLimit = IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A;
+    pivotCurrentLimits.StatorCurrentLimitEnable = true;
+    pivotCurrentLimits.StatorCurrentLimit = IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A;
 
-     pidPivotConfig.CurrentLimits = pivotCurrentLimits;
+    pidPivotConfig.CurrentLimits = pivotCurrentLimits;
 
-          // Apply the SAME pivot current limits to the follower motor as well
-     final TalonFXConfiguration pivotFollowerConfig = new TalonFXConfiguration();
-     pivotFollowerConfig.CurrentLimits = pivotCurrentLimits;
+    final TalonFXConfiguration pivotFollowerConfig = new TalonFXConfiguration();
+    pivotFollowerConfig.CurrentLimits = pivotCurrentLimits;
 
-     StatusCode statusPivotFollower = StatusCode.StatusCodeNotInitialized;
-     for (int i = 0; i < 5; ++i) {
-       statusPivotFollower = intakePivotFollowerMotor.getConfigurator().apply(pivotFollowerConfig);
-       if (statusPivotFollower.isOK()) {
-         break;
-       }
-     }
-     if (!statusPivotFollower.isOK()) {
-       System.out.println("Could not apply follower current limits, error code: " + statusPivotFollower.toString());
-     }
+    StatusCode statusPivotFollower = StatusCode.StatusCodeNotInitialized;
+    for (int i = 0; i < 5; ++i) {
+      statusPivotFollower = intakePivotFollowerMotor.getConfigurator().apply(pivotFollowerConfig);
+      if (statusPivotFollower.isOK()) {
+        break;
+      }
+    }
+    if (!statusPivotFollower.isOK()) {
+      System.out.println("Could not apply follower current limits, error code: " + statusPivotFollower.toString());
+    }
 
-        // Soft limits: 0 rot == retracted hard stop; forward == max deploy
     final double fwdSoftLimitRot =
         IntakeConstants.PIVOT_MAX_DEG * IntakeConstants.PIVOT_MOTOR_TO_ARM_GEAR_RATIO / 360.0;
-    // TODO: PLACEHOLDER - confirm PIVOT_MAX_DEG before enabling on real hardware
 
     pidPivotConfig.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
     pidPivotConfig.SoftwareLimitSwitch.ForwardSoftLimitThreshold = fwdSoftLimitRot;
@@ -268,7 +273,6 @@ public class IntakeSubsystem extends SubsystemBase {
     if (!statusPivot.isOK()) {
       System.out.println("Could not apply configs, error code: " + statusPivot.toString());
     }
-
   }
 
   @SuppressWarnings("unused")
@@ -304,6 +308,14 @@ public class IntakeSubsystem extends SubsystemBase {
 
   private static double armDegFromMotorRot(double motorRot) {
     return motorRot * 360.0 / IntakeConstants.PIVOT_MOTOR_TO_ARM_GEAR_RATIO;
+  }
+    private static double motorRpsFromRollerRps(double rollerRps) {
+      System.out.println("Converting roller RPS " + rollerRps + " to motor RPS");
+    return rollerRps * IntakeConstants.ROLLER_MOTOR_TO_ROLLER_GEAR_RATIO;
+  }
+
+  private static double rollerRpsFromMotorRps(double motorRps) {
+    return motorRps / IntakeConstants.ROLLER_MOTOR_TO_ROLLER_GEAR_RATIO;
   }
 
   public double getPivotDeg() {
@@ -359,13 +371,26 @@ public void exitCalibrationOpenLoopHold() {
    *
    * @param speed duty-cycle output [-1, 1]
    */
-  public void runIntake(double speed) {
-    intakeRollerMotor.set(speed);
+  /**
+   * Run intake roller at the specified roller speed.
+   *
+   * @param rollerRps target roller speed in mechanism RPS
+   */
+  public void runIntake(double rollerRps) {
+    System.out.println("Running intake at " + rollerRps + " roller RPS");
+    rollerTargetRps = rollerRps;
+    intakeRollerMotor.setControl(
+        rollerVelocityVoltage.withVelocity(motorRpsFromRollerRps(rollerRps)));
   }
 
   /** Stop rotating the intake roller. */
   public void stopIntake() {
-    intakeRollerMotor.set(0);
+    rollerTargetRps = 0.0;
+    intakeRollerMotor.setControl(rollerVelocityVoltage.withVelocity(0.0));
+  }
+
+  public double getRollerTargetRps() {
+    return rollerTargetRps;
   }
 
   public double getIntakePivotEncoderZeroPosition() {
@@ -465,8 +490,11 @@ public void exitCalibrationOpenLoopHold() {
 
     BaseStatusSignal.refreshAll(rollerVelSig, rollerVoltageSig, pivotPosSig, pivotVelSig, pivotVoltageSig);
 
-    if (DebugTelemetrySubsystems.intake) {
-      SmartDashboard.putNumber("Intake/RollerVelRps", rollerVelSig.getValueAsDouble());
+       if (DebugTelemetrySubsystems.intake) {
+      SmartDashboard.putNumber(
+          "Intake/RollerVelRps",
+          rollerRpsFromMotorRps(rollerVelSig.getValueAsDouble()));
+      SmartDashboard.putNumber("Intake/RollerTargetRps", rollerTargetRps);
       SmartDashboard.putNumber("Intake/RollerMotorVoltage", rollerVoltageSig.getValueAsDouble());
 
       SmartDashboard.putNumber("Intake/PivotPosRot", pivotPosSig.getValueAsDouble());

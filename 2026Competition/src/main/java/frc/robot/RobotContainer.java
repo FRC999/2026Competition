@@ -218,10 +218,10 @@ public class RobotContainer {
     if (Constants.DebugTelemetrySubsystems.calibration) {
       //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
-      //configureIntakeCalibrationBindings();
+      configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
-      configureTransferCalibrationBindings();  
-      configureSpindexerCalibrationBindings();
+      //configureTransferCalibrationBindings();  
+      //configureSpindexerCalibrationBindings();
     }
     //competitionXBOXButtonBindings();
     //betaTesting();
@@ -370,13 +370,10 @@ public class RobotContainer {
     //     .whileTrue(new RunCommand(() -> transferSubsystem.runFeedCal(feedRpsSet[0]), transferSubsystem))
     //     .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
-    new JoystickButton(turretStick, 1)
+    new JoystickButton(turretStick, 3)
         .whileTrue(new RunCommand(() -> transferSubsystem.runFeedMetered(), transferSubsystem))
         .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
-    new JoystickButton(turretStick, 3)
-        .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem))
-        .onFalse(new InstantCommand(()-> shooterSubsystem.stop()));
 
     // Stop (press)
     // new JoystickButton(turretStick, 3)
@@ -414,88 +411,119 @@ public class RobotContainer {
     final int BTN_SHOOTER_SYSID_DYN_REV = 12;
 
     // TODO: PLACEHOLDER - choose two practical calibration RPMs
-    final double RPM_A = 3000.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
+    final double RPM_A = 2600.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
     final double RPM_B = 4500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM B
 
     // Set RPM A (press)
-    new JoystickButton(turretStick, BTN_SHOOTER_SET_RPM_A)
+    new JoystickButton(turretStick, 1)
         .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem))
         .onFalse(new InstantCommand(()-> shooterSubsystem.stop()));
 
+      // Live-tunable VELOCITY setpoints (RPS), not duty cycle
+  final double[] baseRpsSet = new double[] { Constants.OperatorConstants.Spindexer.BASE_RPS };
+  final double[] supplyRpsSet = new double[] { Constants.OperatorConstants.Spindexer.SUPPLY_RPS };
+
+  final double BASE_STEP_RPS = 2.0;
+  final double SUPPLY_STEP_RPS = 2.0;
+
+    // Button 2: hold supply mode
+
     // Set RPM B (press)
-    new JoystickButton(turretStick, BTN_SHOOTER_SET_RPM_B)
-        .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_B), shooterSubsystem));
+    // new JoystickButton(turretStick, 2)
+    //     .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_B), shooterSubsystem));
 
     // Stop shooter (press)
-    new JoystickButton(turretStick, BTN_SHOOTER_STOP)
+    new JoystickButton(turretStick, 3)
         .onTrue(new InstantCommand(() -> shooterSubsystem.stop(), shooterSubsystem));
 
     // Auto shoot until empty (hold)
-    new JoystickButton(turretStick, BTN_SHOOTER_AUTOSHOOT_UNTIL_EMPTY)
+    new JoystickButton(turretStick, 4)
         .whileTrue(new frc.robot.commands.AutoShootUntilEmpty());
 
-    // SysId routines (hold)
-    new JoystickButton(turretStick, BTN_SHOOTER_SYSID_QS_FWD)
-        .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-    new JoystickButton(turretStick, BTN_SHOOTER_SYSID_QS_REV)
-        .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-    new JoystickButton(turretStick, BTN_SHOOTER_SYSID_DYN_FWD)
-        .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
-    new JoystickButton(turretStick, BTN_SHOOTER_SYSID_DYN_REV)
-        .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+    // // SysId routines (hold)
+    // new JoystickButton(turretStick, 5)
+    //     .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+    // new JoystickButton(turretStick, 6)
+    //     .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+    // new JoystickButton(turretStick, 7)
+    //     .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
+    // new JoystickButton(turretStick, 8)
+    //     .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
   }
 
-  private void configureIntakeCalibrationBindings() {
-    // TODO: PLACEHOLDER - pick real button numbers that don’t conflict with hood
-    // calibration
-    final int BTN_INTAKE_SEED_ZERO = 1;
-    final int BTN_INTAKE_JOG_UP = 2;
-    final int BTN_INTAKE_JOG_DOWN = 3;
-    final int BTN_INTAKE_STEP_TOGGLE = 4;
+private void configureIntakeCalibrationBindings() {
+  final int BTN_INTAKE_SEED_ZERO = 1;
+  final int BTN_INTAKE_JOG_UP = 2;
+  final int BTN_INTAKE_JOG_DOWN = 3;
+  final int BTN_INTAKE_STEP_TOGGLE = 4;
 
-    final int BTN_INTAKE_SYSID_QS_FWD = 9;
-    final int BTN_INTAKE_SYSID_QS_REV = 10;
-    final int BTN_INTAKE_SYSID_DYN_FWD = 11;
-    final int BTN_INTAKE_SYSID_DYN_REV = 12;
+  final int BTN_ROLLER_FWD = 5;
+  final int BTN_ROLLER_REV = 6;
+  final int BTN_ROLLER_STEP_TOGGLE = 7;
+  final int BTN_ROLLER_STOP = 8;
 
-    final double JOG_DUTY = Constants.OperatorConstants.IntakeConstants.CAL_PIVOT_JOG_DUTY;
+  final int BTN_INTAKE_SYSID_QS_FWD = 9;
+  final int BTN_INTAKE_SYSID_QS_REV = 10;
+  final int BTN_INTAKE_SYSID_DYN_FWD = 11;
+  final int BTN_INTAKE_SYSID_DYN_REV = 12;
 
-    final double STEP_LOW_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_LOW_DEG;
-    final double STEP_HIGH_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_HIGH_DEG;
+  final double JOG_DUTY = Constants.OperatorConstants.IntakeConstants.CAL_PIVOT_JOG_DUTY;
 
-    // Seed zero (press)
-    new JoystickButton(turretStick, BTN_INTAKE_SEED_ZERO)
-        .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
+  final double STEP_LOW_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_LOW_DEG;
+  final double STEP_HIGH_DEG = Constants.OperatorConstants.IntakeConstants.CAL_STEP_HIGH_DEG;
 
-    // Jog UP (hold) - assume positive deploys (your instruction)
-    new JoystickButton(turretStick, BTN_INTAKE_JOG_UP)
-        .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
-        .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+  final double ROLLER_LOW_RPS = 20.0;
+  final double ROLLER_HIGH_RPS = Constants.OperatorConstants.IntakeConstants.ROLLER_INTAKE_RPS;
 
-    // Jog DOWN (hold)
-    new JoystickButton(turretStick, BTN_INTAKE_JOG_DOWN)
-        .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
-        .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+  new JoystickButton(turretStick, BTN_INTAKE_SEED_ZERO)
+      .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
 
-    // Step test toggle (press): alternate between two angles
-    new JoystickButton(turretStick, BTN_INTAKE_STEP_TOGGLE)
-        .onTrue(new InstantCommand(() -> {
-          double current = intakeSubsystem.getTargetPivotDeg();
-          double mid = (STEP_LOW_DEG + STEP_HIGH_DEG) * 0.5;
-          double next = (current < mid) ? STEP_HIGH_DEG : STEP_LOW_DEG;
-          intakeSubsystem.setTargetPivotDeg(next);
-        }));
+  new JoystickButton(turretStick, BTN_INTAKE_JOG_UP)
+      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
 
-    // SysId routines (hold)
-    new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_FWD)
-        .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kForward));
-    new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_REV)
-        .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kReverse));
-    new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_FWD)
-        .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kForward));
-    new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_REV)
-        .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kReverse));
-  }
+  new JoystickButton(turretStick, BTN_INTAKE_JOG_DOWN)
+      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+
+  new JoystickButton(turretStick, BTN_INTAKE_STEP_TOGGLE)
+      .onTrue(new InstantCommand(() -> {
+        double current = intakeSubsystem.getTargetPivotDeg();
+        intakeSubsystem.setTargetPivotDeg(STEP_LOW_DEG);
+      }));
+
+  new JoystickButton(turretStick, 5)
+      .whileTrue(new RunCommand(
+          () -> intakeSubsystem.runIntake(Constants.OperatorConstants.IntakeConstants.ROLLER_INTAKE_RPS),
+          intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.stopIntake(), intakeSubsystem));
+
+  new JoystickButton(turretStick, BTN_ROLLER_REV)
+      .whileTrue(new RunCommand(
+          () -> intakeSubsystem.runIntake(Constants.OperatorConstants.IntakeConstants.ROLLER_REVERSE_RPS),
+          intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.stopIntake(), intakeSubsystem));
+
+  new JoystickButton(turretStick, BTN_ROLLER_STEP_TOGGLE)
+      .onTrue(new InstantCommand(() -> {
+        double current = intakeSubsystem.getRollerTargetRps();
+        double mid = (ROLLER_LOW_RPS + ROLLER_HIGH_RPS) * 0.5;
+        double next = (current < mid) ? ROLLER_HIGH_RPS : ROLLER_LOW_RPS;
+        intakeSubsystem.runIntake(next);
+      }));
+
+  new JoystickButton(turretStick, BTN_ROLLER_STOP)
+      .onTrue(new InstantCommand(() -> intakeSubsystem.stopIntake(), intakeSubsystem));
+
+  new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_FWD)
+      .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kForward));
+  new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_REV)
+      .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kReverse));
+  new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_FWD)
+      .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kForward));
+  new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_REV)
+      .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kReverse));
+}
 
   private void configureHoodCalibrationBindings() {
     // Logitech Extreme 3D Pro suggested mapping (TODO: PLACEHOLDER change as

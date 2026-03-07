@@ -20,7 +20,7 @@ public class StartIntake extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    RobotContainer.intakeSubsystem.runIntake(IntakeConstants.defaultSpeed);
+    RobotContainer.intakeSubsystem.runIntake(IntakeConstants.ROLLER_INTAKE_RPS);
   }
 
   // Called every time the scheduler runs while the command is scheduled.

@@ -533,6 +533,7 @@ private final double forwardDeg =
     turret.setControl(mmRequest.withPosition(motorRotTarget));
 
     SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
+    System.out.println(targetDeg);
     SmartDashboard.putNumber("Turret/DeltaDegCmd", targetDeg - continuousDeg);
     SmartDashboard.putString("Turret/GoalStatus", "MM_WRAP_OFF_CLAMPED");
   }

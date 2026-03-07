@@ -67,13 +67,13 @@ public final class Constants {
     public static final boolean odometry = true;
     public static final boolean ll = false;
     public static final boolean questnav = false;
-    public static final boolean intake = false;
-    public static final boolean shooter = true;
+    public static final boolean intake = true;
+    public static final boolean shooter = false;
     public static final boolean turret = false;
     public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
   }
@@ -84,13 +84,13 @@ public final class Constants {
     public static final boolean chassis = false;
     public static final boolean ll = false;
     public static final boolean questnav = false;
-    public static final boolean intake = false;
-    public static final boolean shooter = true;
+    public static final boolean intake = true;
+    public static final boolean shooter = false;
     public static final boolean turret = false;
     public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
@@ -382,7 +382,7 @@ public final class Constants {
       /** Absolute encoder tick value that corresponds to turret pointing forward. */
       public static final int ABS_FORWARD_TICKS = 1282;
 
-      public static final int ABS_ZERO_TICKS = 1559;
+      public static final int ABS_ZERO_TICKS = 2462;
 
       /**
        * Boot assumption: at robot power-on, turret is within +/- 180 degrees of
@@ -451,13 +451,14 @@ public final class Constants {
       public static final double SIM_MAX_DUTY_CYCLE = 1.0;
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
-      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // <Set turret supply lower limit (A) for brief spikes>
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // <Set turret supply lower
+                                                                                        // limit (A) for brief spikes>
       public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // <Set turret supply lower time (s)>
 
       /** Placeholder gains (Position control). Tune after SysId. */
-      public static final double kP = 53.0; //40.0
+      public static final double kP = 38.0; // 40.0
       public static final double kI = 0.0;
-      public static final double kD = 2.4; //2.0
+      public static final double kD = 0.80; // 2.0
       public static final double kS = 0.0;
       public static final double kV = 0.0;
       public static final double kA = 0.0;
@@ -474,8 +475,8 @@ public final class Constants {
        * omega ~ 158–210 deg/s. Use cruise ~240 deg/s for headroom.
        */
       // TODO: Tune on real robot.
-      public static final double MM_CRUISE_DEG_PER_SEC = 240.0; //240
-      public static final double MM_ACCEL_DEG_PER_SEC2 = 1200.0; //1200
+      public static final double MM_CRUISE_DEG_PER_SEC = 240.0; // 240
+      public static final double MM_ACCEL_DEG_PER_SEC2 = 1200.0; // 1200
 
       /** Simulation placeholders. */
       public static final double SIM_GEAR_RATIO = 220.0 / 20.0; // pinion has 20 teeth, turret ring has 280
@@ -530,8 +531,9 @@ public final class Constants {
 
       public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
       public static final double STATOR_CURRENT_LIMIT_A = 40.0;
-      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; //<Set hood supply lower limit (A) for brief spikes>
-      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; //<Set hood supply lower time (s)>
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = SUPPLY_CURRENT_LIMIT_A; // <Set hood supply lower limit
+                                                                                        // (A) for brief spikes>
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2; // <Set hood supply lower time (s)>
 
       // --- Range + conversion (PLACEHOLDERS until measured on real robot) ---
       // Fully down = 0 degrees and 0 motor rotations.
@@ -539,25 +541,27 @@ public final class Constants {
       public static final double HOOD_MAX_ANGLE_DEG = 62.0; // TODO: PLACEHOLDER measure real max angle
       public static final double HOOD_MAX_MOTOR_ROT = 22.0; // TODO: PLACEHOLDER measure real motor rotations at max
 
-      // Motion Magic profile (sensor units: motor rotations, rotations/sec, rotations/sec^2, rotations/sec^3)
+      // Motion Magic profile (sensor units: motor rotations, rotations/sec,
+      // rotations/sec^2, rotations/sec^3)
       // Start conservative; raise cruise/accel if too slow.
-      public static final double MM_CRUISE_VEL_RPS = 48.0;   // motor rotations per second
-      public static final double MM_ACCEL_RPS2     = 64.0;   // motor rotations per second^2
-      public static final double MM_JERK_RPS3      = 0.0;   // 0 disables jerk limiting (fine to start)
-                                                            // angle
+      public static final double MM_CRUISE_VEL_RPS = 48.0; // motor rotations per second
+      public static final double MM_ACCEL_RPS2 = 64.0; // motor rotations per second^2
+      public static final double MM_JERK_RPS3 = 0.0; // 0 disables jerk limiting (fine to start)
+                                                     // angle
 
       // Motor rotations tolerance for considering the hood "at target"
       public static final double AT_TARGET_TOL_ROT = 0.02;
 
       // Conversion derived from measurements.
-      public static final double MOTOR_ROT_PER_DEG = HOOD_MAX_MOTOR_ROT / HOOD_MAX_ANGLE_DEG; // 1:2.67 Ratio; 2.67 rot of motor = 1 of hood
+      public static final double MOTOR_ROT_PER_DEG = HOOD_MAX_MOTOR_ROT / HOOD_MAX_ANGLE_DEG; // 1:2.67 Ratio; 2.67 rot
+                                                                                              // of motor = 1 of hood
                                                                                               // 18 teeth on hood
       public static final double MOTOR_ROT_PER_RAD = MOTOR_ROT_PER_DEG * (180.0 / Math.PI); // TODO: PLACEHOLDER derived
                                                                                             // from above
 
       // --- Software limit margin ---
       // Since you have NO hard-stop at the top, keep a conservative margin.
-      public static final double SOFT_LIMIT_MARGIN_FRACTION = 0.10; //PLACEHOLDER (10% margin)
+      public static final double SOFT_LIMIT_MARGIN_FRACTION = 0.10; // PLACEHOLDER (10% margin)
 
       // Motor-rotation soft limits (0 = down hard-stop, up is constrained by forward
       // soft limit)
@@ -585,7 +589,6 @@ public final class Constants {
       public static final double kS = 0.0;
       public static final double kV = 0.0;
       public static final double kA = 0.0;
-
 
       /** Simulation placeholders. */
       public static final double SIM_GEAR_RATIO = 1.0;
@@ -620,17 +623,16 @@ public final class Constants {
                                                                     // clamping to SUPPLY_CURRENT_LIMIT_A>
 
       /** Velocity control gains (placeholders). */
-      public static final double kP = 0.155; // 0.165
+      public static final double kP = 0.145; // 0.165
       public static final double kI = 0.0;
       public static final double kD = 0.0007; // 0.0008
       public static final double kS = 0.18; // 0.18
-      public static final double kV = 0.121; // Try this tomorrow: 0.123
-      public static final double kA = 0.004; // 0.001
+      public static final double kV = 0.121;
+      public static final double kA = 0.01; // 0.001
 
       /** Setpoint logic. */
       public static final double DEFAULT_RPM = 2000.0;
       public static final double RPM_STEP = 50.0;
-      public static final double READY_TOLERANCE_RPM = 75.0;
       public static final double READY_MIN_TIME_S = 0.20;
       public static final double DIP_DETECT_DROP_RPM = 250.0;
 
@@ -639,10 +641,9 @@ public final class Constants {
       public static final double SIM_GEAR_RATIO = 1.0;
       public static final double SIM_J_KGM2 = 0.02;
 
-      // ChatGPT constants for updated readiness logic
-      public static final int READY_WINDOW_SAMPLES = 10; // 200ms @ 20ms loop
-      public static final double READY_RPM_TOLERANCE = 40.0;
-      public static final double READY_STDDEV_MAX = 30.0;
+      public static final int READY_WINDOW_SAMPLES = 5; // 60ms @ 20ms loop
+      public static final double READY_RPM_TOLERANCE = 0.97; // 97% of target RPM
+      public static final double READY_STDDEV_MAX = 0.015;
 
     }
 
@@ -711,71 +712,72 @@ public final class Constants {
       public static final double STATIC_HOLD_MAX_OMEGA_DEG_PER_S = 180.0;
     }
 
-/** Spindexer motor + tuning. */
-public static final class Spindexer {
-  public static final int MOTOR_ID = 50; // TODO set
-  public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
+    /** Spindexer motor + tuning. */
+    public static final class Spindexer {
+      public static final int MOTOR_ID = 50; // TODO set
+      public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
-  /** Low velocity for circulation / keeping balls flowing. Units: rotor RPS. */
-  public static final double BASE_RPS = 3.0;
-  /** Higher velocity for supplying transfer while shooting. Units: rotor RPS. */
-  public static final double SUPPLY_RPS = 25.0;
+      /** Low velocity for circulation / keeping balls flowing. Units: rotor RPS. */
+      public static final double BASE_RPS = 3.0;
+      /** Higher velocity for supplying transfer while shooting. Units: rotor RPS. */
+      public static final double SUPPLY_RPS = 25.0;
 
-  /**
-   * Current limits:
-   * Stator limit must be ABOVE the jam threshold, or anti-jam will never see the spike.
-   */
-  public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
-  public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = 60.0;
-  public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2;
-  public static final double STATOR_CURRENT_LIMIT_A = 60.0;
+      /**
+       * Current limits:
+       * Stator limit must be ABOVE the jam threshold, or anti-jam will never see the
+       * spike.
+       */
+      public static final double SUPPLY_CURRENT_LIMIT_A = 40.0;
+      public static final double SUPPLY_CURRENT_LOWER_LIMIT_A = 60.0;
+      public static final double SUPPLY_CURRENT_LOWER_TIME_S = 0.2;
+      public static final double STATOR_CURRENT_LIMIT_A = 60.0;
 
-  // ---------------- Velocity Voltage tuning ----------------
-  // Units are in rotor rotations/sec and Phoenix slot gains.
-  public static final double VEL_kS = 0.0;
-  public static final double VEL_kV = 0.12925;
-  public static final double VEL_kP = 0.51;
-  public static final double VEL_kI = 0.0;
-  public static final double VEL_kD = 0.0;
+      // ---------------- Velocity Voltage tuning ----------------
+      // Units are in rotor rotations/sec and Phoenix slot gains.
+      public static final double VEL_kS = 0.0;
+      public static final double VEL_kV = 0.12925;
+      public static final double VEL_kP = 0.51;
+      public static final double VEL_kI = 0.0;
+      public static final double VEL_kD = 0.0;
 
-  // ---------------- Anti-jam state machine ----------------
-  public static final boolean ANTI_JAM_ENABLED = false;
+      // ---------------- Anti-jam state machine ----------------
+      public static final boolean ANTI_JAM_ENABLED = false;
 
-  /** Jam trigger threshold. User approved 40-60 A range; start in the middle. */
-  public static final double JAM_CURRENT_THRESHOLD_A = 50.0;
+      /** Jam trigger threshold. User approved 40-60 A range; start in the middle. */
+      public static final double JAM_CURRENT_THRESHOLD_A = 50.0;
 
-  /** Require jam condition to persist this long before reversing. */
-  public static final double JAM_CONFIRM_TIME_S = 0.10;
+      /** Require jam condition to persist this long before reversing. */
+      public static final double JAM_CONFIRM_TIME_S = 0.10;
 
-  /**
-   * Only evaluate jam logic when target speed is meaningfully above zero.
-   * Prevents false triggers during tiny test speeds.
-   */
-  public static final double JAM_MIN_TARGET_RPS = 8.0;
+      /**
+       * Only evaluate jam logic when target speed is meaningfully above zero.
+       * Prevents false triggers during tiny test speeds.
+       */
+      public static final double JAM_MIN_TARGET_RPS = 8.0;
 
-  /**
-   * Velocity-collapse detector:
-   * if actual speed falls below this fraction of target while current is high,
-   * we treat it as a real jam.
-   */
-  public static final double JAM_MIN_VELOCITY_RATIO = 0.50;
+      /**
+       * Velocity-collapse detector:
+       * if actual speed falls below this fraction of target while current is high,
+       * we treat it as a real jam.
+       */
+      public static final double JAM_MIN_VELOCITY_RATIO = 0.50;
 
-  /** Brief reverse to release ball compression. */
-  public static final double UNJAM_REVERSE_DUTY = -0.30;
-  public static final double UNJAM_REVERSE_TIME_S = 0.20;
+      /** Brief reverse to release ball compression. */
+      public static final double UNJAM_REVERSE_DUTY = -0.30;
+      public static final double UNJAM_REVERSE_TIME_S = 0.20;
 
-  /** Optional gentle forward settle phase after reverse. */
-  public static final boolean ENABLE_UNJAM_SETTLE_FORWARD = true;
-  public static final double UNJAM_SETTLE_FORWARD_RPS = 6.0;
-  public static final double UNJAM_SETTLE_TIME_S = 0.20;
+      /** Optional gentle forward settle phase after reverse. */
+      public static final boolean ENABLE_UNJAM_SETTLE_FORWARD = true;
+      public static final double UNJAM_SETTLE_FORWARD_RPS = 6.0;
+      public static final double UNJAM_SETTLE_TIME_S = 0.20;
 
-  /** Minimum time between unjam events to prevent oscillation. */
-  public static final double UNJAM_COOLDOWN_S = 0.50;
+      /** Minimum time between unjam events to prevent oscillation. */
+      public static final double UNJAM_COOLDOWN_S = 0.50;
 
-  /** Simulation placeholders. */
-  public static final double SIM_GEAR_RATIO = 1.0;
-  public static final double SIM_J_KGM2 = 0.02;
-}
+      /** Simulation placeholders. */
+      public static final double SIM_GEAR_RATIO = 1.0;
+      public static final double SIM_J_KGM2 = 0.02;
+    }
 
     /** Transfer motor + sensors + tuning. */
     public static final class Transfer {
@@ -787,7 +789,7 @@ public static final class Spindexer {
       public static final int ENTRY_SENSOR_DIO = 2;
       /** Default assumes HIGH when blocked. */
       // TODO: Verify IR beam-break polarity (HIGH when blocked?)
-      public static final boolean ENTRY_SENSOR_INVERTED = true; //will say true when blocked
+      public static final boolean ENTRY_SENSOR_INVERTED = true; // will say true when blocked
 
       /** IR beam-break at shooter throat (exit of transfer). */
       public static final int THROAT_SENSOR_DIO = 1;
@@ -805,9 +807,9 @@ public static final class Spindexer {
       // can test/measure
       // ideal transfer speeds with real balls.
       /** Staging target speed in rotor RPS (closed-loop). */
-      public static final double STAGE_RPS = -20; 
+      public static final double STAGE_RPS = -20;
       /** Feeding target speed in rotor RPS (closed-loop). */
-      public static final double FEED_RPS = -40.0; 
+      public static final double FEED_RPS = -80;
 
       // ---------------- Metered firing (rate + speed) ----------------
       // Goal: eject ONE ball at a controlled speed, then wait a minimum interval
@@ -842,10 +844,10 @@ public static final class Spindexer {
       // Units:
       // - kS, kV are in "duty" terms because we use VelocityDutyCycle.
       // - kP is duty per (RPS error).
-      public static final double VEL_kS = 0.05; 
-      public static final double VEL_kV = 0.0120;  
+      public static final double VEL_kS = 0.05;
+      public static final double VEL_kV = 0.0120;
       public static final double VEL_kP = 0.07;
-      public static final double VEL_kI = 0.0; 
+      public static final double VEL_kI = 0.0;
       public static final double VEL_kD = 0.0;
 
       // ---------------- Motor safety defaults ----------------
@@ -1004,11 +1006,20 @@ public static final class Spindexer {
       // this.
 
       public static final boolean intakePivotMotorInverted = false;
-      public static final double defaultSpeed = 1;
+
+      // Intake roller setpoints are in RPS at the ROLLER, not motor RPS.
+      public static final double ROLLER_INTAKE_RPS = 70.0;
+      public static final double ROLLER_REVERSE_RPS = -20.0;
+
+      // Gear ratios
+      // Pivot: given as 1 / 26.7 arm rotations per motor rotation,
+      // so motor-to-arm ratio is 26.7 motor rotations per arm rotation.
+      public static final double PIVOT_MOTOR_TO_ARM_GEAR_RATIO = 26.7;
+
+      // Roller: 2 motor rotations per 1 roller rotation.
+      public static final double ROLLER_MOTOR_TO_ROLLER_GEAR_RATIO = 2.0;
 
       // ---------------- Current limits (brownout protection) ----------------
-      // TODO: PLACEHOLDER - tune on real robot. Start conservative to prevent 6-7V
-      // sag.
 
       // Roller motor current limits
       public static final double ROLLER_SUPPLY_CURRENT_LIMIT_A = 25.0;
@@ -1023,23 +1034,19 @@ public static final class Spindexer {
       public static final double PIVOT_SUPPLY_TIME_THRESHOLD_S = 0.10;
       public static final double PIVOT_STATOR_CURRENT_LIMIT_A = 80.0;
 
-      public static final double PIVOT_MOTOR_TO_ARM_GEAR_RATIO = 5.0;
-      // TODO: PLACEHOLDER - confirm this is exactly 5:1 motor rotations per arm
-      // rotation
-
       public static final double PIVOT_MIN_DEG = 10.0; // retracted hard stop = 0 deg
       public static final double PIVOT_MAX_DEG = 142.0; // TODO: PLACEHOLDER - verify true max
 
       public static final double CAL_PIVOT_JOG_DUTY = 0.08;
       // TODO: PLACEHOLDER - start low, raise carefully if needed
 
-      public static final double CAL_STEP_LOW_DEG = 5.0;
+      public static final double CAL_STEP_LOW_DEG = 30.0;
       // TODO: PLACEHOLDER - safe small move off hard stop
       public static final double CAL_STEP_HIGH_DEG = 90.0;
       // TODO: PLACEHOLDER - pick a safe value that avoids hitting anything
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
-        IntakeStowedDeg(0.0),
+        IntakeStowedDeg(10.0),
         IntakeDeployedDeg(142.0);
         // TODO: PLACEHOLDER - tune deployed deg to your real safe max
 
@@ -1072,15 +1079,25 @@ public static final class Spindexer {
           public static final double motionMagicJerk = 1000.0; // 1500.0
         }
 
-        public static final double tolerance = 3.0; // TODO: PLACEHOLDER - your requirement
+        public static class RollerVelocityVoltageConstants {
+          public static final int slot = 0;
 
+          // These are MOTOR-side gains because the Talon is controlling motor velocity.
+          public static final double intake_kS = 0.25;
+          public static final double intake_kV = 0.12;
+          public static final double intake_kP = 0.51;
+          public static final double intake_kI = 0.0;
+          public static final double intake_kD = 0.0;
+        }
+
+        public static final double tolerance = 3.0; // TODO: PLACEHOLDER - your requirement
       }
 
       /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */
-      public static final double SIM_ROLLER_GEAR_RATIO = 1.0;
+      public static final double SIM_ROLLER_GEAR_RATIO = ROLLER_MOTOR_TO_ROLLER_GEAR_RATIO;
       public static final double SIM_ROLLER_J_KGM2 = 0.002;
 
-      public static final double SIM_PIVOT_GEAR_RATIO = 1.0;
+      public static final double SIM_PIVOT_GEAR_RATIO = PIVOT_MOTOR_TO_ARM_GEAR_RATIO;
       public static final double SIM_PIVOT_J_KGM2 = 0.01;
     }
 
