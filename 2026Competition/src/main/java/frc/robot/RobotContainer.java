@@ -221,7 +221,7 @@ public class RobotContainer {
       //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       configureTransferCalibrationBindings();  
-      //configureSpindexerCalibrationBindings();
+      configureSpindexerCalibrationBindings();
     }
     //competitionXBOXButtonBindings();
     //betaTesting();
@@ -271,53 +271,47 @@ public class RobotContainer {
         .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeStowedDeg));
 
   }
-    private void configureSpindexerCalibrationBindings() {
-    // Spindexer calibration buttons (turretStick has only 12 buttons).
-    // IMPORTANT: Enable ONLY this calibration binding set when using it.
+  private void configureSpindexerCalibrationBindings() {
+  // Spindexer calibration buttons (turretStick has only 12 buttons).
+  // IMPORTANT: Enable ONLY this calibration binding set when using it.
 
-    final int BTN_BASE_HOLD   = 1;
-    final int BTN_SUPPLY_HOLD = 2;
-    final int BTN_STOP_PRESS  = 3;
+  // Live-tunable VELOCITY setpoints (RPS), not duty cycle
+  final double[] baseRpsSet = new double[] { Constants.OperatorConstants.Spindexer.BASE_RPS };
+  final double[] supplyRpsSet = new double[] { Constants.OperatorConstants.Spindexer.SUPPLY_RPS };
 
-    final int BTN_BASE_UP     = 4;
-    final int BTN_BASE_DOWN   = 5;
-    final int BTN_SUPPLY_UP   = 6;
-    final int BTN_SUPPLY_DOWN = 7;
+  final double BASE_STEP_RPS = 2.0;
+  final double SUPPLY_STEP_RPS = 2.0;
 
-    // Live-tunable setpoints (no redeploy required)
-    final double[] baseDutySet   = new double[] { Constants.OperatorConstants.Spindexer.BASE_RPS };
-    final double[] supplyDutySet = new double[] { Constants.OperatorConstants.Spindexer.SUPPLY_RPS };
+  // Button 1: hold base mode
+//   new JoystickButton(turretStick, 1)
+//       .whileTrue(new RunCommand(() -> spindexerSubsystem.runBaseCal(baseRpsSet[0]), spindexerSubsystem))
+//       .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
 
-    final double DUTY_STEP = 0.05;
+  // Button 2: hold supply mode
+  new JoystickButton(turretStick, 2)
+      .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupplyCal(supplyRpsSet[0]), spindexerSubsystem))
+      .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
 
-    java.util.function.DoubleUnaryOperator clamp = (v) -> Math.max(-1.0, Math.min(1.0, v));
+  // Button 3: stop
+  new JoystickButton(turretStick, 3)
+      .onTrue(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
 
-    // Base (hold)
-    new JoystickButton(turretStick, 1)
-        .whileTrue(new RunCommand(() -> spindexerSubsystem.runBaseCal(baseDutySet[0]), spindexerSubsystem))
-        .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
+  // Button 4: base RPS up
+  new JoystickButton(turretStick, 4)
+      .onTrue(new InstantCommand(() -> baseRpsSet[0] += BASE_STEP_RPS));
 
-    // Supply (hold)
-    new JoystickButton(turretStick, 2)
-        .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupplyCal(supplyDutySet[0]), spindexerSubsystem))
-        .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
+  // Button 5: base RPS down
+  new JoystickButton(turretStick, 5)
+      .onTrue(new InstantCommand(() -> baseRpsSet[0] = Math.max(0.0, baseRpsSet[0] - BASE_STEP_RPS)));
 
-    // Stop (press)
-    new JoystickButton(turretStick, 3)
-        .onTrue(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
+  // Button 6: supply RPS up
+  new JoystickButton(turretStick, 6)
+      .onTrue(new InstantCommand(() -> supplyRpsSet[0] += SUPPLY_STEP_RPS));
 
-    // Adjust base duty
-    new JoystickButton(turretStick, 4)
-        .onTrue(new InstantCommand(() -> baseDutySet[0] = clamp.applyAsDouble(baseDutySet[0] + DUTY_STEP)));
-    new JoystickButton(turretStick, 5)
-        .onTrue(new InstantCommand(() -> baseDutySet[0] = clamp.applyAsDouble(baseDutySet[0] - DUTY_STEP)));
-
-    // Adjust supply duty
-    new JoystickButton(turretStick, 6)
-        .onTrue(new InstantCommand(() -> supplyDutySet[0] = clamp.applyAsDouble(supplyDutySet[0] + DUTY_STEP)));
-    new JoystickButton(turretStick, 7)
-        .onTrue(new InstantCommand(() -> supplyDutySet[0] = clamp.applyAsDouble(supplyDutySet[0] - DUTY_STEP)));
-  }
+  // Button 7: supply RPS down
+  new JoystickButton(turretStick, 7)
+      .onTrue(new InstantCommand(() -> supplyRpsSet[0] = Math.max(0.0, supplyRpsSet[0] - SUPPLY_STEP_RPS)));
+}
 
   public static void resetQuestNav() {
     new JoystickButton(xboxDriveController, 1)
@@ -364,20 +358,29 @@ public class RobotContainer {
     // Steps (junior-friendly)
     final double STAGE_STEP_RPS = 2.0;
     final double FEED_STEP_RPS  = 5.0;
+    final double RPM_A = 1500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
 
     // Stage (hold)
+    // new JoystickButton(turretStick, 1)
+    //     .whileTrue(new RunCommand(() -> transferSubsystem.runStageCal(stageRpsSet[0], blockedStageRps), transferSubsystem))
+    //     .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
+
+    // // Feed (hold)
+    // new JoystickButton(turretStick, 2)
+    //     .whileTrue(new RunCommand(() -> transferSubsystem.runFeedCal(feedRpsSet[0]), transferSubsystem))
+    //     .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
+
     new JoystickButton(turretStick, 1)
-        .whileTrue(new RunCommand(() -> transferSubsystem.runStageCal(stageRpsSet[0], blockedStageRps), transferSubsystem))
+        .whileTrue(new RunCommand(() -> transferSubsystem.runFeedMetered(), transferSubsystem))
         .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
-    // Feed (hold)
-    new JoystickButton(turretStick, 2)
-        .whileTrue(new RunCommand(() -> transferSubsystem.runFeedCal(feedRpsSet[0]), transferSubsystem))
-        .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
+    new JoystickButton(turretStick, 3)
+        .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem))
+        .onFalse(new InstantCommand(()-> shooterSubsystem.stop()));
 
     // Stop (press)
-    new JoystickButton(turretStick, 3)
-        .onTrue(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
+    // new JoystickButton(turretStick, 3)
+    //     .onTrue(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
     // Adjust stage setpoint
     new JoystickButton(turretStick, 4)
@@ -416,7 +419,8 @@ public class RobotContainer {
 
     // Set RPM A (press)
     new JoystickButton(turretStick, BTN_SHOOTER_SET_RPM_A)
-        .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem));
+        .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem))
+        .onFalse(new InstantCommand(()-> shooterSubsystem.stop()));
 
     // Set RPM B (press)
     new JoystickButton(turretStick, BTN_SHOOTER_SET_RPM_B)
