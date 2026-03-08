@@ -477,18 +477,18 @@ private void configureIntakeCalibrationBindings() {
   final double ROLLER_LOW_RPS = 20.0;
   final double ROLLER_HIGH_RPS = Constants.OperatorConstants.IntakeConstants.ROLLER_INTAKE_RPS;
 
-  new JoystickButton(turretStick, BTN_INTAKE_SEED_ZERO)
+  new JoystickButton(turretStick, 1)
       .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
 
-  new JoystickButton(turretStick, BTN_INTAKE_JOG_UP)
+  new JoystickButton(turretStick, 2)
       .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
       .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
 
-  new JoystickButton(turretStick, BTN_INTAKE_JOG_DOWN)
+  new JoystickButton(turretStick, 3)
       .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
       .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
 
-  new JoystickButton(turretStick, BTN_INTAKE_STEP_TOGGLE)
+  new JoystickButton(turretStick, 4)
       .onTrue(new InstantCommand(() -> {
         double current = intakeSubsystem.getTargetPivotDeg();
         intakeSubsystem.setTargetPivotDeg(STEP_LOW_DEG);
@@ -498,13 +498,13 @@ private void configureIntakeCalibrationBindings() {
       .whileTrue(new StartIntake())
       .onFalse(new StopIntake());
 
-  new JoystickButton(turretStick, BTN_ROLLER_REV)
+  new JoystickButton(turretStick, 6)
       .whileTrue(new RunCommand(
           () -> intakeSubsystem.runIntake(Constants.OperatorConstants.IntakeConstants.ROLLER_REVERSE_RPS),
           intakeSubsystem))
       .onFalse(new InstantCommand(() -> intakeSubsystem.stopIntake(), intakeSubsystem));
 
-  new JoystickButton(turretStick, BTN_ROLLER_STEP_TOGGLE)
+  new JoystickButton(turretStick, 7)
       .onTrue(new InstantCommand(() -> {
         double current = intakeSubsystem.getRollerTargetRps();
         double mid = (ROLLER_LOW_RPS + ROLLER_HIGH_RPS) * 0.5;
@@ -512,7 +512,7 @@ private void configureIntakeCalibrationBindings() {
         intakeSubsystem.runIntake(next);
       }));
 
-  new JoystickButton(turretStick, BTN_ROLLER_STOP)
+  new JoystickButton(turretStick, 8)
       .onTrue(new InstantCommand(() -> intakeSubsystem.stopIntake(), intakeSubsystem));
 
   new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_FWD)

@@ -1001,11 +1001,11 @@ public final class Constants {
       // TODO: PLACEHOLDER - set to the actual CAN ID of the 2nd pivot Kraken
       // (follower)
 
-      public static final boolean intakePivotFollowerOpposeLeader = false;
+      public static final boolean intakePivotFollowerOpposeLeader = true;
       // TODO: PLACEHOLDER - verify on hardware by jogging. If the motors fight, flip
       // this.
 
-      public static final boolean intakePivotMotorInverted = false;
+      public static final boolean intakePivotMotorInverted = true;
 
       // Intake roller setpoints are in RPS at the ROLLER, not motor RPS.
       public static final double ROLLER_INTAKE_RPS = 40.0;
@@ -1046,8 +1046,9 @@ public final class Constants {
       // TODO: PLACEHOLDER - pick a safe value that avoids hitting anything
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
-        IntakeStowedDeg(10.0),
-        IntakeDeployedDeg(142.0);
+        IntakeStowedDeg(37.0),
+        IntakeRetracted(51.0),
+        IntakeDeployedDeg(1.67);
         // TODO: PLACEHOLDER - tune deployed deg to your real safe max
 
         private double armDeg;
@@ -1071,7 +1072,7 @@ public final class Constants {
 
         public static class MotionMagicDutyCycleConstants {
           public static final int slot = 0;
-          public static final double intake_kP = 0.64; // 0.64
+          public static final double intake_kP = 10; // 0.64
           public static final double intake_kI = 0.0;
           public static final double intake_kD = 0.0;
           public static final double MotionMagicCruiseVelocity = 50.0; // 75.0
