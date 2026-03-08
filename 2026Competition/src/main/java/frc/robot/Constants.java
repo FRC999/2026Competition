@@ -76,6 +76,7 @@ public final class Constants {
     public static final boolean transfer = false;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
+    public static boolean calibration = true;
   }
 
   public static final class DebugTelemetrySubsystems {
@@ -796,6 +797,14 @@ public final class Constants {
       /** Default assumes HIGH when blocked. */
       // TODO: Verify IR beam-break polarity (HIGH when blocked?)
       public static final boolean THROAT_SENSOR_INVERTED = true;
+
+      /** Number of balls to fire in one burst before pausing for shooter recovery. */
+      public static final int BALLS_PER_BURST = 10;
+
+      /**
+       * Minimum time between throat-sensor count events to prevent double-counting.
+       */
+      public static final double THROAT_COUNT_DEBOUNCE_S = 0.03;
 
       /** Slow speed to keep balls staged without slamming them into the shooter. */
       public static final double STAGE_DUTY = 0.20;

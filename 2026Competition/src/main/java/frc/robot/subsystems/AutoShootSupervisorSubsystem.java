@@ -162,6 +162,14 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     return shotMode;
   }
 
+  public void setCalibrationActive(boolean active) {
+    Constants.EnabledSubsystems.calibration = active;
+  }
+
+  public boolean isCalibrationActive() {
+    return Constants.EnabledSubsystems.calibration;
+  }
+
   @Override
   public void periodic() {
 
@@ -170,6 +178,11 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     }
 
     final double now = Timer.getFPGATimestamp();
+    if (isCalibrationActive()) {
+      state = VolleyState.IDLE;
+      publishTelemetry();
+      return;
+    }
 
     // ------------------------------------------------------------------
     // Teleop-only trench safety interlock (DO NOT affect autos)

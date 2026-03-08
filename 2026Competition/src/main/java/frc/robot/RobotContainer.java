@@ -62,6 +62,7 @@ import frc.robot.commands.DriveManuallyCommand;
 import frc.robot.commands.IntakeToPositionAndHold;
 import frc.robot.commands.RetractIntakeSequence;
 import frc.robot.commands.ReverseIntake;
+import frc.robot.commands.ShootCalibrationBurstWhileHeld;
 import frc.robot.commands.ShootWhileHeld;
 import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
@@ -218,9 +219,9 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      //configureShooterCalibrationBindings(); 
+      configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
-      configureIntakeCalibrationBindings();
+      //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
@@ -438,9 +439,12 @@ public class RobotContainer {
     new JoystickButton(turretStick, 3)
         .onTrue(new InstantCommand(() -> shooterSubsystem.stop(), shooterSubsystem));
 
-    // Auto shoot until empty (hold)
     new JoystickButton(turretStick, 4)
-        .whileTrue(new frc.robot.commands.AutoShootUntilEmpty());
+    .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
+
+    // Auto shoot until empty (hold)
+    // new JoystickButton(turretStick, 4)
+    //     .whileTrue(new frc.robot.commands.AutoShootUntilEmpty());
 
     // // SysId routines (hold)
     // new JoystickButton(turretStick, 5)
