@@ -100,12 +100,14 @@ public class RobotContainer {
   public static boolean isReversingControllerAndIMUForRed = true;
   private static final Joystick turretStick = new Joystick(0);
 
+  public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
+
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
   public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
   public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
   public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
   public static ClimbSubsystem climbSubsystem = new ClimbSubsystem();
-  public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
+  //public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
   public static TurretSubsystem turretSubsystem = new TurretSubsystem();
   public static ShooterSubsystem shooterSubsystem = new ShooterSubsystem();
   public static TransferSubsystem transferSubsystem = new TransferSubsystem();
@@ -113,7 +115,7 @@ public class RobotContainer {
   public static HoodSubsystem hoodSubsystem = new HoodSubsystem();
   public static AutoShootSupervisorSubsystem autoShootSupervisorSubsystem = new AutoShootSupervisorSubsystem();
   public static SmartDashboardSubsystem smartDashboardSubsystem = new SmartDashboardSubsystem();
-  public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
+  public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
 
@@ -493,10 +495,8 @@ private void configureIntakeCalibrationBindings() {
       }));
 
   new JoystickButton(turretStick, 5)
-      .whileTrue(new RunCommand(
-          () -> intakeSubsystem.runIntake(Constants.OperatorConstants.IntakeConstants.ROLLER_INTAKE_RPS),
-          intakeSubsystem))
-      .onFalse(new InstantCommand(() -> intakeSubsystem.stopIntake(), intakeSubsystem));
+      .whileTrue(new StartIntake())
+      .onFalse(new StopIntake());
 
   new JoystickButton(turretStick, BTN_ROLLER_REV)
       .whileTrue(new RunCommand(

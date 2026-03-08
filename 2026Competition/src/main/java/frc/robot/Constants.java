@@ -64,7 +64,7 @@ public final class Constants {
   public static final class EnabledSubsystems {
 
     public static final boolean chasis = false;
-    public static final boolean odometry = true;
+    public static final boolean odometry = false;
     public static final boolean ll = false;
     public static final boolean questnav = false;
     public static final boolean intake = true;
@@ -994,7 +994,7 @@ public final class Constants {
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       public static final int intakeRollerMotorId = 55;
-      public static final boolean IntakeRollerInverted = false;
+      public static final boolean IntakeRollerInverted = true;
 
       public static final int intakePivotMotorId = 56;
       public static final int intakePivotFollowerMotorId = 57;
@@ -1008,7 +1008,7 @@ public final class Constants {
       public static final boolean intakePivotMotorInverted = false;
 
       // Intake roller setpoints are in RPS at the ROLLER, not motor RPS.
-      public static final double ROLLER_INTAKE_RPS = 70.0;
+      public static final double ROLLER_INTAKE_RPS = 40.0;
       public static final double ROLLER_REVERSE_RPS = -20.0;
 
       // Gear ratios
@@ -1085,7 +1085,7 @@ public final class Constants {
           // These are MOTOR-side gains because the Talon is controlling motor velocity.
           public static final double intake_kS = 0.25;
           public static final double intake_kV = 0.12;
-          public static final double intake_kP = 0.51;
+          public static final double intake_kP = 0.3;
           public static final double intake_kI = 0.0;
           public static final double intake_kD = 0.0;
         }

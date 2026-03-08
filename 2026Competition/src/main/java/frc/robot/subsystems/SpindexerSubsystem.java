@@ -174,6 +174,7 @@ public class SpindexerSubsystem extends SubsystemBase {
     final var cfg = new TalonFXConfiguration();
     cfg.CurrentLimits = limits;
     cfg.Slot0 = slot0;
+    cfg.withSlot0(slot0);
 
     motor.getConfigurator().apply(cfg);
   }
