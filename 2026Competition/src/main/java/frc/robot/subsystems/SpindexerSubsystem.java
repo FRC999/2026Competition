@@ -278,6 +278,15 @@ public class SpindexerSubsystem extends SubsystemBase {
     requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SUPPLY_RPS);
   }
 
+  public void runSlow() {
+    if (!EnabledSubsystems.spindexer) {
+      return;
+    }
+
+    calMode = "OFF";
+    requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SLOW_RPS);
+  }
+
   /** Calibration-only: run base using a live-tunable velocity setpoint. */
   public void runBaseCal(double baseRpsSet) {
     if (!EnabledSubsystems.spindexer) {

@@ -88,15 +88,17 @@ public class ShootCalibrationBurstWhileHeld extends Command {
           if (burstBallCount >= Constants.OperatorConstants.Transfer.BALLS_PER_BURST) {
             state = CycleState.RECOVERING;
             burstBallCount = 0;
-            RobotContainer.transferSubsystem.runVelocityRps(
-                Constants.OperatorConstants.Transfer.STAGE_RPS);
+            // RobotContainer.transferSubsystem.runVelocityRps(
+            //     Constants.OperatorConstants.Transfer.STAGE_RPS);
+            RobotContainer.spindexerSubsystem.runSlow();
           }
         }
         break;
 
       case RECOVERING:
-        RobotContainer.transferSubsystem.runVelocityRps(
-            Constants.OperatorConstants.Transfer.STAGE_RPS);
+        // RobotContainer.transferSubsystem.runVelocityRps(
+        //     Constants.OperatorConstants.Transfer.STAGE_RPS);
+            RobotContainer.spindexerSubsystem.runSlow();
 
         if (shooterReady) {
           state = CycleState.FEEDING;

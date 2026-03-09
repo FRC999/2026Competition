@@ -68,12 +68,12 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean questnav = false;
     public static final boolean intake = true;
-    public static final boolean shooter = false;
+    public static final boolean shooter = true;
     public static final boolean turret = false;
-    public static final boolean hood = false;
+    public static final boolean hood = true;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean spindexer = true;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     public static boolean calibration = true;
@@ -86,11 +86,11 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean questnav = false;
     public static final boolean intake = true;
-    public static final boolean shooter = false;
-    public static final boolean turret = false;
-    public static final boolean hood = false;
+    public static final boolean shooter = true;
+    public static final boolean turret = false; 
+    public static final boolean hood = true;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
+    public static final boolean spindexer = true;
     public static final boolean transfer = false;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
@@ -722,6 +722,7 @@ public final class Constants {
       public static final double BASE_RPS = 3.0;
       /** Higher velocity for supplying transfer while shooting. Units: rotor RPS. */
       public static final double SUPPLY_RPS = 25.0;
+      public static final double SLOW_RPS = 10.0;
 
       /**
        * Current limits:
@@ -818,7 +819,7 @@ public final class Constants {
       /** Staging target speed in rotor RPS (closed-loop). */
       public static final double STAGE_RPS = -20;
       /** Feeding target speed in rotor RPS (closed-loop). */
-      public static final double FEED_RPS = -80;
+      public static final double FEED_RPS = -90;
 
       // ---------------- Metered firing (rate + speed) ----------------
       // Goal: eject ONE ball at a controlled speed, then wait a minimum interval
@@ -1017,7 +1018,7 @@ public final class Constants {
       public static final boolean intakePivotMotorInverted = true;
 
       // Intake roller setpoints are in RPS at the ROLLER, not motor RPS.
-      public static final double ROLLER_INTAKE_RPS = 40.0;
+      public static final double ROLLER_INTAKE_RPS = 50.0;
       public static final double ROLLER_REVERSE_RPS = -20.0;
 
       // Gear ratios
@@ -1043,8 +1044,8 @@ public final class Constants {
       public static final double PIVOT_SUPPLY_TIME_THRESHOLD_S = 0.10;
       public static final double PIVOT_STATOR_CURRENT_LIMIT_A = 80.0;
 
-      public static final double PIVOT_MIN_DEG = 10.0; // retracted hard stop = 0 deg
-      public static final double PIVOT_MAX_DEG = 142.0; // TODO: PLACEHOLDER - verify true max
+      public static final double PIVOT_MIN_DEG = 0; // retracted hard stop = 0 deg
+      public static final double PIVOT_MAX_DEG = 53; // TODO: PLACEHOLDER - verify true max
 
       public static final double CAL_PIVOT_JOG_DUTY = 0.08;
       // TODO: PLACEHOLDER - start low, raise carefully if needed

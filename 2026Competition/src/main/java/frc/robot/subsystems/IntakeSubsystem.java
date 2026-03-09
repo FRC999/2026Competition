@@ -436,10 +436,11 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
    * @param rollerRps target roller speed in mechanism RPS
    */
 public void runIntake(double rollerRps) {
-  System.out.println("Running intake at " + rollerRps + " roller RPS");
+  //System.out.println("Running intake at " + rollerRps + " roller RPS");
 
   rollerDesiredMode = RollerDesiredMode.VELOCITY;
-  commandRollerVelocityInternal(rollerRps);
+  intakeRollerMotor.set(0.7);
+  // commandRollerVelocityInternal(rollerRps);
 }
 
   /** Stop rotating the intake roller. */
@@ -469,6 +470,7 @@ public void runIntake(double rollerRps) {
   }
 
   public boolean isAtPosition(IntakePositions position) {
+    System.out.println(Math.abs(position.getPosition() - getPivotDeg()) <= IntakePidConstants.tolerance);
     return Math.abs(position.getPosition() - getPivotDeg()) <= IntakePidConstants.tolerance;
   }
 
