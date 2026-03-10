@@ -219,9 +219,9 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      //configureShooterCalibrationBindings(); 
+      configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
-      configureIntakeCalibrationBindings();
+      //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
@@ -380,6 +380,9 @@ public class RobotContainer {
         .whileTrue(new RunCommand(() -> transferSubsystem.runFeedMetered(), transferSubsystem))
         .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
+    new JoystickButton(turretStick, 1)
+        .whileTrue(new InstantCommand(() -> transferSubsystem.runFeed()))
+        .onFalse(new InstantCommand(() -> transferSubsystem.stop()));
 
     // Stop (press)
     // new JoystickButton(turretStick, 3)
@@ -439,11 +442,23 @@ public class RobotContainer {
     //     .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_B), shooterSubsystem));
 
     // Stop shooter (press)
-    new JoystickButton(turretStick, 3)
-        .onTrue(new InstantCommand(() -> shooterSubsystem.stop(), shooterSubsystem));
+    // new JoystickButton(turretStick, 3)
+    //     .onTrue(new InstantCommand(() -> shooterSubsystem.stop(), shooterSubsystem));
 
     new JoystickButton(turretStick, 1)
-    .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
+        .whileTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem))
+        .onFalse(new InstantCommand(() -> shooterSubsystem.stop()));
+
+    new JoystickButton(turretStick, 2)
+        .whileTrue(new InstantCommand(() -> transferSubsystem.runFeed()))
+        .onFalse(new InstantCommand(() -> transferSubsystem.stop()));
+
+    new JoystickButton(turretStick, 3)
+        .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupply()))
+        .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal()));
+
+    // new JoystickButton(turretStick, 2)
+    // .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
 
     // Auto shoot until empty (hold)
     // new JoystickButton(turretStick, 4)

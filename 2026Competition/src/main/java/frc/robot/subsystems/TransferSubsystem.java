@@ -273,7 +273,8 @@ public class TransferSubsystem extends SubsystemBase {
       return;
     }
 
-    runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
+    motor.set(-0.90);
+    //runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
   }
 
   /**
@@ -466,6 +467,8 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer) {
       return;
     }
+        double rpm = getVelRps();
+
 
     BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
     posRot = positionSig.getValueAsDouble();
@@ -479,6 +482,8 @@ public class TransferSubsystem extends SubsystemBase {
     SmartDashboard.putNumber("Transfer/MotorVoltage", motorVoltageSig.getValueAsDouble());
     SmartDashboard.putBoolean("Transfer/BallAtEntry", hasBallAtEntry());
     SmartDashboard.putBoolean("Transfer/BallAtThroat", hasBallAtThroat());
+    SmartDashboard.putNumber("Transfer/RPS", rpm);
+
 
     // --- Calibration visibility (always present; used by calibration bindings) ---
     SmartDashboard.putString("Transfer/Cal/Mode", calMode);

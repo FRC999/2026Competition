@@ -134,7 +134,7 @@ public final class Constants {
     public static final boolean hood = true;
     public static final boolean hopper = false;
     public static final boolean spindexer = true;
-    public static final boolean transfer = false;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
@@ -667,12 +667,12 @@ public final class Constants {
                                                                     // clamping to SUPPLY_CURRENT_LIMIT_A>
 
       /** Velocity control gains (placeholders). */
-      public static final double kP = 0.145; // 0.165
+      public static final double kP = 0.2; // 0.165
       public static final double kI = 0.0;
-      public static final double kD = 0.0007; // 0.0008
+      public static final double kD = 0.001; // 0.0008
       public static final double kS = 0.18; // 0.18
       public static final double kV = 0.121;
-      public static final double kA = 0.01; // 0.001
+      public static final double kA = 0.015; // 0.001
 
       /** Setpoint logic. */
       public static final double DEFAULT_RPM = 2000.0;
@@ -780,7 +780,7 @@ public final class Constants {
       /** Low velocity for circulation / keeping balls flowing. Units: rotor RPS. */
       public static final double BASE_RPS = 3.0;
       /** Higher velocity for supplying transfer while shooting. Units: rotor RPS. */
-      public static final double SUPPLY_RPS = 25.0;
+      public static final double SUPPLY_RPS = 35.0;
       public static final double SLOW_RPS = 10.0;
 
       /**
@@ -914,8 +914,8 @@ public final class Constants {
       // - kS, kV are in "duty" terms because we use VelocityDutyCycle.
       // - kP is duty per (RPS error).
       public static final double VEL_kS = 0.05;
-      public static final double VEL_kV = 0.0120;
-      public static final double VEL_kP = 0.07;
+      public static final double VEL_kV = 0.012;
+      public static final double VEL_kP = 0.04;
       public static final double VEL_kI = 0.0;
       public static final double VEL_kD = 0.0;
 
