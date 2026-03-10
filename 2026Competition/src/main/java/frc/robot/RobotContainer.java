@@ -219,8 +219,8 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      configureShooterCalibrationBindings(); 
-      //configureHoodCalibrationBindings();
+      //configureShooterCalibrationBindings(); 
+      configureHoodCalibrationBindings();
       //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
@@ -595,7 +595,7 @@ private void configureIntakeCalibrationBindings() {
         .onTrue(new InstantCommand(() -> {
           // Toggle by checking current target
           double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
-          double nextDeg = STEP_LOW_DEG;
+          double nextDeg = STEP_VERY_LOW_DEG;
           hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
         }));
 
@@ -890,7 +890,7 @@ private void configureIntakeCalibrationBindings() {
     new JoystickButton(turretStick, 6)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
-                30),
+                18),
             RobotContainer.turretSubsystem))
         .onFalse(new InstantCommand(
             () -> RobotContainer.turretSubsystem.stop()));

@@ -110,13 +110,13 @@ public final class Constants {
     public static final boolean odometry = false;
     public static final boolean ll = false;
     public static final boolean questnav = false;
-    public static final boolean intake = true;
-    public static final boolean shooter = true;
+    public static final boolean intake = false;
+    public static final boolean shooter = false;
     public static final boolean turret = false;
     public static final boolean hood = true;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     public static boolean calibration = true;
@@ -128,13 +128,13 @@ public final class Constants {
     public static final boolean chassis = false;
     public static final boolean ll = false;
     public static final boolean questnav = false;
-    public static final boolean intake = true;
-    public static final boolean shooter = true;
+    public static final boolean intake = false;
+    public static final boolean shooter = false;
     public static final boolean turret = false; 
     public static final boolean hood = true;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
@@ -426,7 +426,7 @@ public final class Constants {
       /** Absolute encoder tick value that corresponds to turret pointing forward. */
      // public static final int ABS_FORWARD_TICKS = 1282;
 
-      public static final int ABS_ZERO_TICKS = 2462;
+      public static final int ABS_ZERO_TICKS = 2762;
 
       /**
        * Boot assumption: at robot power-on, turret is within +/- 180 degrees of
@@ -589,7 +589,7 @@ public final class Constants {
       // rotations/sec^2, rotations/sec^3)
       // Start conservative; raise cruise/accel if too slow.
       public static final double MM_CRUISE_VEL_RPS = 48.0; // motor rotations per second
-      public static final double MM_ACCEL_RPS2 = 64.0; // motor rotations per second^2
+      public static final double MM_ACCEL_RPS2 = 72.0; // motor rotations per second^2
       public static final double MM_JERK_RPS3 = 0.0; // 0 disables jerk limiting (fine to start)
                                                      // angle
 
@@ -627,7 +627,7 @@ public final class Constants {
       public static final double NEUTRAL_ANGLE_RAD = Math.toRadians(NEUTRAL_ANGLE_DEG);
 
       /** Placeholder gains (Position control). Tune after SysId. */
-      public static final double kP = 53.0;
+      public static final double kP = 55.0;
       public static final double kI = 0.0;
       public static final double kD = 2.0;
       public static final double kS = 0.0;
