@@ -54,11 +54,54 @@ public final class Constants {
    * You indicated you'll provide these experimentally (HUB_BLUE_X/Y,
    * HUB_RED_X/Y).
    */
-  public static final class FieldTargets {
+    public static final class FieldTargets {
     public static final double HUB_BLUE_X = 0.0; // TODO set
     public static final double HUB_BLUE_Y = 0.0; // TODO set
     public static final double HUB_RED_X = 0.0; // TODO set
     public static final double HUB_RED_Y = 0.0; // TODO set
+
+    public static final double NEUTRAL_LOW_BLUE_X = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_BLUE_Y = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_RED_X = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_RED_Y = 0.0; // TODO set
+
+    public static final double NEUTRAL_HIGH_BLUE_X = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_BLUE_Y = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_RED_X = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_RED_Y = 0.0; // TODO set
+
+    /**
+     * Zone selection is evaluated in BLUE-frame coordinates.
+     * For RED alliance, the robot X is mirrored using FIELD_LENGTH_METERS.
+     */
+    public static final double ALLIANCE_ZONE_MAX_X_BLUE_FRAME_METERS = 0.0; // TODO set
+    public static final double NEUTRAL_ZONE_Y_SPLIT_METERS = 0.0; // TODO set
+
+    public enum AimTarget {
+      HUB(HUB_BLUE_X, HUB_BLUE_Y, HUB_RED_X, HUB_RED_Y),
+      NEUTRAL_LOW(NEUTRAL_LOW_BLUE_X, NEUTRAL_LOW_BLUE_Y, NEUTRAL_LOW_RED_X, NEUTRAL_LOW_RED_Y),
+      NEUTRAL_HIGH(NEUTRAL_HIGH_BLUE_X, NEUTRAL_HIGH_BLUE_Y, NEUTRAL_HIGH_RED_X, NEUTRAL_HIGH_RED_Y);
+
+      private final double blueX;
+      private final double blueY;
+      private final double redX;
+      private final double redY;
+
+      AimTarget(double blueX, double blueY, double redX, double redY) {
+        this.blueX = blueX;
+        this.blueY = blueY;
+        this.redX = redX;
+        this.redY = redY;
+      }
+
+      public double getX(boolean isRed) {
+        return isRed ? redX : blueX;
+      }
+
+      public double getY(boolean isRed) {
+        return isRed ? redY : blueY;
+      }
+    }
   }
 
   public static final class EnabledSubsystems {
@@ -381,7 +424,7 @@ public final class Constants {
       /** Absolute PWM encoder reference (PulseWidth 0-4095 equivalent). */
       public static final int ABS_TICKS_PER_REV = 4096;
       /** Absolute encoder tick value that corresponds to turret pointing forward. */
-      public static final int ABS_FORWARD_TICKS = 1282;
+     // public static final int ABS_FORWARD_TICKS = 1282;
 
       public static final int ABS_ZERO_TICKS = 2462;
 
@@ -711,6 +754,22 @@ public final class Constants {
       public static final double STATIC_HOLD_HEADING_kI = 0.0;
       public static final double STATIC_HOLD_HEADING_kD = 0.0;
       public static final double STATIC_HOLD_MAX_OMEGA_DEG_PER_S = 180.0;
+
+      /** Shooter enters recovery if actual RPM <= targetRPM * this fraction. */
+  public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;
+
+  /**
+   * Hood compensation model:
+   * hoodCompDeg = (1 - rpmFraction) * HOOD_COMP_DEG_PER_UNIT_RPM_DROP,
+   * clamped to HOOD_COMP_MAX_DEG.
+   */
+  public static final double HOOD_COMP_DEG_PER_UNIT_RPM_DROP = 6.0; // TODO tune
+  public static final double HOOD_COMP_MAX_DEG = 4.0; // TODO tune
+
+  /** Rumble strengths for shoot-while-held invalid states. */
+  public static final double TURRET_ONLY_INVALID_LEFT_RUMBLE = 0.25;
+  public static final double GLOBAL_INVALID_RIGHT_RUMBLE = 0.80;
+  public static final double GLOBAL_INVALID_PULSE_PERIOD_S = 0.30;
     }
 
     /** Spindexer motor + tuning. */

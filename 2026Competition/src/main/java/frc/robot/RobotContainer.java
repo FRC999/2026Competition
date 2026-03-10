@@ -230,6 +230,9 @@ public class RobotContainer {
     //betaTesting();
   }
 
+  public static Controller getDriveController() {
+    return xboxDriveController;
+  }
   private void competitionXBOXButtonBindings() {
     new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
         .whileTrue(new DeployIntakeSequence());

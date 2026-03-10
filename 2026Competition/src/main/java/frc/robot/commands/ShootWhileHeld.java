@@ -6,6 +6,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.RobotContainer;
 import frc.robot.subsystems.AutoShootSupervisorSubsystem;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
+import edu.wpi.first.wpilibj.Timer;
 
 /**
  * Generic "shoot while held" command.
@@ -55,6 +57,25 @@ public class ShootWhileHeld extends Command {
     headingPid.enableContinuousInput(-180.0, 180.0);
   }
 
+    private void applyInvalidShotRumble() {
+    var validity = RobotContainer.autoShootSupervisorSubsystem.getSolutionValidity();
+
+    double left = 0.0;
+    double right = 0.0;
+
+    if (validity == AutoShootSupervisorSubsystem.SolutionValidity.TURRET_ONLY_INVALID) {
+      left = Constants.OperatorConstants.AutoShoot.TURRET_ONLY_INVALID_LEFT_RUMBLE;
+    } else if (validity == AutoShootSupervisorSubsystem.SolutionValidity.GLOBAL_INVALID) {
+      double phase = Timer.getFPGATimestamp()
+          / Constants.OperatorConstants.AutoShoot.GLOBAL_INVALID_PULSE_PERIOD_S;
+      boolean pulseOn = (((int) Math.floor(phase)) % 2) == 0;
+      right = pulseOn ? Constants.OperatorConstants.AutoShoot.GLOBAL_INVALID_RIGHT_RUMBLE : 0.0;
+    }
+
+    RobotContainer.getDriveController().setRumble(RumbleType.kLeftRumble, left);
+    RobotContainer.getDriveController().setRumble(RumbleType.kRightRumble, right);
+  }
+
   @Override
   public void initialize() {
     RobotContainer.autoShootSupervisorSubsystem.setShotMode(mode);
@@ -70,24 +91,24 @@ public class ShootWhileHeld extends Command {
 
   @Override
   public void execute() {
+    applyInvalidShotRumble();
+
     if (!holdDriveHeading) {
       return;
     }
 
-    // Hold translation at 0, and hold heading at the captured setpoint.
     final double currentDeg = RobotContainer.driveSubsystem.getYaw();
     double omegaDegPerSec = headingPid.calculate(currentDeg);
 
-    // Clamp to prevent violent spinning if error is large
     omegaDegPerSec = MathUtil.clamp(
         omegaDegPerSec,
         -Constants.OperatorConstants.AutoShoot.STATIC_HOLD_MAX_OMEGA_DEG_PER_S,
         +Constants.OperatorConstants.AutoShoot.STATIC_HOLD_MAX_OMEGA_DEG_PER_S);
 
     RobotContainer.driveSubsystem.drive(
-        0.0,                 // vx m/s
-        0.0,                 // vy m/s
-        Math.toRadians(omegaDegPerSec)); // omega rad/s
+        0.0,
+        0.0,
+        Math.toRadians(omegaDegPerSec));
   }
 
   @Override
@@ -101,6 +122,9 @@ public class ShootWhileHeld extends Command {
     if (holdDriveHeading) {
       RobotContainer.driveSubsystem.drive(0.0, 0.0, 0.0);
     }
+
+    RobotContainer.getDriveController().setRumble(RumbleType.kLeftRumble, 0.0);
+    RobotContainer.getDriveController().setRumble(RumbleType.kRightRumble, 0.0);
   }
 
   @Override

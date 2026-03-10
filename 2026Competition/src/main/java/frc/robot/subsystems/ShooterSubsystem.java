@@ -177,8 +177,18 @@ public class ShooterSubsystem extends SubsystemBase {
   // ---------------- Public API ----------------
 
   /** Target shooter speed (RPM). Uses hardware velocity control. */
+    /** Target shooter speed (RPM). Uses hardware velocity control. */
   public void setTargetRpm(double rpm) {
-    targetRpm = Math.max(0.0, rpm);
+    double newTargetRpm = Math.max(0.0, rpm);
+
+    // Do NOT reset readiness every 20 ms if the target did not materially change.
+    if (Math.abs(newTargetRpm - targetRpm) <= 1.0) {
+      double targetRps = newTargetRpm / 60.0;
+      shooterLeader.setControl(velocityRequest.withVelocity(targetRps));
+      return;
+    }
+
+    targetRpm = newTargetRpm;
     dipDetected = false;
     readySince = 0.0;
     wasReady = false;
