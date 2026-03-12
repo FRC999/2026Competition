@@ -220,7 +220,7 @@ public class RobotContainer {
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
       //configureShooterCalibrationBindings(); 
-      configureHoodCalibrationBindings();
+      //configureHoodCalibrationBindings();
       //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
@@ -228,6 +228,7 @@ public class RobotContainer {
     }
     //competitionXBOXButtonBindings();
     //betaTesting();
+    setYaws();
   }
 
   public static Controller getDriveController() {
@@ -420,7 +421,7 @@ public class RobotContainer {
     final int BTN_SHOOTER_SYSID_DYN_REV = 12;
 
     // TODO: PLACEHOLDER - choose two practical calibration RPMs
-    final double RPM_A = 2175.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
+    final double RPM_A = 1925.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
     final double RPM_B = 4500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM B
 
     // Set RPM A (press)
@@ -456,6 +457,33 @@ public class RobotContainer {
     new JoystickButton(turretStick, 3)
         .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupply()))
         .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal()));
+
+    new JoystickButton(turretStick, 6)
+        .onTrue(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
+                -44.667),
+            RobotContainer.turretSubsystem))
+        .onFalse(new InstantCommand(
+            () -> RobotContainer.turretSubsystem.stop()));
+      
+    new JoystickButton(turretStick, 7)
+        .onTrue(new InstantCommand(() -> turretSubsystem.zeroTurretAngle()));
+
+    new JoystickButton(turretStick, 8)
+        .onTrue(new InstantCommand(() -> {
+          // Toggle by checking current target
+          double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
+          double nextDeg = 2.5; //the degree you're going to
+          hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
+        }));
+
+    new JoystickButton(xboxDriveController, 1)
+          .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
+          .onFalse(new StopRobot());
+
+    new JoystickButton(xboxDriveController, 2)
+          .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
+          .onFalse(new StopRobot());
 
     // new JoystickButton(turretStick, 2)
     // .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
@@ -874,6 +902,8 @@ private void configureIntakeCalibrationBindings() {
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationReseedIntegratedFromAbsoluteNow(),
             RobotContainer.turretSubsystem));
+    
+    
 
     // 4: capture absolute ticks candidate (copy into ABS_FORWARD_TICKS manually)
     JoystickButton capture = new JoystickButton(turretStick, 4);

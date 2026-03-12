@@ -389,6 +389,10 @@ private final double forwardDeg =
     SmartDashboard.putNumber("Turret/SeedContinuousDeg", continuousDeg);	 
   }
 
+  public void zeroTurretAngle() {
+    continuousDeg = 0;
+  }
+
   /**
    * Update continuousDeg by unwrapping absolute position, clamping to +/-340.
 																	   
