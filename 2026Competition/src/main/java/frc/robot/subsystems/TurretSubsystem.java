@@ -283,8 +283,8 @@ private final double forwardDeg =
   TalonFXConfiguration cfg = new TalonFXConfiguration()
     .withMotorOutput(out)
     .withCurrentLimits(limits)
-    // .withSlot0(slot0)
-    // .withMotionMagic(mm)
+    .withSlot0(slot0)
+    .withMotionMagic(mm)
     .withClosedLoopGeneral(clWrapOff);
 
   turret.getConfigurator().apply(cfg);

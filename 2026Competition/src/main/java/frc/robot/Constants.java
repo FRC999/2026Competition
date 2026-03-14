@@ -61,15 +61,15 @@ public final class Constants {
     public static final double HUB_RED_X = 11.919;
     public static final double HUB_RED_Y = 4.029;
 
-    public static final double NEUTRAL_LOW_BLUE_X = 5.700;
-    public static final double NEUTRAL_LOW_BLUE_Y = 0.500;
-    public static final double NEUTRAL_LOW_RED_X = 10.830;
-    public static final double NEUTRAL_LOW_RED_Y = 0.500;
+    public static final double NEUTRAL_LOW_BLUE_X = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_BLUE_Y = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_RED_X = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_RED_Y = 0.0; // TODO set
 
-    public static final double NEUTRAL_HIGH_BLUE_X = 5.700;
-    public static final double NEUTRAL_HIGH_BLUE_Y = 7.580;
-    public static final double NEUTRAL_HIGH_RED_X = 10.830;
-    public static final double NEUTRAL_HIGH_RED_Y = 7.580;
+    public static final double NEUTRAL_HIGH_BLUE_X = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_BLUE_Y = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_RED_X = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_RED_Y = 0.0; // TODO set
 
     /**
      * Zone selection is evaluated in BLUE-frame coordinates.
@@ -129,7 +129,7 @@ public final class Constants {
     public static final boolean chassis = true;
     public static final boolean ll = false;
     public static final boolean questnav = true;
-    public static final boolean intake = false;
+    public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true; 
     public static final boolean hood = true;
@@ -1111,15 +1111,12 @@ public final class Constants {
       // TODO: PLACEHOLDER - start low, raise carefully if needed
 
       public static final double CAL_STEP_LOW_DEG = 30.0;
-      // TODO: PLACEHOLDER - safe small move off hard stop
       public static final double CAL_STEP_HIGH_DEG = 90.0;
-      // TODO: PLACEHOLDER - pick a safe value that avoids hitting anything
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         IntakeStowedDeg(37.0),
         IntakeRetracted(51.0),
         IntakeDeployedDeg(1.67);
-        // TODO: PLACEHOLDER - tune deployed deg to your real safe max
 
         private double armDeg;
 
