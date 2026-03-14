@@ -928,7 +928,7 @@ private void configureIntakeCalibrationBindings() {
     new JoystickButton(turretStick, 6)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
-                18),
+              50),
             RobotContainer.turretSubsystem))
         .onFalse(new InstantCommand(
             () -> RobotContainer.turretSubsystem.stop()));

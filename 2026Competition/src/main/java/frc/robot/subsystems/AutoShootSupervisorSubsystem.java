@@ -222,7 +222,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         // --- 1) Read drive state first; target selection depends on pose ---
     var driveState = RobotContainer.driveSubsystem.getState();
     var poseField = driveState.Pose;
-    System.out.println("Pose to autoshoot: " + poseField.toString());
+    //System.out.println("Pose to autoshoot: " + poseField.toString());
 
     currentAimTarget = selectAimTargetForPose(poseField);
     //currentAimTarget = Constants.FieldTargets.AimTarget.HUB;

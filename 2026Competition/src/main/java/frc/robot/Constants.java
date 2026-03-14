@@ -56,20 +56,20 @@ public final class Constants {
    * HUB_RED_X/Y).
    */
     public static final class FieldTargets {
-    public static final double HUB_BLUE_X = 4.621;
-    public static final double HUB_BLUE_Y = 4.029;
-    public static final double HUB_RED_X = 11.919;
-    public static final double HUB_RED_Y = 4.029;
+    public static final double HUB_BLUE_X = 4.611624;
+    public static final double HUB_BLUE_Y = 4.021328;
+    public static final double HUB_RED_X = 11.90142;
+    public static final double HUB_RED_Y = 4.021328;
 
-    public static final double NEUTRAL_LOW_BLUE_X = 5.700;
-    public static final double NEUTRAL_LOW_BLUE_Y = 0.500;
-    public static final double NEUTRAL_LOW_RED_X = 10.830;
-    public static final double NEUTRAL_LOW_RED_Y = 0.500;
+    public static final double NEUTRAL_LOW_BLUE_X = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_BLUE_Y = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_RED_X = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_RED_Y = 0.0; // TODO set
 
-    public static final double NEUTRAL_HIGH_BLUE_X = 5.700;
-    public static final double NEUTRAL_HIGH_BLUE_Y = 7.580;
-    public static final double NEUTRAL_HIGH_RED_X = 10.830;
-    public static final double NEUTRAL_HIGH_RED_Y = 7.580;
+    public static final double NEUTRAL_HIGH_BLUE_X = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_BLUE_Y = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_RED_X = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_RED_Y = 0.0; // TODO set
 
     /**
      * Zone selection is evaluated in BLUE-frame coordinates.
@@ -109,7 +109,7 @@ public final class Constants {
 
     public static final boolean chasis = true;
     public static final boolean odometry = true;
-    public static final boolean ll = false;
+    public static final boolean ll = true;
     public static final boolean questnav = true;
     public static final boolean intake = true;
     public static final boolean shooter = true;
@@ -124,12 +124,12 @@ public final class Constants {
   }
 
   public static final class DebugTelemetrySubsystems {
-    public static final boolean odometry = false;
-    public static final boolean imu = false;
+    public static final boolean odometry = true;
+    public static final boolean imu = true;
     public static final boolean chassis = true;
-    public static final boolean ll = false;
+    public static final boolean ll = true;
     public static final boolean questnav = true;
-    public static final boolean intake = false;
+    public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true; 
     public static final boolean hood = true;
@@ -472,7 +472,7 @@ public final class Constants {
        * left,
        * then this constant is +90.
        */
-      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 180.0; //180.0
+      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 0.0; //180.0
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
@@ -508,7 +508,7 @@ public final class Constants {
       public static final double kV = 0.0;
       public static final double kA = 0.0;
 
-      public static final double TURRET_POSITION_TOLERANCE_DEG = 0.5; // Tolerance in degrees for turret position
+      public static final double TURRET_POSITION_TOLERANCE_DEG = 1.0; // Tolerance in degrees for turret position
 
       /** MotionMagic placeholders (rotations-based). */
       public static final double MM_CRUISE_VEL_RPS = 1.0 / 60.0;
@@ -909,7 +909,7 @@ public final class Constants {
        * If you later prefer a very slow "creep hold", change this to a small nonzero
        * value.
        */
-      public static final double THROAT_BLOCKED_STAGE_RPS = 0; // TODO: placeholder (0 = stop)
+      public static final double THROAT_BLOCKED_STAGE_RPS = -15; // TODO: placeholder (0 = stop)
 
       // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
       // TODO: All gains are placeholders and MUST be tuned on the real robot.
@@ -1113,15 +1113,12 @@ public final class Constants {
       // TODO: PLACEHOLDER - start low, raise carefully if needed
 
       public static final double CAL_STEP_LOW_DEG = 30.0;
-      // TODO: PLACEHOLDER - safe small move off hard stop
       public static final double CAL_STEP_HIGH_DEG = 90.0;
-      // TODO: PLACEHOLDER - pick a safe value that avoids hitting anything
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         IntakeStowedDeg(37.0),
         IntakeRetracted(51.0),
         IntakeDeployedDeg(1.67);
-        // TODO: PLACEHOLDER - tune deployed deg to your real safe max
 
         private double armDeg;
 
