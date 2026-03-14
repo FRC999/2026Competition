@@ -357,7 +357,7 @@ private final double forwardDeg =
 
     // Compute shortest signed angle difference from the defined forward reference.
     // wrapToPlusMinus180 handles wrap-around at 0/360.
-    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
+    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus100(absDeg - forwardDeg);
 										 
     // Boot assumption: within +/-180 (or whatever BOOT_MAX_ABS_DEG is set to).
     deltaDeg = MathUtil.clamp(
@@ -629,7 +629,7 @@ private final double forwardDeg =
     double absDeg = getAbsDegWrapped();
     lastAbsDegWrapped = absDeg;
 
-    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
+    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus100(absDeg - forwardDeg);
     deltaDeg = MathUtil.clamp(
         deltaDeg,
         -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
@@ -688,7 +688,7 @@ private final double forwardDeg =
     double absDeg = getAbsDegWrapped();
     lastAbsDegWrapped = absDeg;
 
-    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
+    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus100(absDeg - forwardDeg);
     deltaDeg = MathUtil.clamp(
         deltaDeg,
         -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
@@ -916,13 +916,15 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     if (d < 0) d += 360.0;
     return d;
   }
-
-  /** wrap to (-180, 180] */
-  private static double wrapToPlusMinus180(double deg) {
-    // Wrap degrees into (-180,180] to compute shortest signed difference.
-    double d = ((deg + 180.0) % 360.0);
-    if (d < 0) d += 360.0;
-    return d - 180.0;
+ 
+  /** wrap to (-100, 100] */
+  private static double wrapToPlusMinus100(double deg) {
+    // Wrap degrees into (-100,100] to compute shortest signed difference.
+    double d = ((deg + 100.0) % 200.0);
+    if (d < 0) d += 200.0;
+    return d - 100.0;
   }
+
+  
 
 }

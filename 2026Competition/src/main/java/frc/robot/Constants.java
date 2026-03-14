@@ -27,6 +27,7 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement;
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
 import com.pathplanner.lib.path.PathConstraints;
 
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
@@ -433,10 +434,10 @@ public final class Constants {
        * forward.
        * Used to seed the software unwrapped angle.
        */
-      public static final double BOOT_MAX_ABS_DEG = 180.0;
+      public static final double BOOT_MAX_ABS_DEG = 100.0;
 
       /** Mechanical safe range relative to forward (degrees). */
-      public static final double MIN_ANGLE_DEG = -60.0; // CW hard stop -100
+      public static final double MIN_ANGLE_DEG = -100.0; // CW hard stop -100
       public static final double MAX_ANGLE_DEG = 100.0; // CCW hard stop 100
 
       /**
@@ -471,7 +472,7 @@ public final class Constants {
        * left,
        * then this constant is +90.
        */
-      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 0.0; //180.0
+      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 180.0; //180.0
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
@@ -1002,7 +1003,7 @@ public final class Constants {
       /**
        * Turret pivot position relative to robot origin, in the ROBOT frame (meters).
        */
-      public static final edu.wpi.first.math.geometry.Translation2d TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS = new edu.wpi.first.math.geometry.Translation2d(
+      public static final Translation2d TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS = new Translation2d(
           -0.1778, 0.0); // TODO set
 
       /** Ball release height above field when leaving shooter, meters. TODO set. */
