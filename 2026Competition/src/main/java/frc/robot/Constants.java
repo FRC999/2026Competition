@@ -60,15 +60,15 @@ public final class Constants {
     public static final double HUB_RED_X = 11.919;
     public static final double HUB_RED_Y = 4.029;
 
-    public static final double NEUTRAL_LOW_BLUE_X = 0.0; // TODO set
-    public static final double NEUTRAL_LOW_BLUE_Y = 0.0; // TODO set
-    public static final double NEUTRAL_LOW_RED_X = 0.0; // TODO set
-    public static final double NEUTRAL_LOW_RED_Y = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_BLUE_X = 5.700;
+    public static final double NEUTRAL_LOW_BLUE_Y = 0.500;
+    public static final double NEUTRAL_LOW_RED_X = 10.830;
+    public static final double NEUTRAL_LOW_RED_Y = 0.500;
 
-    public static final double NEUTRAL_HIGH_BLUE_X = 0.0; // TODO set
-    public static final double NEUTRAL_HIGH_BLUE_Y = 0.0; // TODO set
-    public static final double NEUTRAL_HIGH_RED_X = 0.0; // TODO set
-    public static final double NEUTRAL_HIGH_RED_Y = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_BLUE_X = 5.700;
+    public static final double NEUTRAL_HIGH_BLUE_Y = 7.580;
+    public static final double NEUTRAL_HIGH_RED_X = 10.830;
+    public static final double NEUTRAL_HIGH_RED_Y = 7.580;
 
     /**
      * Zone selection is evaluated in BLUE-frame coordinates.
