@@ -96,6 +96,13 @@ public class QuestNavSubsystem extends SubsystemBase {
     questNav.setPose(new Pose3d(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST)));
   }
 
+  public void customQuestPose(Pose2d pose) {
+
+    Pose2d newRobotPose = new Pose2d(pose.getX(), pose.getY(), pose.getRotation());
+
+    questNav.setPose(new Pose3d(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST)));
+  }
+
   /**
    * Gets the yaw of the QuestNav (Z axis rotation) (yaw is the direction that the
    * questnav is facing around an axis that shoots straight up)

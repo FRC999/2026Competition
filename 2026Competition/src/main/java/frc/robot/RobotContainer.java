@@ -226,9 +226,9 @@ public class RobotContainer {
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
     }
-    //competitionXBOXButtonBindings();
+    competitionXBOXButtonBindings();
     //betaTesting();
-    setYaws();
+    //setYaws();
   }
 
   public static Controller getDriveController() {
@@ -253,12 +253,19 @@ public class RobotContainer {
     new JoystickButton(xboxDriveController, 8)
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
             .andThen(new InstantCommand(() -> questNavSubsystem.zeroYaw())));
+    
+    new JoystickButton(xboxDriveController, 7)
+        .onTrue(new InstantCommand(() -> questNavSubsystem.customQuestPose(new Pose2d(2.33045, 2.22885, Rotation2d.kZero)))
+            .alongWith(new InstantCommand(() -> driveSubsystem.resetCTREPose(new Pose2d(2.33045, 2.22885, Rotation2d.kZero)))));
 
     // Trigger 3: MOVING shot while held (no drivetrain hold)
     new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO,
-            false));
+            false))
+        .onFalse(new InstantCommand(() -> shooterSubsystem.stop())
+            .alongWith(new InstantCommand(() -> transferSubsystem.stop()))
+            .alongWith(new InstantCommand(() -> spindexerSubsystem.stop())));
 
     // Button 6: STATIC HUB BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 3)
@@ -889,7 +896,8 @@ private void configureIntakeCalibrationBindings() {
 
   }
 
-  private void configureTurretCalibrationBindings() {
+  private void 
+  configureTurretCalibrationBindings() {
     // 1-2: hold-to-jog (open loop)
     new JoystickButton(turretStick, 1)
         .whileTrue(new TurretCalibrationJogCommand(-Constants.OperatorConstants.Turret.CAL_JOG_MAX_DUTY));

@@ -24,7 +24,7 @@ public class Robot extends LoggedRobot {
     // Logger.recordMetadata("Project", "2026Competition");
     // Logger.recordMetadata("Mode", "Competition");
 
-    if (isReal()) { // THE ### #####... IS REAL
+    if (isReal()) { 
       // Real robot logging
       // Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
       // Logger.addDataReceiver(new NT4Publisher());
@@ -87,6 +87,7 @@ public class Robot extends LoggedRobot {
       m_autonomousCommand.cancel();
     }
     RobotContainer.setIfAllianceRed();
+    
   }
 
   @Override

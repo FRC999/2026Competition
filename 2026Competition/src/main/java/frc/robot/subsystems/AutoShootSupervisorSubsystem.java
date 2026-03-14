@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.Robot;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.RobotContainer;
 import frc.robot.lib.TurretHelpers;
@@ -221,8 +222,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         // --- 1) Read drive state first; target selection depends on pose ---
     var driveState = RobotContainer.driveSubsystem.getState();
     var poseField = driveState.Pose;
+    System.out.println("Pose to autoshoot: " + poseField.toString());
 
     currentAimTarget = selectAimTargetForPose(poseField);
+    //currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
     Translation2d target2d = getAllianceAwareAimTarget(currentAimTarget);
 
     Translation3d target3d = new Translation3d(
@@ -339,6 +342,11 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     boolean shooterReady = RobotContainer.shooterSubsystem.isReadyToShoot();
     boolean ballAtThroat = RobotContainer.transferSubsystem.hasBallAtThroat();
 
+
+    double dx = target2d.getX() - poseField.getX();
+    double dy = target2d.getY() - poseField.getY();
+    double yawFieldToUse = Math.atan2(dy, dx);  // Yaw to face the hub
+
     if (Constants.DebugTelemetrySubsystems.supervisor) {
       SmartDashboard.putString("AutoShoot/SolutionValidity", solutionValidity.toString());
       SmartDashboard.putBoolean("AutoShoot/TurretAimed", turretAimed);
@@ -347,7 +355,35 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       SmartDashboard.putBoolean("AutoShoot/Suppress", suppress);
       SmartDashboard.putBoolean("AutoShoot/TrenchLockoutActive", trenchLockoutActive);
       SmartDashboard.putString("AutoShoot/AimTarget", currentAimTarget.toString());
+
+      // Log robot pose and velocity
+      SmartDashboard.putNumber("TurretTesting/RobotPoseX", poseField.getX());
+      SmartDashboard.putNumber("TurretTesting/RobotPoseY", poseField.getY());
+      SmartDashboard.putNumber("TurretTesting/RobotRotation", poseField.getRotation().getDegrees());
+
+      SmartDashboard.putNumber("TurretTesting/vxRobot", driveState.Speeds.vxMetersPerSecond);
+      SmartDashboard.putNumber("TurretTesting/vyRobot", driveState.Speeds.vyMetersPerSecond);
+
+      // Log target position
+      SmartDashboard.putNumber("TurretTesting/TargetX", target2d.getX());
+      SmartDashboard.putNumber("TurretTesting/TargetY", target2d.getY());
+
+      // Log yaw to face the hub (direct yaw calculation)
+      SmartDashboard.putNumber("TurretTesting/TargetYawField", Math.toDegrees(yawFieldToUse));
+
+      // Log raw desired turret angle
+      SmartDashboard.putNumber("TurretTesting/RawDesiredTurretDeg", rawDesiredTurretDeg);
+      SmartDashboard.putNumber("Turret/CurrentAngle", RobotContainer.turretSubsystem.getRelativePosition()); 
+
+      // Log CTRE pose (if available)
+      SmartDashboard.putNumber("TurretTesting/RobotPoseX", RobotContainer.driveSubsystem.getState().Pose.getX());
+      SmartDashboard.putNumber("TurretTesting/RobotPoseY", RobotContainer.driveSubsystem.getState().Pose.getY());
+      SmartDashboard.putNumber("TurretTesting/RobotRotation", RobotContainer.driveSubsystem.getState().Pose.getRotation().getDegrees());
+
+      // Log turret command issuance
     }
+
+    
 
     // If not requested (or lockout active), keep shooter off and hold transfer at blocked-stage speed.
     if (!effectiveShootRequested) {

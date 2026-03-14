@@ -55,10 +55,10 @@ public final class Constants {
    * HUB_RED_X/Y).
    */
     public static final class FieldTargets {
-    public static final double HUB_BLUE_X = 0.0; // TODO set
-    public static final double HUB_BLUE_Y = 0.0; // TODO set
-    public static final double HUB_RED_X = 0.0; // TODO set
-    public static final double HUB_RED_Y = 0.0; // TODO set
+    public static final double HUB_BLUE_X = 4.621;
+    public static final double HUB_BLUE_Y = 4.029;
+    public static final double HUB_RED_X = 11.919;
+    public static final double HUB_RED_Y = 4.029;
 
     public static final double NEUTRAL_LOW_BLUE_X = 0.0; // TODO set
     public static final double NEUTRAL_LOW_BLUE_Y = 0.0; // TODO set
@@ -106,11 +106,11 @@ public final class Constants {
 
   public static final class EnabledSubsystems {
 
-    public static final boolean chasis = false;
-    public static final boolean odometry = false;
+    public static final boolean chasis = true;
+    public static final boolean odometry = true;
     public static final boolean ll = false;
     public static final boolean questnav = true;
-    public static final boolean intake = false;
+    public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true;
     public static final boolean hood = true;
@@ -118,14 +118,14 @@ public final class Constants {
     public static final boolean spindexer = true;
     public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
-    public static boolean calibration = true;
+    public static final boolean supervisor = true;
+    public static boolean calibration = false;
   }
 
   public static final class DebugTelemetrySubsystems {
     public static final boolean odometry = false;
     public static final boolean imu = false;
-    public static final boolean chassis = false;
+    public static final boolean chassis = true;
     public static final boolean ll = false;
     public static final boolean questnav = true;
     public static final boolean intake = false;
@@ -136,7 +136,7 @@ public final class Constants {
     public static final boolean spindexer = true;
     public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
+    public static final boolean supervisor = true;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = true;
 
@@ -436,8 +436,8 @@ public final class Constants {
       public static final double BOOT_MAX_ABS_DEG = 180.0;
 
       /** Mechanical safe range relative to forward (degrees). */
-      public static final double MIN_ANGLE_DEG = -100.0; // CW hard stop
-      public static final double MAX_ANGLE_DEG = 100.0; // CCW hard stop
+      public static final double MIN_ANGLE_DEG = -60.0; // CW hard stop -100
+      public static final double MAX_ANGLE_DEG = 100.0; // CCW hard stop 100
 
       /**
        * "Soft" limit for auto-aiming (degrees from your turret ZERO). Your notes
@@ -471,7 +471,7 @@ public final class Constants {
        * left,
        * then this constant is +90.
        */
-      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 180.0;
+      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 0.0; //180.0
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
@@ -545,7 +545,7 @@ public final class Constants {
 
       /** Calibration-only safe jog limit (do NOT use MAX_DUTY_CYCLE for testing). */
       // TODO: Tune to a safe value for your turret.
-      public static final double CAL_JOG_MAX_DUTY = 0.20;
+      public static final double CAL_JOG_MAX_DUTY = 0.40;
 
       /** Calibration step targets. */
       // TODO: Adjust if needed
@@ -906,7 +906,7 @@ public final class Constants {
        * If you later prefer a very slow "creep hold", change this to a small nonzero
        * value.
        */
-      public static final double THROAT_BLOCKED_STAGE_RPS = -7; // TODO: placeholder (0 = stop)
+      public static final double THROAT_BLOCKED_STAGE_RPS = 0; // TODO: placeholder (0 = stop)
 
       // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
       // TODO: All gains are placeholders and MUST be tuned on the real robot.
@@ -965,7 +965,7 @@ public final class Constants {
        * Height of HUB opening center above the field, meters. TODO: set from manual
        * measurement.
        */
-      public static final double HUB_OPENING_CENTER_Z_METERS = 0.0;
+      public static final double HUB_OPENING_CENTER_Z_METERS = 1.8288;
 
       /**
        * Field length in meters, used for alliance mirroring (RED <-> BLUE).
@@ -973,7 +973,7 @@ public final class Constants {
        * IMPORTANT: Set this to the official 2026 field length for your coordinate
        * frame.
        */
-      public static final double FIELD_LENGTH_METERS = 0.0; // TODO: SET ME
+      public static final double FIELD_LENGTH_METERS = 16.54;
 
       /**
        * Teleop trench safety zones, defined in BLUE-alliance field coordinates
@@ -986,15 +986,15 @@ public final class Constants {
        * IMPORTANT: You MUST set these numbers; leaving them at 0 will make the zone
        * detection wrong.
        */
-      public static final double BLUE_TRENCH_ZONE1_MIN_X_METERS = 0.0; // TODO: SET ME
-      public static final double BLUE_TRENCH_ZONE1_MAX_X_METERS = 0.0; // TODO: SET ME
-      public static final double BLUE_TRENCH_ZONE1_MIN_Y_METERS = 0.0; // TODO: SET ME
-      public static final double BLUE_TRENCH_ZONE1_MAX_Y_METERS = 0.0; // TODO: SET ME
+      public static final double BLUE_TRENCH_ZONE1_MIN_X_METERS = 4.060; 
+      public static final double BLUE_TRENCH_ZONE1_MAX_X_METERS = 5.200; 
+      public static final double BLUE_TRENCH_ZONE1_MIN_Y_METERS = 7.270; 
+      public static final double BLUE_TRENCH_ZONE1_MAX_Y_METERS = 7.585; 
 
-      public static final double BLUE_TRENCH_ZONE2_MIN_X_METERS = 0.0; // TODO: SET ME
-      public static final double BLUE_TRENCH_ZONE2_MAX_X_METERS = 0.0; // TODO: SET ME
-      public static final double BLUE_TRENCH_ZONE2_MIN_Y_METERS = 0.0; // TODO: SET ME
-      public static final double BLUE_TRENCH_ZONE2_MAX_Y_METERS = 0.0; // TODO: SET ME
+      public static final double BLUE_TRENCH_ZONE2_MIN_X_METERS = 4.060; 
+      public static final double BLUE_TRENCH_ZONE2_MAX_X_METERS = 5.200;
+      public static final double BLUE_TRENCH_ZONE2_MIN_Y_METERS = 0.500;
+      public static final double BLUE_TRENCH_ZONE2_MAX_Y_METERS = 0.785;
     }
 
     /** Turret geometry needed by the solver. */
@@ -1003,10 +1003,10 @@ public final class Constants {
        * Turret pivot position relative to robot origin, in the ROBOT frame (meters).
        */
       public static final edu.wpi.first.math.geometry.Translation2d TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS = new edu.wpi.first.math.geometry.Translation2d(
-          0.0, 0.0); // TODO set
+          -0.1778, 0.0); // TODO set
 
       /** Ball release height above field when leaving shooter, meters. TODO set. */
-      public static final double BALL_RELEASE_HEIGHT_METERS = 0.0;
+      public static final double BALL_RELEASE_HEIGHT_METERS = 0.4318;
     }
 
     public static final class SysId {

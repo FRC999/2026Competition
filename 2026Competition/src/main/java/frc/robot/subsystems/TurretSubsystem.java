@@ -283,8 +283,8 @@ private final double forwardDeg =
   TalonFXConfiguration cfg = new TalonFXConfiguration()
     .withMotorOutput(out)
     .withCurrentLimits(limits)
-    .withSlot0(slot0)
-    .withMotionMagic(mm)
+    // .withSlot0(slot0)
+    // .withMotionMagic(mm)
     .withClosedLoopGeneral(clWrapOff);
 
   turret.getConfigurator().apply(cfg);
@@ -537,7 +537,7 @@ private final double forwardDeg =
     turret.setControl(mmRequest.withPosition(motorRotTarget));
 
     SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
-    System.out.println(targetDeg);
+    System.out.println("Target Turret: " + targetDeg);
     SmartDashboard.putNumber("Turret/DeltaDegCmd", targetDeg - continuousDeg);
     SmartDashboard.putString("Turret/GoalStatus", "MM_WRAP_OFF_CLAMPED");
   }
