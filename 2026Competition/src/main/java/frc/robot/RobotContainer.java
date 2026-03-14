@@ -222,11 +222,11 @@ public class RobotContainer {
       //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
       //configureIntakeCalibrationBindings();
-      configureTurretCalibrationBindings();
+      //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
     }
-    //competitionXBOXButtonBindings();
+    competitionXBOXButtonBindings();
     //betaTesting();
     //setYaws();
   }
