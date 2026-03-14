@@ -56,6 +56,7 @@ public class ShooterSubsystem extends SubsystemBase {
   private boolean wasReady = false;
   private double readySince = 0.0;
   private boolean dipDetected = false;
+  private boolean readinessArmed = false;
 
   // ---------------- Shooter readiness (rolling window stats) ----------------
   private final double[] rpmWindow = new double[Constants.OperatorConstants.Shooter.READY_WINDOW_SAMPLES];
@@ -176,11 +177,23 @@ public class ShooterSubsystem extends SubsystemBase {
   // ---------------- Public API ----------------
 
   /** Target shooter speed (RPM). Uses hardware velocity control. */
+    /** Target shooter speed (RPM). Uses hardware velocity control. */
   public void setTargetRpm(double rpm) {
-    targetRpm = Math.max(0.0, rpm);
+    double newTargetRpm = Math.max(0.0, rpm);
+
+    // Do NOT reset readiness every 20 ms if the target did not materially change.
+    if (Math.abs(newTargetRpm - targetRpm) <= 1.0) {
+      double targetRps = newTargetRpm / 60.0;
+      shooterLeader.setControl(velocityRequest.withVelocity(targetRps));
+      return;
+    }
+
+    targetRpm = newTargetRpm;
     dipDetected = false;
     readySince = 0.0;
     wasReady = false;
+    readinessArmed = false;
+    resetReadinessStats();
 
     double targetRps = targetRpm / 60.0; // Phoenix 6 uses rotations/sec
     shooterLeader.setControl(velocityRequest.withVelocity(targetRps));
@@ -193,11 +206,19 @@ public class ShooterSubsystem extends SubsystemBase {
         -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,
         Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE);
     targetRpm = 0.0;
+    readySince = 0.0;
+    wasReady = false;
+    readinessArmed = false;
+    resetReadinessStats();
     shooterLeader.setControl(dutyRequest.withOutput(duty));
   }
 
   public void stop() {
     targetRpm = 0.0;
+    readySince = 0.0;
+    wasReady = false;
+    readinessArmed = false;
+    resetReadinessStats();
     shooterLeader.stopMotor();
     shooterFollower.stopMotor();
   }
@@ -327,19 +348,42 @@ public class ShooterSubsystem extends SubsystemBase {
      * }
      */
 
-    // Ready logic (windowed mean/stddev)
-    updateReadinessStats(rpm);
+        // Ready logic:
+    // Do NOT start the readiness window during full spin-up.
+    // Arm only once RPM gets close enough to target, then compute mean/stddev
+    // using only those near-target samples.
+    boolean inArmBand = targetRpm > 1.0
+        && Math.abs(rpm - targetRpm) <= (1-Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE) * targetRpm;
 
-    boolean readyNow = targetRpm > 1.0
-        && Math.abs(rpmMean - targetRpm) <= Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE
-        && rpmStdDev <= Constants.OperatorConstants.Shooter.READY_STDDEV_MAX;
+    if (!readinessArmed) {
+      if (inArmBand) {
+        readinessArmed = true;
+        resetReadinessStats(); // start a fresh window using near-target samples only
+      } else {
+        readySince = 0.0;
+        wasReady = false;
+      }
+    }
 
-    // Optional: keep your existing READY_MIN_TIME_S behavior *on top* of windowed
-    // ready
+    if (readinessArmed) {
+      updateReadinessStats(rpm);
+    } else {
+      rpmMean = rpm;
+      rpmStdDev = 999.0;
+    }
+
+    boolean windowFull = rpmWindowCount >= Constants.OperatorConstants.Shooter.READY_WINDOW_SAMPLES;
+
+    boolean readyNow = readinessArmed
+        && windowFull
+        && Math.abs(rpm - targetRpm) <= (1-Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE) * targetRpm
+        && rpmStdDev <= Constants.OperatorConstants.Shooter.READY_STDDEV_MAX * targetRpm;
+
     double now = Timer.getFPGATimestamp();
     if (readyNow) {
-      if (readySince <= 0.0)
+      if (readySince <= 0.0) {
         readySince = now;
+      }
       if (!wasReady && (now - readySince) >= Constants.OperatorConstants.Shooter.READY_MIN_TIME_S) {
         wasReady = true;
       }
@@ -371,19 +415,20 @@ public class ShooterSubsystem extends SubsystemBase {
   private void updateReadinessStats(double rpm) {
     rpmWindow[rpmWindowIndex] = rpm;
     rpmWindowIndex = (rpmWindowIndex + 1) % rpmWindow.length;
-    if (rpmWindowCount < rpmWindow.length)
+    if (rpmWindowCount < rpmWindow.length) {
       rpmWindowCount++;
+    }
 
     if (rpmWindowCount < rpmWindow.length) {
       rpmMean = rpm;
       rpmStdDev = 999.0;
-      wasReady = false;
       return;
     }
 
     double sum = 0.0;
-    for (double v : rpmWindow)
+    for (double v : rpmWindow) {
       sum += v;
+    }
     rpmMean = sum / rpmWindow.length;
 
     double var = 0.0;
@@ -394,10 +439,15 @@ public class ShooterSubsystem extends SubsystemBase {
     rpmStdDev = Math.sqrt(var / rpmWindow.length);
 
     if (DebugTelemetrySubsystems.shooter) {
-      SmartDashboard.putNumber("Shooter/RPM_Mean200ms", rpmMean);
-      SmartDashboard.putNumber("Shooter/RPM_StdDev200ms", rpmStdDev);
+      SmartDashboard.putNumber("Shooter/RPM_Mean100ms", rpmMean);
+      SmartDashboard.putNumber("Shooter/RPM_StdDev100ms", rpmStdDev);
     }
-
+  }
+  private void resetReadinessStats() {
+    rpmWindowCount = 0;
+    rpmWindowIndex = 0;
+    rpmMean = 0.0;
+    rpmStdDev = 999.0;
   }
 
   public double getSimCurrentDrawAmps() {

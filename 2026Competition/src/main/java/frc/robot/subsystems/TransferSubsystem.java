@@ -84,6 +84,21 @@ public class TransferSubsystem extends SubsystemBase {
   private double calStageRpsSet = 0.0;
   private double calFeedRpsSet = 0.0;
   private double calBlockedStageRpsSet = 0.0;
+    // --- Entry -> Throat timing telemetry ---
+  private boolean prevBallAtEntry = false;
+  private boolean prevBallAtThroat = false;
+
+  /** True while waiting for a ball that hit entry to later hit throat. */
+  private boolean entryToThroatTimingActive = false;
+
+  /** FPGA timestamp when the most recent entry rising edge occurred. */
+  private double entryToThroatStartTs = -1.0;
+
+  /** Most recently completed entry -> throat travel time, in seconds. */
+  private double lastEntryToThroatTimeSec = -1.0;
+
+  /** Live elapsed time while timing is active, in seconds. */
+  private double currentEntryToThroatElapsedSec = 0.0;
 
   // ---------------- Metered eject state ----------------
   private enum EjectState {
@@ -229,9 +244,9 @@ public class TransferSubsystem extends SubsystemBase {
     calStageRpsSet = stageRpsSet;
     calBlockedStageRpsSet = blockedStageRpsSet;
 
-    if (hasBallAtThroat()) {
-      runVelocityRps(blockedStageRpsSet);
-    } else {
+     if (hasBallAtThroat()) {
+       runVelocityRps(blockedStageRpsSet);
+     } else {
       runVelocityRps(stageRpsSet);
     }
   }
@@ -258,7 +273,8 @@ public class TransferSubsystem extends SubsystemBase {
       return;
     }
 
-    runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
+    motor.set(-0.90);
+    //runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
   }
 
   /**
@@ -348,6 +364,8 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer || throatSensor == null) {
       return false;
     }
+    // System.out.println("TransferSubsystem: throat sensor is NOT null");
+
 
     boolean raw = throatSensor.get();
     return Constants.OperatorConstants.Transfer.THROAT_SENSOR_INVERTED
@@ -409,32 +427,74 @@ public class TransferSubsystem extends SubsystemBase {
         .angularVelocity(RotationsPerSecond.of(velRps));
   }
 
+    /** Updates telemetry for time taken by a ball to travel from entry sensor to throat sensor. */
+  private void updateEntryToThroatTimingTelemetry() {
+    boolean ballAtEntry = hasBallAtEntry();
+    boolean ballAtThroat = hasBallAtThroat();
+    double now = Timer.getFPGATimestamp();
+
+    boolean entryRisingEdge = ballAtEntry && !prevBallAtEntry;
+    boolean throatRisingEdge = ballAtThroat && !prevBallAtThroat;
+
+    // Start timing when a new ball first reaches entry.
+    if (entryRisingEdge) {
+      entryToThroatTimingActive = true;
+      entryToThroatStartTs = now;
+      currentEntryToThroatElapsedSec = 0.0;
+    }
+
+    // Update live elapsed time while timing is active.
+    if (entryToThroatTimingActive && entryToThroatStartTs >= 0.0) {
+      currentEntryToThroatElapsedSec = now - entryToThroatStartTs;
+    } else {
+      currentEntryToThroatElapsedSec = 0.0;
+    }
+
+    // Finish timing when that ball first reaches throat.
+    if (entryToThroatTimingActive && throatRisingEdge && entryToThroatStartTs >= 0.0) {
+      lastEntryToThroatTimeSec = now - entryToThroatStartTs;
+      entryToThroatTimingActive = false;
+      currentEntryToThroatElapsedSec = 0.0;
+      entryToThroatStartTs = -1.0;
+    }
+
+    prevBallAtEntry = ballAtEntry;
+    prevBallAtThroat = ballAtThroat;
+  }
+
   @Override
   public void periodic() {
     if (!EnabledSubsystems.transfer) {
       return;
     }
+        double rpm = getVelRps();
+
 
     BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
     posRot = positionSig.getValueAsDouble();
     velRps = velocitySig.getValueAsDouble();
 
+    updateEntryToThroatTimingTelemetry();
+
     if (!DebugTelemetrySubsystems.transfer) {
       return;
     }
-    SmartDashboard.putNumber("Transfer/DutyCmd", commandedDuty);
-    SmartDashboard.putNumber("Transfer/RpsCmd", commandedRps);
-    SmartDashboard.putNumber("Transfer/PosRot", posRot);
-    SmartDashboard.putNumber("Transfer/VelRps", velRps);
     SmartDashboard.putNumber("Transfer/MotorVoltage", motorVoltageSig.getValueAsDouble());
     SmartDashboard.putBoolean("Transfer/BallAtEntry", hasBallAtEntry());
     SmartDashboard.putBoolean("Transfer/BallAtThroat", hasBallAtThroat());
+    SmartDashboard.putNumber("Transfer/RPS", rpm);
+
 
     // --- Calibration visibility (always present; used by calibration bindings) ---
     SmartDashboard.putString("Transfer/Cal/Mode", calMode);
     SmartDashboard.putNumber("Transfer/Cal/StageRpsSet", calStageRpsSet);
     SmartDashboard.putNumber("Transfer/Cal/FeedRpsSet", calFeedRpsSet);
     SmartDashboard.putNumber("Transfer/Cal/BlockedStageRpsSet", calBlockedStageRpsSet);
+
+    // --- Entry -> Throat timing telemetry ---
+    SmartDashboard.putBoolean("Transfer/EntryToThroatTimingActive", entryToThroatTimingActive);
+    SmartDashboard.putNumber("Transfer/EntryToThroatElapsedSec", currentEntryToThroatElapsedSec);
+    SmartDashboard.putNumber("Transfer/LastEntryToThroatTimeSec", lastEntryToThroatTimeSec);
   }
 
   public double getSimCurrentDrawAmps() {

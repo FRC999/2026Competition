@@ -69,6 +69,7 @@ public class DriveManuallyCommand extends Command {
       xInput * SwerveConstants.MaxSpeed, 
      //0,
       yInput * SwerveConstants.MaxSpeed,
+      //0,
       //0
       omegaInput * SwerveConstants.MaxAngularRate
     );
@@ -76,7 +77,8 @@ public class DriveManuallyCommand extends Command {
       RobotContainer.driveSubsystem.driveRobotCentric(
         xInput * SwerveConstants.MaxSpeed,
        //0,
-        yInput * SwerveConstants.MaxSpeed,
+        // yInput * SwerveConstants.MaxSpeed,
+        0,
         //0
         omegaInput * SwerveConstants.MaxAngularRate
   

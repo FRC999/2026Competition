@@ -14,7 +14,7 @@ import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class KrakenMotorSubsystem extends SubsystemBase {
-  public static final int kCanId = 55;
+  public static final int kCanId = 19;
 
   private final boolean isSim = RobotBase.isSimulation();
 

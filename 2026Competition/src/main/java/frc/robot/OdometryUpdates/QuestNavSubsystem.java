@@ -29,6 +29,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
 import frc.robot.lib.QuestHelpers;
@@ -92,6 +93,13 @@ public class QuestNavSubsystem extends SubsystemBase {
     
     Pose2d newRobotPose = new Pose2d(getQuestRobotPose2d().getTranslation(), Rotation2d.fromDegrees(angle));
     System.out.println(newRobotPose.toString());
+    questNav.setPose(new Pose3d(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST)));
+  }
+
+  public void customQuestPose(Pose2d pose) {
+
+    Pose2d newRobotPose = new Pose2d(pose.getX(), pose.getY(), pose.getRotation());
+
     questNav.setPose(new Pose3d(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST)));
   }
 
@@ -274,7 +282,7 @@ public class QuestNavSubsystem extends SubsystemBase {
    */
   public Command offsetAngleCharacterizationCommand() {
     double driveSpeed = SwerveConstants.MaxSpeed / 6.0;
-
+    new PrintCommand("Inside angle characterization");
     return Commands.sequence(
         // Initialize: start rotating
         Commands.runOnce(

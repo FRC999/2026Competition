@@ -582,6 +582,8 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             SmartDashboard.putNumber("Drive/IMUYawDeg", this.getPigeon2().getYaw().getValueAsDouble());
             SmartDashboard.putNumber("Drive/PoseYawDeg", this.getState().Pose.getRotation().getDegrees());
             SmartDashboard.putString("Drive/Pose", this.getState().Pose.toString());
+            SmartDashboard.putNumber("Drive/vxRobot", this.getState().Speeds.vxMetersPerSecond);
+            SmartDashboard.putNumber("Drive/vyRobot", this.getState().Speeds.vyMetersPerSecond);
         }
 
         
