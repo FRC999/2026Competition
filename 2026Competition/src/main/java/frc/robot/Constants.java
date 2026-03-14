@@ -508,6 +508,8 @@ public final class Constants {
       public static final double kV = 0.0;
       public static final double kA = 0.0;
 
+      public static final double TURRET_POSITION_TOLERANCE_DEG = 0.5; // Tolerance in degrees for turret position
+
       /** MotionMagic placeholders (rotations-based). */
       public static final double MM_CRUISE_VEL_RPS = 1.0 / 60.0;
       public static final double MM_ACCEL_RPS2 = 2.0;
