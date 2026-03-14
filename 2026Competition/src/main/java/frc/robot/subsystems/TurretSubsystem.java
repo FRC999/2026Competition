@@ -16,6 +16,7 @@ import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.ControlRequest;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
@@ -24,6 +25,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorPhaseValue;
+import com.google.protobuf.ByteString.Output;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.controls.DutyCycleOut;
@@ -519,14 +521,20 @@ private final double forwardDeg =
   }
 
   public void goToAngleDeg(double desiredDeg) {
-    // Clamp to physical bounds. With ±180 hardware, we do not allow ±360
-    // equivalents.
+    // Clamp to physical bounds. With ±180 hardware, we do not allow ±360 equivalents.
     double target = MathUtil.clamp(
         desiredDeg,
         Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
         Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
 
     targetDeg = target;
+
+    // **Tolerance check here** - prevent further movement if within tolerance
+    if (Math.abs(targetDeg - continuousDeg) <= Constants.OperatorConstants.Turret.TURRET_POSITION_TOLERANCE_DEG) {
+      // Disable PID control (or stop applying motor control) as we are within the tolerance
+      turret.set(0);  // Neutral output when within tolerance
+      return;
+    }
 
     // Enforce wrap disabled for required behavior (-170 -> +170 goes through 0).
     // setContinuousWrap(false);
@@ -540,7 +548,7 @@ private final double forwardDeg =
     System.out.println("Target Turret: " + targetDeg);
     SmartDashboard.putNumber("Turret/DeltaDegCmd", targetDeg - continuousDeg);
     SmartDashboard.putString("Turret/GoalStatus", "MM_WRAP_OFF_CLAMPED");
-  }
+}
 
   /** true if turret is within tolerance of desired angle (deg), using best safe equivalent. */
   public boolean atAngleDeg(double desiredDeg, double toleranceDeg) {
