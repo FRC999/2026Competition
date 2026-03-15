@@ -13,6 +13,7 @@ import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.Follower;
+import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.PositionDutyCycle;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -56,7 +57,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private TalonFX intakePivotMotor; // leader
   private TalonFX intakePivotFollowerMotor; // follower
 
-  private final MotionMagicVoltage motionMagicVoltage = new MotionMagicVoltage(0).withEnableFOC(false);
+  private final MotionMagicDutyCycle motionMagicVoltage = new MotionMagicDutyCycle(0).withEnableFOC(false);
   private final VelocityVoltage rollerVelocityVoltage =
     new VelocityVoltage(0).withSlot(0);
 
