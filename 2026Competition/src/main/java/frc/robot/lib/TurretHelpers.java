@@ -10,9 +10,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.geometry.Twist2d;
 
 /**
  * TurretHelpers
@@ -404,10 +406,29 @@ private static Double tryParse(String s) {
         }
 
         /** Robot-relative turret yaw in degrees (0 = robot forward, CCW positive). */
-        public double computeTurretYawAngleRelativeToRobotDeg(double robotYawRad) {
-            double rel = yawFieldRad - robotYawRad;
-            rel = Math.atan2(Math.sin(rel), Math.cos(rel));
-            return Math.toDegrees(rel);
+        public static double computeTurretYawAngleRelativeToRobotDeg(Pose2d robotPose, Translation2d targetPosition,
+                double vx, double vy, double omega, double readinessTimeMs, Twist2d turretOffset) {
+            // Convert readiness time to seconds
+            double readinessTimeSec = readinessTimeMs / 1000.0;
+
+            // Predict the robot's future position
+            double futureX = robotPose.getX() + vx * readinessTimeSec;
+            double futureY = robotPose.getY() + vy * readinessTimeSec;
+            double futureTheta = robotPose.getRotation().getDegrees() + omega * readinessTimeSec;
+
+            // Calculate the relative position between the predicted robot position and the
+            // target position
+            double dx = targetPosition.getX() - futureX - turretOffset.dx;
+            double dy = targetPosition.getY() - futureY - turretOffset.dy;
+
+            // Calculate the angle to the target
+            double targetAngle = Math.toDegrees(Math.atan2(dy, dx));
+
+            // Calculate the turret angle, accounting for the robot's orientation
+            double turretAngle = targetAngle - futureTheta;
+            turretAngle = MathUtil.angleModulus(turretAngle); // Normalize to [-180, 180] degrees
+
+            return turretAngle;
         }
 
         /**
