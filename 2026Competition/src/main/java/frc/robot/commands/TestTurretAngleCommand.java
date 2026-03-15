@@ -31,7 +31,7 @@ public class TestTurretAngleCommand extends Command {
         Twist2d turretOffset = new Twist2d(0.5, 0.5, 0.0); // Offset from robot center to turret
 
         // Calculate the turret angle
-        double turretAngle = TurretHelpers.computeTurretYawAngleRelativeToRobotDeg(robotPose, targetPosition, vx, vy, omega, readinessTimeMs, turretOffset);
+        double turretAngle = TurretHelpers.Solution.computeTurretYawAngleRelativeToRobotDeg(robotPose, targetPosition, vx, vy, omega, readinessTimeMs, turretOffset);
 
         // Print the result (in a real application, you could send this to SmartDashboard or a logger)
         System.out.println("Calculated Turret Angle: " + turretAngle + " degrees");
