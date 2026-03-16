@@ -451,8 +451,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     }
 
     public void drive(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s) {
-        // System.out.println("X: " + xVelocity_m_per_s + " y: " + yVelocity_m_per_s + "
-        // o:" + omega_rad_per_s/SwerveChassis.MaxAngularRate);
+        //System.out.println("X: " + xVelocity_m_per_s + " y: " + yVelocity_m_per_s + "o:" + omega_rad_per_s);
         // SmartDashboard.putString("Manual Drive Command Velocities","X: " +
         // xVelocity_m_per_s + " y: " + yVelocity_m_per_s + " o:" + omega_rad_per_s);
         lastCommandedOmegaRadPerSec = omega_rad_per_s;

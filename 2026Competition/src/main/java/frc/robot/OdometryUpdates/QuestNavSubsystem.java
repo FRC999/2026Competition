@@ -78,6 +78,19 @@ public class QuestNavSubsystem extends SubsystemBase {
     System.out.println("****QRobot reset to zero pose: " + questPose.toString());
   }
 
+    private boolean isReasonableQuestRobotPose(Pose2d pose) {
+    if (pose == null) {
+      return false;
+    }
+
+    return Double.isFinite(pose.getX())
+        && Double.isFinite(pose.getY())
+        && Double.isFinite(pose.getRotation().getRadians())
+        && Math.abs(pose.getX()) < OdometryConstants.MAX_REASONABLE_FIELD_COORD_ABS_METERS
+        && Math.abs(pose.getY()) < OdometryConstants.MAX_REASONABLE_FIELD_COORD_ABS_METERS
+        && !pose.equals(QuestNavConstants.nullPose);
+  }
+
 
 
   /**
@@ -85,13 +98,21 @@ public class QuestNavSubsystem extends SubsystemBase {
    * @param angle (degrees)
    */
   public void resetQuestIMUToAngle(double angle) {
-    System.out.println("Quest Robot Pose: " + 
-        java.util.Objects.requireNonNullElse(getQuestRobotPose2d(),"").toString());
-    System.out.println("QAngle: " + angle);
-    System.out.println("New QAngle: " + (Rotation2d.fromDegrees(angle).
-        minus(getQuestRobotPose2d().getRotation())).getDegrees());
-    
-    Pose2d newRobotPose = new Pose2d(getQuestRobotPose2d().getTranslation(), Rotation2d.fromDegrees(angle));
+    Pose2d currentRobotPose = getQuestRobotPose2d();
+
+    System.out.println("*************Quest Robot Pose: "
+        + java.util.Objects.requireNonNullElse(currentRobotPose, "").toString());
+    System.out.println("***************QAngle: " + angle);
+
+    if (!isReasonableQuestRobotPose(currentRobotPose)) {
+      System.out.println("*************Quest IMU reset skipped: invalid Quest robot pose");
+      return;
+    }
+
+    System.out.println("*****************New QAngle: "
+        + (Rotation2d.fromDegrees(angle).minus(currentRobotPose.getRotation())).getDegrees());
+
+    Pose2d newRobotPose = new Pose2d(currentRobotPose.getTranslation(), Rotation2d.fromDegrees(angle));
     System.out.println(newRobotPose.toString());
     questNav.setPose(new Pose3d(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST)));
   }

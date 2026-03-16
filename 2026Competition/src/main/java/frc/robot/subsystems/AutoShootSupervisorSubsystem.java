@@ -224,8 +224,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     var poseField = driveState.Pose;
     //System.out.println("Pose to autoshoot: " + poseField.toString());
 
-    currentAimTarget = selectAimTargetForPose(poseField);
-    //currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
+    //currentAimTarget = selectAimTargetForPose(poseField);
+    currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
     Translation2d target2d = getAllianceAwareAimTarget(currentAimTarget);
 
     Translation3d target3d = new Translation3d(

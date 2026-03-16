@@ -367,7 +367,8 @@ private final double forwardDeg =
     // TalonFX position units are rotations; we keep continuousDeg in degrees.
     // Seed TalonFX integrated position in *motor* rotations, not turret rotations.
     double motorRot = motorRotFromTurretDeg(continuousDeg);
-    turret.setPosition(ANGLE_SIGN * motorRot);
+    // alex test
+    //turret.setPosition(ANGLE_SIGN * motorRot);
 
     // Initialize velocity bookkeeping.
     lastContinuousDeg = continuousDeg;
@@ -485,7 +486,9 @@ private final double forwardDeg =
 
 
     // Send open-loop command to the motor controller.
-    turret.setControl(dutyRequest.withOutput(duty));
+
+    // alex test
+    //turret.setControl(dutyRequest.withOutput(duty));
   }
 
   public void setVoltageVolts(double volts) {
@@ -493,7 +496,8 @@ private final double forwardDeg =
     // In sim we’ll assume 12V supply; on real robot, you can clamp to battery if you want.
     double v = MathUtil.clamp(volts, -12.0, 12.0);
 
-    turret.setControl(voltageRequest.withOutput(v));
+    // alex test
+    //turret.setControl(voltageRequest.withOutput(v));
   }
 
 
@@ -534,10 +538,11 @@ private final double forwardDeg =
     // Convert turret degrees -> motor rotations in Talon sensor frame.
     double motorRotTarget = ANGLE_SIGN * motorRotFromTurretDeg(target);
 
-    turret.setControl(mmRequest.withPosition(motorRotTarget));
+    // alex test
+    //turret.setControl(mmRequest.withPosition(motorRotTarget));
 
     SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
-    System.out.println("Target Turret: " + targetDeg);
+    //System.out.println("Target Turret: " + targetDeg);
     SmartDashboard.putNumber("Turret/DeltaDegCmd", targetDeg - continuousDeg);
     SmartDashboard.putString("Turret/GoalStatus", "MM_WRAP_OFF_CLAMPED");
 }
@@ -639,7 +644,9 @@ private final double forwardDeg =
     continuousDegUnclamped = deltaDeg;
 
     double motorRot = motorRotFromTurretDeg(continuousDeg);
-    turret.setPosition(ANGLE_SIGN * motorRot);
+
+    // alex test
+    //turret.setPosition(ANGLE_SIGN * motorRot);
 
     targetDeg = continuousDeg;
 
@@ -811,7 +818,7 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     }
 
     // Update continuous (multi-turn) angle state every loop.
-    updateContinuousAngle();
+    // updateContinuousAngle();
     if(DebugTelemetrySubsystems.turret){
     // Telemetry block: expose key state for debugging and tuning.
       SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
@@ -847,7 +854,7 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     // }
 
     if (Constants.DebugTelemetrySubsystems.turret && turretArm != null) {
-      turretArm.setAngle(wrapTo0To360(continuousDegUnclamped));
+      //turretArm.setAngle(wrapTo0To360(continuousDegUnclamped));
     }
 
   }

@@ -10,11 +10,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import edu.wpi.first.wpilibj.Filesystem;
+import frc.robot.Constants;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.geometry.Twist2d;
 
 /**
  * TurretHelpers
@@ -405,30 +406,65 @@ private static Double tryParse(String s) {
             this.tableMatchedBallExitSpeedMps = tableMatchedBallExitSpeedMps;
         }
 
-        /** Robot-relative turret yaw in degrees (0 = robot forward, CCW positive). */
-        public static double computeTurretYawAngleRelativeToRobotDeg(Pose2d robotPose, Translation2d targetPosition,
-                double vx, double vy, double omega, double readinessTimeMs, Twist2d turretOffset) {
-            // Convert readiness time to seconds
+        /**
+         * Compute the turret command angle in degrees, relative to turret zero.
+         *
+         * Conventions:
+         * - Robot frame: +X forward, +Y left.
+         * - Field yaw: CCW positive from field +X.
+         * - Returned angle is relative to turret zero, not robot forward.
+         * - Turret zero direction is defined by
+         * Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG.
+         *
+         * This method handles:
+         * - constant-velocity prediction over readiness time
+         * - turret pivot translation offset from robot origin
+         * - turret zero-direction offset from robot forward
+         *
+         * This method does NOT decide what to do if the angle is outside legal turret
+         * rotation limits. That decision should stay separate.
+         */
+        public static double computeTurretYawAngleRelativeToRobotDeg(
+                Pose2d robotPose,
+                Translation2d targetPosition,
+                double vx,
+                double vy,
+                double omega,
+                double readinessTimeMs) {
+
             double readinessTimeSec = readinessTimeMs / 1000.0;
 
-            // Predict the robot's future position
-            double futureX = robotPose.getX() + vx * readinessTimeSec;
-            double futureY = robotPose.getY() + vy * readinessTimeSec;
-            double futureTheta = robotPose.getRotation().getDegrees() + omega * readinessTimeSec;
+            // Predict robot origin in the field frame at readiness time.
+            Translation2d predictedRobotOriginField = robotPose.getTranslation().plus(
+                    new Translation2d(vx * readinessTimeSec, vy * readinessTimeSec));
 
-            // Calculate the relative position between the predicted robot position and the
-            // target position
-            double dx = targetPosition.getX() - futureX - turretOffset.dx;
-            double dy = targetPosition.getY() - futureY - turretOffset.dy;
+            // Predict robot heading at readiness time.
+            Rotation2d predictedRobotHeading = robotPose.getRotation().plus(
+                    Rotation2d.fromRadians(omega * readinessTimeSec));
 
-            // Calculate the angle to the target
-            double targetAngle = Math.toDegrees(Math.atan2(dy, dx));
+            // Rotate turret pivot offset from robot frame into field frame, then add it to
+            // the predicted robot origin to get the predicted turret pivot position.
+            Translation2d turretPivotField = predictedRobotOriginField.plus(
+                    Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+                            .rotateBy(predictedRobotHeading));
 
-            // Calculate the turret angle, accounting for the robot's orientation
-            double turretAngle = targetAngle - futureTheta;
-            turretAngle = MathUtil.angleModulus(turretAngle); // Normalize to [-180, 180] degrees
+            // Vector from turret pivot to target in the field frame.
+            Translation2d pivotToTargetField = targetPosition.minus(turretPivotField);
 
-            return turretAngle;
+            // Field yaw from turret pivot to target.
+            Rotation2d desiredYawField = pivotToTargetField.getAngle();
+
+            // Convert field yaw into robot-relative yaw.
+            Rotation2d robotRelativeYaw = desiredYawField.minus(predictedRobotHeading);
+
+            // Convert robot-forward-relative yaw into turret-zero-relative yaw.
+            Rotation2d turretZeroOffset = Rotation2d.fromDegrees(
+                    Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG);
+
+            Rotation2d turretRelativeYaw = robotRelativeYaw.minus(turretZeroOffset);
+
+            // Returns (-180, 180], so an exact "behind" result will be +180.
+            return turretRelativeYaw.getDegrees();
         }
 
         /**
@@ -443,6 +479,115 @@ private static Double tryParse(String s) {
             out.add(desiredBallOutputAngleRad);
             return out;
         }
+    }
+
+    /**
+     * Convert an aim target enum into a field-frame Translation2d.
+     */
+    public static Translation2d aimTargetToFieldTranslation(
+            Constants.FieldTargets.AimTarget aimTarget,
+            boolean isRedAlliance) {
+
+            //System.out.println("Hub X: " + aimTarget.getX(isRedAlliance));
+
+        return new Translation2d(
+                aimTarget.getX(isRedAlliance),
+                aimTarget.getY(isRedAlliance));
+    }
+
+    /**
+     * Stationary/raw turret angle helper:
+     * - readiness time = 0
+     * - vx = 0
+     * - vy = 0
+     * - omega = 0
+     *
+     * Returned angle is relative to turret zero.
+     */
+    public static double computeStationaryRawTurretYawDeg(
+            Pose2d robotPose,
+            Translation2d targetPositionField) {
+        return Solution.computeTurretYawAngleRelativeToRobotDeg(
+                robotPose,
+                targetPositionField,
+                0.0,
+                0.0,
+                0.0,
+                0.0);
+    }
+
+    /**
+     * Inclusive window test for turret angles in degrees.
+     */
+    public static boolean isTurretAngleWithinWindowDeg(
+            double turretDeg,
+            double minDeg,
+            double maxDeg) {
+        return Double.isFinite(turretDeg)
+                && turretDeg >= minDeg
+                && turretDeg <= maxDeg;
+    }
+
+    /**
+     * Compute the signed robot heading change (degrees) needed to move a turret
+     * solution into the requested window.
+     *
+     * Sign convention:
+     * - positive result => rotate robot CCW
+     * - negative result => rotate robot CW
+     *
+     * If already in the window, returns 0.
+     */
+    public static double computeRobotHeadingDeltaDegToEnterTurretWindowDeg(
+            double turretDeg,
+            double minDeg,
+            double maxDeg) {
+        if (!Double.isFinite(turretDeg) || minDeg > maxDeg) {
+            return Double.NaN;
+        }
+
+        double targetTurretDeg = MathUtil.clamp(turretDeg, minDeg, maxDeg);
+        return turretDeg - targetTurretDeg;
+    }
+
+    
+
+    /**
+     * One-call convenience helper for the stationary illegal-shot auto-turn assist.
+     *
+     * Returns:
+     * - 0 if the current stationary shot is already inside the comfort window
+     * - otherwise a signed normalized omega command in [-1, +1]
+     */
+        public static double computeStationaryRobotAutoTurnCommandToEnterLegalShotWindow(
+            Pose2d robotPose,
+            Translation2d targetPositionField,
+            double comfortMarginDeg,
+            double fixedAbsTurnCmd) {
+
+        double rawTurretDeg = computeStationaryRawTurretYawDeg(robotPose, targetPositionField);
+
+        double comfortMinDeg = Constants.OperatorConstants.Turret.MIN_ANGLE_DEG + comfortMarginDeg;
+        double comfortMaxDeg = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG - comfortMarginDeg;
+
+        if (!Double.isFinite(rawTurretDeg) || comfortMinDeg > comfortMaxDeg) {
+            return 0.0;
+        }
+
+        if (isTurretAngleWithinWindowDeg(rawTurretDeg, comfortMinDeg, comfortMaxDeg)) {
+            return 0.0;
+        }
+
+        double robotHeadingDeltaDeg = computeRobotHeadingDeltaDegToEnterTurretWindowDeg(
+                rawTurretDeg,
+                comfortMinDeg,
+                comfortMaxDeg);
+
+        if (!Double.isFinite(robotHeadingDeltaDeg) || Math.abs(robotHeadingDeltaDeg) < 1e-9) {
+            return 0.0;
+        }
+
+        return Math.copySign(Math.abs(fixedAbsTurnCmd), robotHeadingDeltaDeg);
     }
 
     // ---------------------------------------------------------------------------

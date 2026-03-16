@@ -115,34 +115,34 @@ public final class Constants {
     public static final boolean shooter = true;
     public static final boolean turret = true;
     public static final boolean hood = true;
-    public static final boolean hopper = false;
+    public static final boolean hopper = true;
     public static final boolean spindexer = true;
     public static final boolean transfer = true;
-    public static final boolean climber = false;
+    public static final boolean climber = true;
     public static final boolean supervisor = true;
     public static boolean calibration = false;
   }
 
   public static final class DebugTelemetrySubsystems {
     public static final boolean odometry = true;
-    public static final boolean imu = true;
+    public static final boolean imu = false;
     public static final boolean chassis = true;
     public static final boolean ll = true;
     public static final boolean questnav = true;
-    public static final boolean intake = true;
-    public static final boolean shooter = true;
-    public static final boolean turret = true; 
-    public static final boolean hood = true;
+    public static final boolean intake = false;
+    public static final boolean shooter = false;
+    public static final boolean turret = false; 
+    public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
-    public static final boolean supervisor = true;
+    public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = true;
 
     // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
-    public static final boolean calibration = true; // PLACEHOLDER set true only while calibrating
+    public static final boolean calibration = false; // PLACEHOLDER set true only while calibrating
   }
 
   public static final class AutoConstants {
@@ -437,8 +437,8 @@ public final class Constants {
       public static final double BOOT_MAX_ABS_DEG = 100.0;
 
       /** Mechanical safe range relative to forward (degrees). */
-      public static final double MIN_ANGLE_DEG = -100.0; // CW hard stop -100
-      public static final double MAX_ANGLE_DEG = 100.0; // CCW hard stop 100
+      public static final double MIN_ANGLE_DEG = -110.0; // CW hard stop -100
+      public static final double MAX_ANGLE_DEG = 110.0; // CCW hard stop 100
 
       /**
        * "Soft" limit for auto-aiming (degrees from your turret ZERO). Your notes
@@ -472,7 +472,7 @@ public final class Constants {
        * left,
        * then this constant is +90.
        */
-      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 0.0; //180.0
+      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 180.0; //180.0
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
@@ -758,6 +758,29 @@ public final class Constants {
       public static final double STATIC_HOLD_HEADING_kD = 0.0;
       public static final double STATIC_HOLD_MAX_OMEGA_DEG_PER_S = 180.0;
 
+      /** RT threshold for the stationary illegal-shot auto-turn assist. */
+      public static final double STATIONARY_ASSIST_TRIGGER_THRESHOLD = 0.30;
+
+      /**
+       * Additional comfort margin inside turret hard limits for deciding when the
+       * chassis should auto-turn to make a shot legal.
+       *
+       * With turret hard limits of [-110, +110], a value of 10 creates a comfort
+       * window of [-100, +100].
+       */
+      public static final double STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG = 10.0;
+
+            /**
+       * Fixed robot angular speed for the stationary illegal-shot auto-turn assist.
+       * Units are actual robot angular speed in rad/s.
+       */
+      public static final double STATIONARY_ILLEGAL_SHOT_FIXED_AUTO_TURN_RAD_PER_SEC = 1.5;
+
+      /**
+       * Driver omega deadband for allowing the stationary illegal-shot auto-turn
+       * assist to take over.
+       */
+      public static final double STATIONARY_ASSIST_OMEGA_DEADBAND = 0.30;
       /** Shooter enters recovery if actual RPM <= targetRPM * this fraction. */
   public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;
 
@@ -909,7 +932,7 @@ public final class Constants {
        * If you later prefer a very slow "creep hold", change this to a small nonzero
        * value.
        */
-      public static final double THROAT_BLOCKED_STAGE_RPS = -15; // TODO: placeholder (0 = stop)
+      public static final double THROAT_BLOCKED_STAGE_RPS = -0; // TODO: placeholder (0 = stop)
 
       // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
       // TODO: All gains are placeholders and MUST be tuned on the real robot.

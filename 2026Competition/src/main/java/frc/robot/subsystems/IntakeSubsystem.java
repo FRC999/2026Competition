@@ -57,7 +57,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private TalonFX intakePivotMotor; // leader
   private TalonFX intakePivotFollowerMotor; // follower
 
-  private final MotionMagicDutyCycle motionMagicVoltage = new MotionMagicDutyCycle(0).withEnableFOC(false);
+  private final MotionMagicVoltage motionMagicVoltage = new MotionMagicVoltage(0).withEnableFOC(false);
   private final VelocityVoltage rollerVelocityVoltage =
     new VelocityVoltage(0).withSlot(0);
 

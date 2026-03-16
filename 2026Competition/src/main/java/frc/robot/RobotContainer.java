@@ -71,6 +71,7 @@ import frc.robot.commands.StopClimb;
 import frc.robot.commands.StopIntake;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
+import frc.robot.commands.TestTurretAngleCommand;
 import frc.robot.commands.TurretCalibrationJogCommand;
 import frc.robot.commands.TurretJogCommand;
 import frc.robot.lib.ElasticHelpers;
@@ -126,11 +127,12 @@ public class RobotContainer {
 
     setYaws();
 
-    driveSubsystem.setDefaultCommand(
+        driveSubsystem.setDefaultCommand(
         new DriveManuallyCommand(
             () -> getDriverXAxis(),
             () -> getDriverYAxis(),
-            () -> getDriverOmegaAxis()));
+            () -> getDriverOmegaAxis(),
+            () -> turretStick.getRawButton(2)));
     CommandScheduler.getInstance().schedule(FollowPathCommand.warmupCommand());
 
     AutonomousConfigure();
@@ -227,7 +229,7 @@ public class RobotContainer {
       //configureSpindexerCalibrationBindings();
     }
     competitionXBOXButtonBindings();
-    //betaTesting();
+    betaTesting();
     //setYaws();
   }
 
@@ -255,8 +257,8 @@ public class RobotContainer {
             .andThen(new InstantCommand(() -> questNavSubsystem.zeroYaw())));
     
     new JoystickButton(xboxDriveController, 7)
-        .onTrue(new InstantCommand(() -> questNavSubsystem.customQuestPose(new Pose2d(2.33045, 2.22885, Rotation2d.kZero)))
-            .alongWith(new InstantCommand(() -> driveSubsystem.resetCTREPose(new Pose2d(2.33045, 2.22885, Rotation2d.kZero)))));
+        .onTrue(new InstantCommand(() -> questNavSubsystem.customQuestPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))
+            .alongWith(new InstantCommand(() -> driveSubsystem.resetCTREPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))));
 
     // Trigger 3: MOVING shot while held (no drivetrain hold)
     new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3)
@@ -346,6 +348,9 @@ public class RobotContainer {
     new JoystickButton(xboxDriveController, 3)
         .whileTrue(new InstantCommand(() -> spindexerSubsystem.runBase()))
         .whileFalse(new InstantCommand(() -> spindexerSubsystem.stop()));
+
+    new JoystickButton(turretStick, 1)
+        .onTrue(new TestTurretAngleCommand());
   }
 
     private void configureTransferCalibrationBindings() {

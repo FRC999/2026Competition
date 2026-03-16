@@ -31,7 +31,7 @@ public class QuestNavConstants {
         0.035 // Trust down to 2 degrees rotational
     );
 
-    public static final double llWait = 1.0; //In seconds, was 1000
+    public static final double llWait = 10.0; //In seconds, was 1000
     public static Pose2d startingPositionNoLL = new Pose2d(0, 0, new Rotation2d(0)); //10.331, 6.31, new Rotation2d(0)
 
 }
