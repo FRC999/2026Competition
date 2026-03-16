@@ -12,6 +12,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
+import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.OperatorConstants.OIContants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.RobotContainer;
@@ -124,12 +125,14 @@ public class DriveManuallyCommand extends Command {
       }
     }
 
-    SmartDashboard.putNumber("Drive/StationaryAutoTurnOmegaRadPerSec", autoTurnOmegaRadPerSec);
-    SmartDashboard.putBoolean("Drive/StationaryAutoTurnRequested", stationaryAutoTurnRequested);
-    SmartDashboard.putBoolean("Drive/StationaryAutoTurnActive", autoTurnActive);
-    SmartDashboard.putNumber("Drive/StationaryAutoTurnRawTurretDeg", autoTurnRawTurretDeg);
-    SmartDashboard.putNumber("Drive/StationaryAutoTurnRobotDeltaDeg", autoTurnRobotHeadingDeltaDeg);
-    SmartDashboard.putNumber("Drive/StationaryAutoTurnOmegaCmd", autoTurnOmegaCmd);
+    if(DebugTelemetrySubsystems.chassis){
+      SmartDashboard.putNumber("Drive/StationaryAutoTurnOmegaRadPerSec", autoTurnOmegaRadPerSec);
+      SmartDashboard.putBoolean("Drive/StationaryAutoTurnRequested", stationaryAutoTurnRequested);
+      SmartDashboard.putBoolean("Drive/StationaryAutoTurnActive", autoTurnActive);
+      SmartDashboard.putNumber("Drive/StationaryAutoTurnRawTurretDeg", autoTurnRawTurretDeg);
+      SmartDashboard.putNumber("Drive/StationaryAutoTurnRobotDeltaDeg", autoTurnRobotHeadingDeltaDeg);
+      SmartDashboard.putNumber("Drive/StationaryAutoTurnOmegaCmd", autoTurnOmegaCmd);
+    }
 
     if (!RobotContainer.driveSubsystem.getRobotCentric()) {
       RobotContainer.driveSubsystem.drive(
