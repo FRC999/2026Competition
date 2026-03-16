@@ -107,20 +107,20 @@ public final class Constants {
 
   public static final class EnabledSubsystems {
 
-    public static final boolean chasis = true;
-    public static final boolean odometry = true;
-    public static final boolean ll = true;
-    public static final boolean questnav = true;
+    public static final boolean chasis = false;
+    public static final boolean odometry = false;
+    public static final boolean ll = false;
+    public static final boolean questnav = false;
     public static final boolean intake = true;
-    public static final boolean shooter = true;
-    public static final boolean turret = true;
-    public static final boolean hood = true;
-    public static final boolean hopper = true;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
-    public static final boolean climber = true;
-    public static final boolean supervisor = true;
-    public static boolean calibration = false;
+    public static final boolean shooter = false;
+    public static final boolean turret = false;
+    public static final boolean hood = false;
+    public static final boolean hopper = false;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
+    public static final boolean climber = false;
+    public static final boolean supervisor = false;
+    public static boolean calibration = true;
   }
 
   public static final class DebugTelemetrySubsystems {
@@ -142,7 +142,7 @@ public final class Constants {
     public static final boolean smartDashboard = false;
 
     // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
-    public static final boolean calibration = false; // PLACEHOLDER set true only while calibrating
+    public static final boolean calibration = true; // PLACEHOLDER set true only while calibrating
   }
 
   public static final class AutoConstants {
@@ -1130,11 +1130,13 @@ public final class Constants {
       public static final double PIVOT_MIN_DEG = 0; // retracted hard stop = 0 deg
       public static final double PIVOT_MAX_DEG = 53; // TODO: PLACEHOLDER - verify true max
 
-      public static final double CAL_PIVOT_JOG_DUTY = 0.08;
+      public static final double CAL_PIVOT_JOG_DUTY = 0.20;
       // TODO: PLACEHOLDER - start low, raise carefully if needed
 
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
+      public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.6;
+      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.3;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         IntakeStowedDeg(37.0),

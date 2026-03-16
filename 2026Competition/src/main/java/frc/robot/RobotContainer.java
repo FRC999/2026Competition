@@ -59,6 +59,8 @@ import frc.robot.commands.ClimbDown;
 import frc.robot.commands.ClimbUp;
 import frc.robot.commands.DeployIntakeSequence;
 import frc.robot.commands.DriveManuallyCommand;
+import frc.robot.commands.IntakePowerIn;
+import frc.robot.commands.IntakePowerOut;
 import frc.robot.commands.IntakeToPositionAndHold;
 import frc.robot.commands.RetractIntakeSequence;
 import frc.robot.commands.ReverseIntake;
@@ -128,12 +130,12 @@ public class RobotContainer {
 
     setYaws();
 
-        driveSubsystem.setDefaultCommand(
-        new DriveManuallyCommand(
-            () -> getDriverXAxis(),
-            () -> getDriverYAxis(),
-            () -> getDriverOmegaAxis(),
-            () -> turretStick.getRawButton(2)));
+        // driveSubsystem.setDefaultCommand(
+        // new DriveManuallyCommand(
+        //     () -> getDriverXAxis(),
+        //     () -> getDriverYAxis(),
+        //     () -> getDriverOmegaAxis(),
+        //     () -> turretStick.getRawButton(2)));
     CommandScheduler.getInstance().schedule(FollowPathCommand.warmupCommand());
 
     AutonomousConfigure();
@@ -283,9 +285,9 @@ public class RobotContainer {
             true));
 
     new POVButton(xboxDriveController, 0)
-        .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeDeployedDeg));        
+        .onTrue(new IntakePowerOut());        
     new POVButton(xboxDriveController, 180)
-        .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeStowedDeg));
+        .onTrue(new IntakePowerIn());
 
   }
   private void configureSpindexerCalibrationBindings() {
@@ -547,12 +549,12 @@ private void configureIntakeCalibrationBindings() {
       .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
 
   new JoystickButton(turretStick, 2)
-      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
-      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+      .whileTrue(new RunCommand(() -> intakeSubsystem.setPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.exitOpenLoopHold()));
 
   new JoystickButton(turretStick, 3)
-      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
-      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+      .whileTrue(new RunCommand(() -> intakeSubsystem.setPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.exitOpenLoopHold()));
 
   new JoystickButton(turretStick, 4)
       .onTrue(new InstantCommand(() -> {
