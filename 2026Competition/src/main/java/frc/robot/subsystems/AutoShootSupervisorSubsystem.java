@@ -233,109 +233,136 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         target2d.getY(),
         Constants.OperatorConstants.FieldGeometry.HUB_OPENING_CENTER_Z_METERS);
 
-    // CTRE state.Speeds is robot-relative chassis speeds; convert to FIELD frame.
-    double vxRobot = driveState.Speeds.vxMetersPerSecond;
-    double vyRobot = driveState.Speeds.vyMetersPerSecond;
-    Translation2d vField = new Translation2d(vxRobot, vyRobot).rotateBy(poseField.getRotation());
+        // CTRE state.Speeds is robot-relative chassis speeds.
     double omega = driveState.Speeds.omegaRadiansPerSecond;
 
-    Translation2d aField = estimateAccelerationField(now, vField);
+    // --- 3) Aim/solve ---
+    final boolean isStatic =
+        (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE);
 
-    // --- 3) Solve shooting (or just aim) ---
+    // When not actively shooting, keep turret tracking cheap:
+    // do geometric hub tracking only, and skip the full ballistic solver.
+    if (!effectiveShootRequested) {
+      lastSolution = TurretHelpers.makeInvalidSolution();
+      hoodCompensationRad = 0.0;
 
-    final boolean isStatic = (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE);
+      rawDesiredTurretDeg =
+          TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d);
 
-    if (!isStatic) {
-      // MOVING: use your existing moving-shot solver (no behavior change)
-      lastSolution = TurretHelpers
-          .solveForShooterRpmAndHoodAngleCommandsWhileRobotIsMovingUsingMeasuredTableIndexedByRpmAndHood(
-              poseField,
-              vField,
-              aField,
-              omega,
-              Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
-              Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS,
-              Constants.OperatorConstants.TurretGeometry.BALL_RELEASE_HEIGHT_METERS,
-              target3d,
-              table,
-              Constants.OperatorConstants.ArtillerySolver.TOF_MIN_SEC,
-              Constants.OperatorConstants.ArtillerySolver.TOF_MAX_SEC,
-              Constants.OperatorConstants.ArtillerySolver.TOF_STEP_SEC,
-              Constants.OperatorConstants.ArtillerySolver.GRAVITY_MPS2,
-              Constants.OperatorConstants.ArtillerySolver.ANGLE_WEIGHT,
-              Constants.OperatorConstants.ArtillerySolver.SPEED_WEIGHT);
+      boolean turretZoneValid =
+          Double.isFinite(rawDesiredTurretDeg)
+              && isTurretWithinLegalShootZone(rawDesiredTurretDeg);
+
+      solutionValidity =
+          turretZoneValid
+              ? SolutionValidity.VALID
+              : SolutionValidity.TURRET_ONLY_INVALID;
+
+      desiredTurretDeg =
+          Double.isFinite(rawDesiredTurretDeg)
+              ? chooseSoftLimitedEquivalent(rawDesiredTurretDeg, now)
+              : Double.NaN;
+
     } else {
-      // STATIC (failsafe): pose-only yaw-to-hub + hardwired RPM/hood presets (no
-      // vision, no solver)
+      // Actively shooting: run the existing full solution path.
+      double vxRobot = driveState.Speeds.vxMetersPerSecond;
+      double vyRobot = driveState.Speeds.vyMetersPerSecond;
+      Translation2d vField =
+          new Translation2d(vxRobot, vyRobot).rotateBy(poseField.getRotation());
+      Translation2d aField = estimateAccelerationField(now, vField);
 
-      // Field yaw from robot position -> hub center
-      final double dx = target2d.getX() - poseField.getX();
-      final double dy = target2d.getY() - poseField.getY();
-      final double yawFieldRad = Math.atan2(dy, dx);
-
-      final double shooterRpm = (shotMode == ShotMode.STATIC_TOWER_BASE)
-          ? Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_RPM
-          : Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_RPM;
-
-      final double hoodAngleRad = Math.toRadians(
-          (shotMode == ShotMode.STATIC_TOWER_BASE)
-              ? Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_HOOD_DEG
-              : Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_HOOD_DEG);
-
-      // Create a "valid" solution object so the rest of the supervisor pipeline stays
-      // unchanged.
-      lastSolution = new TurretHelpers.Solution(
-          true,
-          0.0,
-          yawFieldRad,
-          Double.NaN,
-          Double.NaN,
-          new Translation3d(),
-          shooterRpm,
-          hoodAngleRad,
-          Double.NaN,
-          Double.NaN);
-    }
-
-        boolean ballisticValid = lastSolution.valid
-        && Double.isFinite(lastSolution.shooterRpmCommand)
-        && Double.isFinite(lastSolution.hoodCommandAngleRad)
-        && Double.isFinite(lastSolution.yawFieldRad);
-
-        final boolean isStaticForPredict = (shotMode == ShotMode.STATIC_HUB_BASE)
-        || (shotMode == ShotMode.STATIC_TOWER_BASE);
-    final double omegaForPredict = isStaticForPredict ? 0.0 : omega;
-
-    if (ballisticValid) {
-      if (isStaticForPredict) {
-        rawDesiredTurretDeg = TurretHelpers.computeStationaryRawTurretYawDeg(
-            poseField,
-            target2d);
+      if (!isStatic) {
+        lastSolution =
+            TurretHelpers
+                .solveForShooterRpmAndHoodAngleCommandsWhileRobotIsMovingUsingMeasuredTableIndexedByRpmAndHood(
+                    poseField,
+                    vField,
+                    aField,
+                    omega,
+                    Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
+                    Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS,
+                    Constants.OperatorConstants.TurretGeometry.BALL_RELEASE_HEIGHT_METERS,
+                    target3d,
+                    table,
+                    Constants.OperatorConstants.ArtillerySolver.TOF_MIN_SEC,
+                    Constants.OperatorConstants.ArtillerySolver.TOF_MAX_SEC,
+                    Constants.OperatorConstants.ArtillerySolver.TOF_STEP_SEC,
+                    Constants.OperatorConstants.ArtillerySolver.GRAVITY_MPS2,
+                    Constants.OperatorConstants.ArtillerySolver.ANGLE_WEIGHT,
+                    Constants.OperatorConstants.ArtillerySolver.SPEED_WEIGHT);
       } else {
-        rawDesiredTurretDeg = computeDesiredTurretDeg(
-            poseField.getRotation().getRadians(),
-            omegaForPredict,
-            Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
-            lastSolution.yawFieldRad,
-            Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG);
+        final double dx = target2d.getX() - poseField.getX();
+        final double dy = target2d.getY() - poseField.getY();
+        final double yawFieldRad = Math.atan2(dy, dx);
+
+        final double shooterRpm =
+            (shotMode == ShotMode.STATIC_TOWER_BASE)
+                ? Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_RPM
+                : Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_RPM;
+
+        final double hoodAngleRad =
+            Math.toRadians(
+                (shotMode == ShotMode.STATIC_TOWER_BASE)
+                    ? Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_HOOD_DEG
+                    : Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_HOOD_DEG);
+
+        lastSolution =
+            new TurretHelpers.Solution(
+                true,
+                0.0,
+                yawFieldRad,
+                Double.NaN,
+                Double.NaN,
+                new Translation3d(),
+                shooterRpm,
+                hoodAngleRad,
+                Double.NaN,
+                Double.NaN);
       }
-    } else {
-      rawDesiredTurretDeg = Double.NaN;
+
+      boolean ballisticValid =
+          lastSolution.valid
+              && Double.isFinite(lastSolution.shooterRpmCommand)
+              && Double.isFinite(lastSolution.hoodCommandAngleRad)
+              && Double.isFinite(lastSolution.yawFieldRad);
+
+      final boolean isStaticForPredict =
+          (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE);
+      final double omegaForPredict = isStaticForPredict ? 0.0 : omega;
+
+      if (ballisticValid) {
+        if (isStaticForPredict) {
+          rawDesiredTurretDeg =
+              TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d);
+        } else {
+          rawDesiredTurretDeg =
+              computeDesiredTurretDeg(
+                  poseField.getRotation().getRadians(),
+                  omegaForPredict,
+                  Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
+                  lastSolution.yawFieldRad,
+                  Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG);
+        }
+      } else {
+        rawDesiredTurretDeg = Double.NaN;
+      }
+
+      boolean turretZoneValid =
+          ballisticValid && isTurretWithinLegalShootZone(rawDesiredTurretDeg);
+
+      if (!ballisticValid) {
+        solutionValidity = SolutionValidity.GLOBAL_INVALID;
+      } else if (!turretZoneValid) {
+        solutionValidity = SolutionValidity.TURRET_ONLY_INVALID;
+      } else {
+        solutionValidity = SolutionValidity.VALID;
+      }
+
+      desiredTurretDeg =
+          Double.isFinite(rawDesiredTurretDeg)
+              ? chooseSoftLimitedEquivalent(rawDesiredTurretDeg, now)
+              : Double.NaN;
     }
-
-    boolean turretZoneValid = ballisticValid && isTurretWithinLegalShootZone(rawDesiredTurretDeg);
-
-    if (!ballisticValid) {
-      solutionValidity = SolutionValidity.GLOBAL_INVALID;
-    } else if (!turretZoneValid) {
-      solutionValidity = SolutionValidity.TURRET_ONLY_INVALID;
-    } else {
-      solutionValidity = SolutionValidity.VALID;
-    }
-
-    desiredTurretDeg = Double.isFinite(rawDesiredTurretDeg)
-        ? chooseSoftLimitedEquivalent(rawDesiredTurretDeg, now)
-        : Double.NaN;
 
     boolean aimEnabled = Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || effectiveShootRequested;
     if (aimEnabled && Double.isFinite(desiredTurretDeg)) {
