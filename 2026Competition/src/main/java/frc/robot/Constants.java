@@ -120,7 +120,7 @@ public final class Constants {
     public static final boolean transfer = true;
     public static final boolean climber = true;
     public static final boolean supervisor = true;
-    public static boolean calibration = false;
+    public static boolean calibration = true;
   }
 
   public static final class DebugTelemetrySubsystems {

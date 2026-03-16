@@ -223,7 +223,7 @@ public class RobotContainer {
     if (Constants.DebugTelemetrySubsystems.calibration) {
       //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
-      //configureIntakeCalibrationBindings();
+      configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
@@ -433,7 +433,7 @@ public class RobotContainer {
     final int BTN_SHOOTER_SYSID_DYN_REV = 12;
 
     // TODO: PLACEHOLDER - choose two practical calibration RPMs
-    final double RPM_A = 1925.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
+    final double RPM_A = 2500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
     final double RPM_B = 4500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM B
 
     // Set RPM A (press)
@@ -485,7 +485,7 @@ public class RobotContainer {
         .onTrue(new InstantCommand(() -> {
           // Toggle by checking current target
           double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
-          double nextDeg = 2.5; //the degree you're going to
+          double nextDeg = 21; //the degree you're going to
           hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
         }));
 
