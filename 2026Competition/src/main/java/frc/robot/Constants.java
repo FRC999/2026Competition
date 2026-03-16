@@ -128,8 +128,8 @@ public final class Constants {
     public static final boolean imu = false;
     public static final boolean chassis = false;
     public static final boolean ll = false;
-    public static final boolean questnav = false;
-    public static final boolean intake = true;
+    public static final boolean questnav = true;
+    public static final boolean intake = false;
     public static final boolean shooter = false;
     public static final boolean turret = false; 
     public static final boolean hood = false;
@@ -139,7 +139,7 @@ public final class Constants {
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
-    public static final boolean smartDashboard = true;
+    public static final boolean smartDashboard = false;
 
     // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
     public static final boolean calibration = true; // PLACEHOLDER set true only while calibrating

@@ -194,8 +194,8 @@ private final double forwardDeg =
     seedFromAbsoluteAtBoot();
 
     // Dashboard defaults.
-    SmartDashboard.putBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
-    SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
+    // SmartDashboard.putBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
+    // SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
 
     if (Constants.DebugTelemetrySubsystems.turret) {
         turretMech = new Mechanism2d(2.0, 2.0);
@@ -203,7 +203,7 @@ private final double forwardDeg =
         turretArm = new MechanismLigament2d("TurretArm", 0.8, 0.0);
         root.append(turretArm);
 
-        SmartDashboard.putData("Turret/Mechanism", turretMech);
+        // SmartDashboard.putData("Turret/Mechanism", turretMech);
     }
 
 												
@@ -323,7 +323,7 @@ private final double forwardDeg =
 
     // Capture status so we can see CAN dropouts / signal errors on dashboard.
     StatusCode status = absPosSig.getStatus();
-    SmartDashboard.putString("Turret/AbsStatus", status.toString());
+    //SmartDashboard.putString("Turret/AbsStatus", status.toString());
 
     // If not OK, keep last known value (prevents large jumps in unwrap logic).
     if (status != StatusCode.OK) {
@@ -384,8 +384,8 @@ private final double forwardDeg =
     targetDeg = continuousDeg;
 							 
     // Publish seed diagnostics to dashboard.
-    SmartDashboard.putNumber("Turret/SeedAbsDeg", absDeg);
-    SmartDashboard.putNumber("Turret/SeedContinuousDeg", continuousDeg);	 
+    // SmartDashboard.putNumber("Turret/SeedAbsDeg", absDeg);
+    // SmartDashboard.putNumber("Turret/SeedContinuousDeg", continuousDeg);	 
   }
 
   public void zeroTurretAngle() {
@@ -407,7 +407,7 @@ private final double forwardDeg =
 
     // Optional: if position is not OK, don't update the mechanism/angle this loop.
     if (motorPosSig.getStatus() != StatusCode.OK) {
-      SmartDashboard.putString("Turret/MotorPosStatus", motorPosSig.getStatus().toString());
+      //SmartDashboard.putString("Turret/MotorPosStatus", motorPosSig.getStatus().toString());
       lastUpdateTs = now;
       return;
     }
@@ -659,13 +659,13 @@ private final double forwardDeg =
 
     targetDeg = continuousDeg;
 
-    SmartDashboard.putNumber("Turret/ReseedAbsDeg", absDeg);
-    SmartDashboard.putNumber("Turret/ReseedContinuousDeg", continuousDeg);
+    // SmartDashboard.putNumber("Turret/ReseedAbsDeg", absDeg);
+    // SmartDashboard.putNumber("Turret/ReseedContinuousDeg", continuousDeg);
   }
 
   public void captureAbsForwardTicksCandidate() {
     int ticks = getAbsoluteTicks();
-    SmartDashboard.putNumber("Turret/AbsForwardTicksCandidate", ticks);
+    // SmartDashboard.putNumber("Turret/AbsForwardTicksCandidate", ticks);
   }
 
   public void adjustKp(double delta) {
@@ -689,8 +689,8 @@ private final double forwardDeg =
 
     turret.getConfigurator().apply(slot0);
 
-    SmartDashboard.putNumber("Turret/TunedKP", tunedKp);
-    SmartDashboard.putNumber("Turret/TunedKD", tunedKd);
+    // SmartDashboard.putNumber("Turret/TunedKP", tunedKp);
+    // SmartDashboard.putNumber("Turret/TunedKD", tunedKd);
   }
 
   // =======================
@@ -718,8 +718,8 @@ private final double forwardDeg =
 
     targetDeg = continuousDeg;
 
-    SmartDashboard.putNumber("Turret/Cal/ReseedAbsDeg", absDeg);
-    SmartDashboard.putNumber("Turret/Cal/ReseedContinuousDeg", continuousDeg);
+    // SmartDashboard.putNumber("Turret/Cal/ReseedAbsDeg", absDeg);
+    // SmartDashboard.putNumber("Turret/Cal/ReseedContinuousDeg", continuousDeg);
   }
 
   /**
@@ -728,7 +728,7 @@ private final double forwardDeg =
  */
 public void calibrationCaptureAbsZeroTicksCandidate() {
   int ticks = getAbsoluteTicks();
-  SmartDashboard.putNumber("Turret/AbsTicks", ticks);
+  // SmartDashboard.putNumber("Turret/AbsTicks", ticks);
 }
 
   /**
@@ -744,12 +744,12 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     // Using internal state so the command can just toggle enable/disable.
     isCalSweepEnabled = true;
     calSweepStartTimeSec = Timer.getFPGATimestamp();
-    SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", true);
+    //SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", true);
   }
 
   public void calibrationStopSweep() {
     isCalSweepEnabled = false;
-    SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", false);
+    //SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", false);
   }
 
   /** Calibration: adjust tuned Slot0 kP by delta (testing only). */
