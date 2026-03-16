@@ -87,6 +87,7 @@ import frc.robot.subsystems.SpindexerSubsystem;
 import frc.robot.subsystems.TransferSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.HoodSubsystem;
+import frc.robot.commands.PrintTurretShotDiagnosticsCommand;
 
 public class RobotContainer {
 
@@ -351,6 +352,9 @@ public class RobotContainer {
 
     new JoystickButton(turretStick, 1)
         .onTrue(new TestTurretAngleCommand());
+
+    new JoystickButton(turretStick, 5)
+    .onTrue(new PrintTurretShotDiagnosticsCommand());
   }
 
     private void configureTransferCalibrationBindings() {

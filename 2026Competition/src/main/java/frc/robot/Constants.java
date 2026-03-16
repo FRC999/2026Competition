@@ -120,7 +120,7 @@ public final class Constants {
     public static final boolean transfer = true;
     public static final boolean climber = true;
     public static final boolean supervisor = true;
-    public static boolean calibration = true;
+    public static boolean calibration = false;
   }
 
   public static final class DebugTelemetrySubsystems {
@@ -131,7 +131,7 @@ public final class Constants {
     public static final boolean questnav = true;
     public static final boolean intake = false;
     public static final boolean shooter = false;
-    public static final boolean turret = false; 
+    public static final boolean turret = true; 
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
@@ -422,19 +422,17 @@ public final class Constants {
       /** Turret is NOT drivetrain; it lives on the roboRIO CAN bus. */
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
-      /** Absolute PWM encoder reference (PulseWidth 0-4095 equivalent). */
-      public static final int ABS_TICKS_PER_REV = 4096;
-      /** Absolute encoder tick value that corresponds to turret pointing forward. */
-     // public static final int ABS_FORWARD_TICKS = 1282;
+            /** CANcoder magnet offset in rotations. Matches Phoenix Tuner. */
+      public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521;
 
-      public static final int ABS_ZERO_TICKS = 2762;
+      /** After applying magnet offset, turret-zero should read 0.0 rotations. */
+      public static final double ABS_ZERO_ROTATIONS = 0.0;
 
       /**
-       * Boot assumption: at robot power-on, turret is within +/- 180 degrees of
-       * forward.
-       * Used to seed the software unwrapped angle.
+       * Boot assumption: at robot power-on, turret is within +/- 120 degrees of
+       * turret zero.
        */
-      public static final double BOOT_MAX_ABS_DEG = 100.0;
+      public static final double BOOT_MAX_ABS_DEG = 120.0;
 
       /** Mechanical safe range relative to forward (degrees). */
       public static final double MIN_ANGLE_DEG = -110.0; // CW hard stop -100
@@ -1029,7 +1027,7 @@ public final class Constants {
        * Turret pivot position relative to robot origin, in the ROBOT frame (meters).
        */
       public static final Translation2d TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS = new Translation2d(
-          -0.1778, 0.0); // TODO set
+          -0.15, -0.06); //-0.1778, -0.07
 
       /** Ball release height above field when leaving shooter, meters. TODO set. */
       public static final double BALL_RELEASE_HEIGHT_METERS = 0.4318;

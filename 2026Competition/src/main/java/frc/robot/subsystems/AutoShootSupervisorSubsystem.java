@@ -302,18 +302,26 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         && Double.isFinite(lastSolution.hoodCommandAngleRad)
         && Double.isFinite(lastSolution.yawFieldRad);
 
-    final boolean isStaticForPredict = (shotMode == ShotMode.STATIC_HUB_BASE)
+        final boolean isStaticForPredict = (shotMode == ShotMode.STATIC_HUB_BASE)
         || (shotMode == ShotMode.STATIC_TOWER_BASE);
     final double omegaForPredict = isStaticForPredict ? 0.0 : omega;
 
-    rawDesiredTurretDeg = ballisticValid
-        ? computeDesiredTurretDeg(
+    if (ballisticValid) {
+      if (isStaticForPredict) {
+        rawDesiredTurretDeg = TurretHelpers.computeStationaryRawTurretYawDeg(
+            poseField,
+            target2d);
+      } else {
+        rawDesiredTurretDeg = computeDesiredTurretDeg(
             poseField.getRotation().getRadians(),
             omegaForPredict,
             Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
             lastSolution.yawFieldRad,
-            Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG)
-        : Double.NaN;
+            Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG);
+      }
+    } else {
+      rawDesiredTurretDeg = Double.NaN;
+    }
 
     boolean turretZoneValid = ballisticValid && isTurretWithinLegalShootZone(rawDesiredTurretDeg);
 
@@ -379,6 +387,25 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("TurretTesting/RobotPoseX", RobotContainer.driveSubsystem.getState().Pose.getX());
       SmartDashboard.putNumber("TurretTesting/RobotPoseY", RobotContainer.driveSubsystem.getState().Pose.getY());
       SmartDashboard.putNumber("TurretTesting/RobotRotation", RobotContainer.driveSubsystem.getState().Pose.getRotation().getDegrees());
+
+            SmartDashboard.putNumber("TurretTesting/StaticPivotAwareTurretDeg",
+          TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d));
+
+      SmartDashboard.putNumber("TurretTesting/StaticRobotCenterYawDeg",
+          computeDesiredTurretDeg(
+              poseField.getRotation().getRadians(),
+              0.0,
+              0.0,
+              Math.atan2(target2d.getY() - poseField.getY(), target2d.getX() - poseField.getX()),
+              Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG));
+
+      SmartDashboard.putNumber("TurretTesting/DesiredTurretDegFinal", desiredTurretDeg);
+      SmartDashboard.putNumber("TurretTesting/TurretZeroOffsetDeg",
+          Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG);
+      SmartDashboard.putNumber("TurretTesting/TurretPivotOffsetX",
+          Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS.getX());
+      SmartDashboard.putNumber("TurretTesting/TurretPivotOffsetY",
+          Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS.getY());
 
       // Log turret command issuance
     }

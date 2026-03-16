@@ -9,16 +9,15 @@ import static edu.wpi.first.units.Units.Volts;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
-import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.ControlRequest;
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -100,6 +99,9 @@ public class TurretSubsystem extends SubsystemBase {
   // If you ever re-install and it flips, change to -1.
   private static final double ANGLE_SIGN = -1.0;
 
+    /** Telemetry-only synthetic absolute scale for dashboard display. */
+  private static final int ABS_TICKS_PER_REV_UI = 4096;
+
   // ---------------- Software unwrap tracking ----------------
 
   /** last wrapped absolute angle (deg) in [0, 360) */
@@ -121,11 +123,9 @@ public class TurretSubsystem extends SubsystemBase {
   /** continuous target angle (deg) in [-340, +340] */
   private double targetDeg = 0.0;
 
- /** turret ZERO reference in degrees in the absolute sensor frame */
+  /** turret ZERO reference in degrees in the absolute sensor frame */
 private final double forwardDeg =
-    (Constants.OperatorConstants.Turret.ABS_ZERO_TICKS
-        / (double) Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV) * 360.0;
-
+    Constants.OperatorConstants.Turret.ABS_ZERO_ROTATIONS * 360.0;
   // ---------------- Continuous wrap toggling ----------------
 
   // Tracks the currently-applied wrap mode (so we don't spam configs).
@@ -238,7 +238,12 @@ private final double forwardDeg =
     return inverted ? SensorPhaseValue.Opposed : SensorPhaseValue.Aligned;
   }
 
-  private void configureHardware() {
+    private void configureHardware() {
+  CANcoderConfiguration ccfg = new CANcoderConfiguration();
+  ccfg.MagnetSensor.MagnetOffset =
+      Constants.OperatorConstants.Turret.CANCODER_MAGNET_OFFSET_ROT;
+  throughboreCANcoder.getConfigurator().apply(ccfg);
+
   // Motor output (brake + inversion)
   MotorOutputConfigs out = new MotorOutputConfigs()
       .withNeutralMode(NeutralModeValue.Brake)
@@ -351,8 +356,7 @@ private final double forwardDeg =
 
     // Compute shortest signed angle difference from the defined forward reference.
     // wrapToPlusMinus180 handles wrap-around at 0/360.
-    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus100(absDeg - forwardDeg);
-										 
+    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);										 
     // Boot assumption: within +/-180 (or whatever BOOT_MAX_ABS_DEG is set to).
     deltaDeg = MathUtil.clamp(
         deltaDeg,
@@ -368,7 +372,7 @@ private final double forwardDeg =
     // Seed TalonFX integrated position in *motor* rotations, not turret rotations.
     double motorRot = motorRotFromTurretDeg(continuousDeg);
     // alex test
-    //turret.setPosition(ANGLE_SIGN * motorRot);
+    turret.setPosition(ANGLE_SIGN * motorRot);
 
     // Initialize velocity bookkeeping.
     lastContinuousDeg = continuousDeg;
@@ -433,6 +437,10 @@ private final double forwardDeg =
     continuousDeg = nextClamped;                // used for safety + control
     lastUpdateTs = now;
 
+    SmartDashboard.putNumber("Turret/MeasuredContinuousDeg", continuousDeg);
+    SmartDashboard.putNumber("Turret/MeasuredContinuousDegUnclamped", continuousDegUnclamped);
+    SmartDashboard.putNumber("Turret/MotorSensorRot", motorRotSensor);
+
 
     // Keep abs wrapped for telemetry/diagnostics
     lastAbsDegWrapped = getAbsDegWrapped();
@@ -465,12 +473,10 @@ private final double forwardDeg =
     double absDeg = lastAbsDegWrapped;
 
     // Scale degrees -> ticks and round to nearest int.
-    int ticks = (int) Math.round((absDeg / 360.0) * Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV);
-
+    int ticks = (int) Math.round((absDeg / 360.0) * ABS_TICKS_PER_REV_UI);
     // Wrap into [0, ticksPerRev).
-    ticks %= Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
-    if (ticks < 0) ticks += Constants.OperatorConstants.Turret.ABS_TICKS_PER_REV;
-
+    ticks %= ABS_TICKS_PER_REV_UI;
+    if (ticks < 0) ticks += ABS_TICKS_PER_REV_UI;
     return ticks;
 							
   }
@@ -488,7 +494,7 @@ private final double forwardDeg =
     // Send open-loop command to the motor controller.
 
     // alex test
-    //turret.setControl(dutyRequest.withOutput(duty));
+    turret.setControl(dutyRequest.withOutput(duty));
   }
 
   public void setVoltageVolts(double volts) {
@@ -497,7 +503,7 @@ private final double forwardDeg =
     double v = MathUtil.clamp(volts, -12.0, 12.0);
 
     // alex test
-    //turret.setControl(voltageRequest.withOutput(v));
+    turret.setControl(voltageRequest.withOutput(v));
   }
 
 
@@ -539,11 +545,14 @@ private final double forwardDeg =
     double motorRotTarget = ANGLE_SIGN * motorRotFromTurretDeg(target);
 
     // alex test
-    //turret.setControl(mmRequest.withPosition(motorRotTarget));
+    turret.setControl(mmRequest.withPosition(motorRotTarget));
 
     SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
     //System.out.println("Target Turret: " + targetDeg);
     SmartDashboard.putNumber("Turret/DeltaDegCmd", targetDeg - continuousDeg);
+    SmartDashboard.putNumber("Turret/DesiredDegInput", desiredDeg);
+    SmartDashboard.putNumber("Turret/CurrentContinuousDeg", continuousDeg);
+    SmartDashboard.putNumber("Turret/MotorRotTarget", motorRotTarget);
     SmartDashboard.putString("Turret/GoalStatus", "MM_WRAP_OFF_CLAMPED");
 }
 
@@ -634,8 +643,8 @@ private final double forwardDeg =
     double absDeg = getAbsDegWrapped();
     lastAbsDegWrapped = absDeg;
 
-    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus100(absDeg - forwardDeg);
-    deltaDeg = MathUtil.clamp(
+    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
+        deltaDeg = MathUtil.clamp(
         deltaDeg,
         -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
         Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG);
@@ -646,7 +655,7 @@ private final double forwardDeg =
     double motorRot = motorRotFromTurretDeg(continuousDeg);
 
     // alex test
-    //turret.setPosition(ANGLE_SIGN * motorRot);
+    turret.setPosition(ANGLE_SIGN * motorRot);
 
     targetDeg = continuousDeg;
 
@@ -695,8 +704,8 @@ private final double forwardDeg =
     double absDeg = getAbsDegWrapped();
     lastAbsDegWrapped = absDeg;
 
-    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus100(absDeg - forwardDeg);
-    deltaDeg = MathUtil.clamp(
+    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
+        deltaDeg = MathUtil.clamp(
         deltaDeg,
         -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
         Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG);
@@ -714,8 +723,8 @@ private final double forwardDeg =
   }
 
   /**
- * Calibration: capture absolute ticks at current turret pose to manually set
- * ABS_ZERO_TICKS.
+ * Calibration: capture current absolute CANcoder reading for diagnostics.
+ * Zero is now defined by ABS_ZERO_ROTATIONS plus the CANcoder magnet offset.
  */
 public void calibrationCaptureAbsZeroTicksCandidate() {
   int ticks = getAbsoluteTicks();
@@ -818,7 +827,7 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     }
 
     // Update continuous (multi-turn) angle state every loop.
-    // updateContinuousAngle();
+     updateContinuousAngle();
     if(DebugTelemetrySubsystems.turret){
     // Telemetry block: expose key state for debugging and tuning.
       SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
@@ -854,7 +863,7 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     // }
 
     if (Constants.DebugTelemetrySubsystems.turret && turretArm != null) {
-      //turretArm.setAngle(wrapTo0To360(continuousDegUnclamped));
+      turretArm.setAngle(wrapTo0To360(continuousDegUnclamped));
     }
 
   }
@@ -924,12 +933,12 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     return d;
   }
  
-  /** wrap to (-100, 100] */
-  private static double wrapToPlusMinus100(double deg) {
-    // Wrap degrees into (-100,100] to compute shortest signed difference.
-    double d = ((deg + 100.0) % 200.0);
-    if (d < 0) d += 200.0;
-    return d - 100.0;
+    /** wrap to (-180, 180] */
+  private static double wrapToPlusMinus180(double deg) {
+    // Wrap degrees into (-180,180] to compute shortest signed difference.
+    double d = ((deg + 180.0) % 360.0);
+    if (d < 0) d += 360.0;
+    return d - 180.0;
   }
 
   
