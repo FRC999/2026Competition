@@ -275,7 +275,8 @@ public class SpindexerSubsystem extends SubsystemBase {
     }
 
     calMode = "OFF";
-    requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SUPPLY_RPS);
+    motor.set(0.9);
+    //requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SUPPLY_RPS);
   }
 
   public void runSlow() {
@@ -284,7 +285,8 @@ public class SpindexerSubsystem extends SubsystemBase {
     }
 
     calMode = "OFF";
-    requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SLOW_RPS);
+     motor.set(0.3);
+    //requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SLOW_RPS);
   }
 
   /** Calibration-only: run base using a live-tunable velocity setpoint. */

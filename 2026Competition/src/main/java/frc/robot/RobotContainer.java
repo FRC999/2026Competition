@@ -130,12 +130,12 @@ public class RobotContainer {
 
     setYaws();
 
-        // driveSubsystem.setDefaultCommand(
-        // new DriveManuallyCommand(
-        //     () -> getDriverXAxis(),
-        //     () -> getDriverYAxis(),
-        //     () -> getDriverOmegaAxis(),
-        //     () -> turretStick.getRawButton(2)));
+        driveSubsystem.setDefaultCommand(
+        new DriveManuallyCommand(
+            () -> getDriverXAxis(),
+            () -> getDriverYAxis(),
+            () -> getDriverOmegaAxis(),
+            () -> turretStick.getRawButton(2)));
     CommandScheduler.getInstance().schedule(FollowPathCommand.warmupCommand());
 
     AutonomousConfigure();
@@ -226,7 +226,7 @@ public class RobotContainer {
     if (Constants.DebugTelemetrySubsystems.calibration) {
       //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
-      configureIntakeCalibrationBindings();
+      //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
@@ -238,6 +238,10 @@ public class RobotContainer {
 
   public static Controller getDriveController() {
     return xboxDriveController;
+  }
+
+ public static Joystick getTurretStick() {
+    return turretStick;
   }
   private void competitionXBOXButtonBindings() {
     new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
@@ -357,6 +361,14 @@ public class RobotContainer {
 
     new JoystickButton(turretStick, 5)
     .onTrue(new PrintTurretShotDiagnosticsCommand());
+
+        new JoystickButton(turretStick, 11)
+        .whileTrue(new ShootWhileHeld(
+            AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED,
+            false))
+        .onFalse(new InstantCommand(() -> shooterSubsystem.stop())
+            .alongWith(new InstantCommand(() -> transferSubsystem.stop()))
+            .alongWith(new InstantCommand(() -> spindexerSubsystem.stop())));
   }
 
     private void configureTransferCalibrationBindings() {

@@ -107,26 +107,26 @@ public final class Constants {
 
   public static final class EnabledSubsystems {
 
-    public static final boolean chasis = false;
-    public static final boolean odometry = false;
-    public static final boolean ll = false;
-    public static final boolean questnav = false;
+    public static final boolean chasis = true;
+    public static final boolean odometry = true;
+    public static final boolean ll = true;
+    public static final boolean questnav = true;
     public static final boolean intake = true;
-    public static final boolean shooter = false;
-    public static final boolean turret = false;
-    public static final boolean hood = false;
+    public static final boolean shooter = true;
+    public static final boolean turret = true;
+    public static final boolean hood = true;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean spindexer = true;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
-    public static boolean calibration = true;
+    public static final boolean supervisor = true;
+    public static boolean calibration = false;
   }
 
   public static final class DebugTelemetrySubsystems {
     public static final boolean odometry = false;
     public static final boolean imu = false;
-    public static final boolean chassis = false;
+    public static final boolean chassis = true;
     public static final boolean ll = false;
     public static final boolean questnav = true;
     public static final boolean intake = false;
@@ -733,6 +733,50 @@ public final class Constants {
       public static final double FLIP_SUPPRESS_SEC = 0.35;
 
       // ---------------------------------------------------------------------
+      // MOVING AUTO SHOT DISTANCE TABLE
+      // ---------------------------------------------------------------------
+      // Distance is measured from turret center to hub center.
+      // These arrays must stay sorted ascending by distance.
+      public static final double[] MOVING_AUTO_SHOT_DISTANCE_M = {
+          1.471,
+          1.758,
+          2.132,
+          2.591,
+          2.603,
+          3.089,
+          3.647,
+          3.953,
+          4.501,
+          5.187
+      };
+
+      public static final double[] MOVING_AUTO_SHOT_HOOD_DEG = {
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          3.0
+      };
+
+      public static final double[] MOVING_AUTO_SHOT_RPM = {
+          2020.3,
+          1989.1,
+          2114.1,
+          2207.9,
+          2192.9,
+          2396.9,
+          2570.1,
+          2522.8,
+          2774.0,
+          2900.8
+      };
+
+      // ---------------------------------------------------------------------
       // STATIC FAILSAFE SHOTS (pose-only, hardwired presets)
       // ---------------------------------------------------------------------
       // TODO: PLACEHOLDER: Tune these for your real "Hub Base" static spot.
@@ -742,6 +786,21 @@ public final class Constants {
       // TODO: PLACEHOLDER: Tune these for your real "Tower Base" static spot.
       public static final double STATIC_TOWER_BASE_RPM = 4600.0;
       public static final double STATIC_TOWER_BASE_HOOD_DEG = 30.0;
+
+            // ---------------------------------------------------------------------
+      // MANUAL FIXED SHOT (turret-stick button 11)
+      // ---------------------------------------------------------------------
+      /** Fixed hood angle for the manual fixed shot. */
+      public static final double MANUAL_FIXED_SHOT_HOOD_DEG = 3.0; // TODO: tune
+
+      /** Base shooter RPM for the manual fixed shot. */
+      public static final double MANUAL_FIXED_SHOT_BASE_RPM = 2200.0; // TODO: tune
+
+      /**
+       * Shooter RPM trim from the joystick twist ("tail").
+       * A twist input of -1..+1 becomes -1000..+1000 RPM.
+       */
+      public static final double MANUAL_FIXED_SHOT_RPM_TRIM_RANGE = 1000.0;
 
       // "Robot stopped" gating for static shots (prevents feeding while sliding).
       // TODO: PLACEHOLDER: Tune thresholds (start conservative).
@@ -930,7 +989,7 @@ public final class Constants {
        * If you later prefer a very slow "creep hold", change this to a small nonzero
        * value.
        */
-      public static final double THROAT_BLOCKED_STAGE_RPS = -0; // TODO: placeholder (0 = stop)
+      public static final double THROAT_BLOCKED_STAGE_RPS = 0.0;
 
       // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
       // TODO: All gains are placeholders and MUST be tuned on the real robot.

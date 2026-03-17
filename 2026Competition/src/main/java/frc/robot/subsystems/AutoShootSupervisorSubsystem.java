@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -57,6 +58,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   }
 
   private TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle table;
+    private final InterpolatingDoubleTreeMap movingAutoRpmByDistance =
+      new InterpolatingDoubleTreeMap();
+  private final InterpolatingDoubleTreeMap movingAutoHoodDegByDistance =
+      new InterpolatingDoubleTreeMap();
 
   // Driver request flag (set by commands)
   private boolean shootRequested = false;
@@ -94,6 +99,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.supervisor) {
       return;
     }
+
+    seedMovingAutoDistanceTables();
 
     // Load artillery table once. If missing/empty, hasAnyData() will be false and
     // solver will return invalid.
@@ -139,12 +146,82 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     return lastSolution;
   }
 
+    public TurretHelpers.Solution calculateDiagnosticSolution() {
+    if (!EnabledSubsystems.supervisor) {
+      return TurretHelpers.makeInvalidSolution();
+    }
+
+    var driveState = RobotContainer.driveSubsystem.getState();
+    var poseField = driveState.Pose;
+
+    currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
+    Translation2d target2d = getAllianceAwareAimTarget(currentAimTarget);
+
+    Translation3d target3d = new Translation3d(
+        target2d.getX(),
+        target2d.getY(),
+        Constants.OperatorConstants.FieldGeometry.HUB_OPENING_CENTER_Z_METERS);
+
+    final boolean isStatic =
+        (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE)
+            || (shotMode == ShotMode.MANUAL_FIXED);
+
+    double omega = driveState.Speeds.omegaRadiansPerSecond;
+
+    TurretHelpers.Solution solution;
+
+        if (!isStatic) {
+          solution = solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
+        } else {
+      final double dx = target2d.getX() - poseField.getX();
+      final double dy = target2d.getY() - poseField.getY();
+      final double yawFieldRad = Math.atan2(dy, dx);
+
+            final double shooterRpm;
+      final double hoodAngleRad;
+
+      if (shotMode == ShotMode.STATIC_TOWER_BASE) {
+        shooterRpm = Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_RPM;
+        hoodAngleRad =
+            Math.toRadians(Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_HOOD_DEG);
+      } else if (shotMode == ShotMode.STATIC_HUB_BASE) {
+        shooterRpm = Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_RPM;
+        hoodAngleRad =
+            Math.toRadians(Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_HOOD_DEG);
+      } else {
+        double throttle =
+            MathUtil.clamp(RobotContainer.getTurretStick().getThrottle(), -1.0, 1.0);
+        shooterRpm =
+            Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
+                + throttle * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
+        hoodAngleRad =
+            Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
+      }
+
+      solution =
+          new TurretHelpers.Solution(
+              true,
+              0.0,
+              yawFieldRad,
+              Double.NaN,
+              Double.NaN,
+              new Translation3d(),
+              shooterRpm,
+              hoodAngleRad,
+              Double.NaN,
+              Double.NaN);
+    }
+
+        return solution;
+  }
+
 
   // Shot mode: moving solver vs static presets (existing behavior)
-  public enum ShotMode {
+    public enum ShotMode {
     MOVING_AUTO,
     STATIC_HUB_BASE,
-    STATIC_TOWER_BASE
+    STATIC_TOWER_BASE,
+    MANUAL_FIXED
   }
 
   private ShotMode shotMode = ShotMode.MOVING_AUTO;
@@ -238,7 +315,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     // --- 3) Aim/solve ---
     final boolean isStatic =
-        (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE);
+        (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE)
+            || (shotMode == ShotMode.MANUAL_FIXED);
 
     // When not actively shooting, keep turret tracking cheap:
     // do geometric hub tracking only, and skip the full ballistic solver.
@@ -271,40 +349,32 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
           new Translation2d(vxRobot, vyRobot).rotateBy(poseField.getRotation());
       Translation2d aField = estimateAccelerationField(now, vField);
 
-      if (!isStatic) {
-        lastSolution =
-            TurretHelpers
-                .solveForShooterRpmAndHoodAngleCommandsWhileRobotIsMovingUsingMeasuredTableIndexedByRpmAndHood(
-                    poseField,
-                    vField,
-                    aField,
-                    omega,
-                    Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
-                    Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS,
-                    Constants.OperatorConstants.TurretGeometry.BALL_RELEASE_HEIGHT_METERS,
-                    target3d,
-                    table,
-                    Constants.OperatorConstants.ArtillerySolver.TOF_MIN_SEC,
-                    Constants.OperatorConstants.ArtillerySolver.TOF_MAX_SEC,
-                    Constants.OperatorConstants.ArtillerySolver.TOF_STEP_SEC,
-                    Constants.OperatorConstants.ArtillerySolver.GRAVITY_MPS2,
-                    Constants.OperatorConstants.ArtillerySolver.ANGLE_WEIGHT,
-                    Constants.OperatorConstants.ArtillerySolver.SPEED_WEIGHT);
+      if (shotMode == ShotMode.MOVING_AUTO) {
+        lastSolution = solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
       } else {
         final double dx = target2d.getX() - poseField.getX();
         final double dy = target2d.getY() - poseField.getY();
         final double yawFieldRad = Math.atan2(dy, dx);
 
-        final double shooterRpm =
-            (shotMode == ShotMode.STATIC_TOWER_BASE)
-                ? Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_RPM
-                : Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_RPM;
+        final double shooterRpm;
+        final double hoodAngleRad;
 
-        final double hoodAngleRad =
-            Math.toRadians(
-                (shotMode == ShotMode.STATIC_TOWER_BASE)
-                    ? Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_HOOD_DEG
-                    : Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_HOOD_DEG);
+        if (shotMode == ShotMode.STATIC_TOWER_BASE) {
+          shooterRpm = Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_RPM;
+          hoodAngleRad =
+              Math.toRadians(Constants.OperatorConstants.AutoShoot.STATIC_TOWER_BASE_HOOD_DEG);
+        } else if (shotMode == ShotMode.STATIC_HUB_BASE) {
+          shooterRpm = Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_RPM;
+          hoodAngleRad =
+              Math.toRadians(Constants.OperatorConstants.AutoShoot.STATIC_HUB_BASE_HOOD_DEG);
+        } else {
+          double twist = MathUtil.clamp(RobotContainer.getTurretStick().getThrottle(), -1.0, 1.0);
+          shooterRpm =
+              Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
+                  + twist * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
+          hoodAngleRad =
+              Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
+        }
 
         lastSolution =
             new TurretHelpers.Solution(
@@ -320,6 +390,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
                 Double.NaN);
       }
 
+      // lastSolution = applyEmpiricalMovingAutoShotCorrection(lastSolution, poseField, target2d);
+
       boolean ballisticValid =
           lastSolution.valid
               && Double.isFinite(lastSolution.shooterRpmCommand)
@@ -327,7 +399,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
               && Double.isFinite(lastSolution.yawFieldRad);
 
       final boolean isStaticForPredict =
-          (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE);
+          (shotMode == ShotMode.STATIC_HUB_BASE) || (shotMode == ShotMode.STATIC_TOWER_BASE)
+              || (shotMode == ShotMode.MANUAL_FIXED);
       final double omegaForPredict = isStaticForPredict ? 0.0 : omega;
 
       if (ballisticValid) {
@@ -443,8 +516,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     if (!effectiveShootRequested) {
       state = VolleyState.IDLE;
       solutionValidity = SolutionValidity.GLOBAL_INVALID;
-      RobotContainer.transferSubsystem.runVelocityRps(
-          Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      RobotContainer.transferSubsystem.stop();
       RobotContainer.spindexerSubsystem.stop();
       RobotContainer.shooterSubsystem.stop();
 
@@ -488,8 +560,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     // If suppressing due to edge handling, do not feed.
     if (suppress) {
       state = VolleyState.ARMING;
-      RobotContainer.transferSubsystem.runVelocityRps(
-          Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      RobotContainer.transferSubsystem.runStage();
       publishTelemetry();
       return;
     }
@@ -523,8 +594,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     }
 
     if (state == VolleyState.RECOVERING) {
-      RobotContainer.transferSubsystem.runVelocityRps(
-          Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      RobotContainer.transferSubsystem.runStage();
       RobotContainer.spindexerSubsystem.runSlow();
       publishTelemetry();
       return;
@@ -535,8 +605,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       RobotContainer.transferSubsystem.runFeed();
     } else {
       state = VolleyState.ARMING;
-      RobotContainer.transferSubsystem.runVelocityRps(
-          Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      RobotContainer.transferSubsystem.runStage();
     }
 
     publishTelemetry();
@@ -557,6 +626,76 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     lastVelXField = vField.getX();
     lastVelYField = vField.getY();
     return new Translation2d(ax, ay);
+  }
+
+      private void seedMovingAutoDistanceTables() {
+    movingAutoRpmByDistance.clear();
+    movingAutoHoodDegByDistance.clear();
+
+    double[] distances = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_DISTANCE_M;
+    double[] rpms = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_RPM;
+    double[] hoods = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_HOOD_DEG;
+
+    int n = Math.min(distances.length, Math.min(rpms.length, hoods.length));
+    for (int i = 0; i < n; i++) {
+      movingAutoRpmByDistance.put(distances[i], rpms[i]);
+      movingAutoHoodDegByDistance.put(distances[i], hoods[i]);
+    }
+  }
+
+  private TurretHelpers.Solution solveDistanceInterpolatedMovingAutoShot(
+      Pose2d poseField,
+      Translation2d target2d) {
+
+    double distanceMeters = computeTurretCenterToTargetDistanceMeters(poseField, target2d);
+
+    double[] distances = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_DISTANCE_M;
+    if (distances.length == 0) {
+      return TurretHelpers.makeInvalidSolution();
+    }
+
+    double clampedDistance =
+        MathUtil.clamp(distanceMeters, distances[0], distances[distances.length - 1]);
+
+    double shooterRpm = movingAutoRpmByDistance.get(clampedDistance);
+    double hoodDeg = movingAutoHoodDegByDistance.get(clampedDistance);
+
+    if (!Double.isFinite(shooterRpm) || !Double.isFinite(hoodDeg)) {
+      return TurretHelpers.makeInvalidSolution();
+    }
+
+    Translation2d turretCenterField =
+        poseField.getTranslation().plus(
+            Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+                .rotateBy(poseField.getRotation()));
+
+    double yawFieldRad =
+        Math.atan2(
+            target2d.getY() - turretCenterField.getY(),
+            target2d.getX() - turretCenterField.getX());
+
+    return new TurretHelpers.Solution(
+        true,
+        0.0,
+        yawFieldRad,
+        Double.NaN,
+        Double.NaN,
+        new Translation3d(),
+        shooterRpm,
+        Math.toRadians(hoodDeg),
+        Double.NaN,
+        Double.NaN);
+  }
+
+  private static double computeTurretCenterToTargetDistanceMeters(
+      Pose2d poseField,
+      Translation2d target2d) {
+    Translation2d turretCenterField =
+        poseField.getTranslation().plus(
+            Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+                .rotateBy(poseField.getRotation()));
+
+    return turretCenterField.getDistance(target2d);
   }
 
   private static Translation2d getAllianceHubTarget() {
@@ -630,7 +769,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     return (x >= loX) && (x <= hiX) && (y >= loY) && (y <= hiY);
   }
 
-    private static Translation2d getAllianceAwareAimTarget(Constants.FieldTargets.AimTarget target) {
+    public static Translation2d getAllianceAwareAimTarget(Constants.FieldTargets.AimTarget target) {
     var alliance = DriverStation.getAlliance();
     boolean isRed = alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
     return new Translation2d(target.getX(isRed), target.getY(isRed));
