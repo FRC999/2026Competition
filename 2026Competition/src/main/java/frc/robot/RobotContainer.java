@@ -226,7 +226,7 @@ public class RobotContainer {
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
     }
-    //competitionXBOXButtonBindings();
+    competitionXBOXButtonBindings();
     //betaTesting();
     //setYaws();
   }
@@ -242,13 +242,13 @@ public class RobotContainer {
         .onTrue(new RetractIntakeSequence())
         .onFalse(new StopIntake());
 
-    new JoystickButton(xboxDriveController, 4)
-        .onTrue(new ClimbUp())
-        .onFalse(new StopClimb());
+    // new JoystickButton(xboxDriveController, 4)
+    //     .onTrue(new ClimbUp())
+    //     .onFalse(new StopClimb());
 
-    new JoystickButton(xboxDriveController, 1)
-        .onTrue(new ClimbDown())
-        .onFalse(new StopClimb());
+    // new JoystickButton(xboxDriveController, 1)
+    //     .onTrue(new ClimbDown())
+    //     .onFalse(new StopClimb());
 
     new JoystickButton(xboxDriveController, 8)
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())

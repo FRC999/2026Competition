@@ -108,7 +108,7 @@ public final class Constants {
   public static final class EnabledSubsystems {
 
     public static final boolean chasis = true;
-    public static final boolean odometry = true;
+    public static final boolean odometry = false;
     public static final boolean ll = true;
     public static final boolean questnav = true;
     public static final boolean intake = true;
@@ -124,7 +124,7 @@ public final class Constants {
   }
 
   public static final class DebugTelemetrySubsystems {
-    public static final boolean odometry = true;
+    public static final boolean odometry = false;
     public static final boolean imu = true;
     public static final boolean chassis = true;
     public static final boolean ll = true;

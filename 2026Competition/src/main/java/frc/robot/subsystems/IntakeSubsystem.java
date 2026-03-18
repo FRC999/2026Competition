@@ -57,7 +57,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private TalonFX intakePivotMotor; // leader
   private TalonFX intakePivotFollowerMotor; // follower
 
-  private final MotionMagicDutyCycle motionMagicVoltage = new MotionMagicDutyCycle(0).withEnableFOC(false);
+  private final MotionMagicVoltage motionMagicVoltage = new MotionMagicVoltage(0).withEnableFOC(false);
   private final VelocityVoltage rollerVelocityVoltage =
     new VelocityVoltage(0).withSlot(0);
 
@@ -264,7 +264,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
     intakePivotFollowerMotor.setControl(new Follower(IntakeConstants.intakePivotMotorId, alignment));
 
     var motorPivotConfig = new MotorOutputConfigs();
-    motorPivotConfig.NeutralMode = NeutralModeValue.Coast;
+    motorPivotConfig.NeutralMode = NeutralModeValue.Brake;
     motorPivotConfig.Inverted = (IntakeConstants.intakePivotMotorInverted
         ? InvertedValue.CounterClockwise_Positive
         : InvertedValue.Clockwise_Positive);
@@ -408,6 +408,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
   public void seedZeroFromRetractedHardStop() {
     // Because you guarantee intake starts fully retracted.
     intakePivotEncoderZero = 0.0;
+    
 
     // IMPORTANT: this sets the motor sensor position to 0
     intakePivotMotor.setPosition(0.0);
