@@ -1,20 +1,23 @@
 package frc.robot.lib;
 
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import edu.wpi.first.wpilibj.Filesystem;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.geometry.Twist2d;
+import edu.wpi.first.wpilibj.Filesystem;
+import frc.robot.Constants;
+import frc.robot.lib.TurretHelpers.Solution;
 
 /**
  * TurretHelpers
@@ -130,104 +133,121 @@ public final class TurretHelpers {
             return !table.isEmpty();
         }
 
-
-/**
- * Load an artillery table from a CSV on the roboRIO.
- *
- * <p>Recommended location: put the file under src/main/deploy and load it with
- * {@link #loadFromDeployCsv(String)}.
- *
- * <h3>CSV format</h3>
- * <ul>
- *   <li>Header row is optional. Lines starting with '#' are ignored.</li>
- *   <li>Delimiter: comma</li>
- *   <li>Required columns (either order):
- *     <ul>
- *       <li>shooter_rpm (double)</li>
- *       <li>hood_deg (double) - hood command angle in degrees</li>
- *       <li>measured_ball_angle_deg (double) - measured exit angle above horizontal, degrees</li>
- *       <li>measured_ball_speed_mps (double)</li>
- *     </ul>
- *   </li>
- *   <li>Optional columns:
- *     <ul>
- *       <li>measured_rpm_drop (double) - RPM dip when firing one ball</li>
- *       <li>measured_recovery_time_sec (double) - time to recover to "ready"</li>
- *     </ul>
- *   </li>
- * </ul>
- *
- * <p>Units are explicit to avoid confusion. If you prefer radians in the file, convert before writing.
- *
- * <p>Error handling policy:
- * <ul>
- *   <li>Bad lines are skipped (and counted).</li>
- *   <li>If <b>no valid samples</b> are parsed, {@code hasAnyData()} will be false.</li>
- * </ul>
- */
-public static ArtilleryTableIndexedByShooterRpmAndHoodAngle loadFromDeployCsv(String deployRelativePath) {
-    Path file = Filesystem.getDeployDirectory().toPath().resolve(deployRelativePath);
-    return loadFromCsv(file);
-}
-
-/** Same as {@link #loadFromDeployCsv(String)} but takes an absolute/relative {@link Path}. */
-public static ArtilleryTableIndexedByShooterRpmAndHoodAngle loadFromCsv(Path csvPath) {
-    ArtilleryTableIndexedByShooterRpmAndHoodAngle out = new ArtilleryTableIndexedByShooterRpmAndHoodAngle();
-    if (csvPath == null) return out;
-    if (!Files.exists(csvPath)) {
-        return out;
-    }
-
-    int badLines = 0;
-    int goodLines = 0;
-
-    try (BufferedReader br = Files.newBufferedReader(csvPath, StandardCharsets.UTF_8)) {
-        String line;
-        while ((line = br.readLine()) != null) {
-            line = line.trim();
-            if (line.isEmpty() || line.startsWith("#")) continue;
-            // Allow a header by skipping any line that contains non-numeric tokens in the first 2 columns.
-            String[] parts = line.split(",");
-            if (parts.length < 4) { badLines++; continue; }
-            Double rpm = tryParse(parts[0]);
-            Double hoodDeg = tryParse(parts[1]);
-            Double ballAngDeg = tryParse(parts[2]);
-            Double ballSpd = tryParse(parts[3]);
-            if (rpm == null || hoodDeg == null || ballAngDeg == null || ballSpd == null) {
-                // Header or malformed line
-                badLines++;
-                continue;
-            }
-            Double rpmDrop = (parts.length >= 5) ? tryParse(parts[4]) : null;
-            Double rec = (parts.length >= 6) ? tryParse(parts[5]) : null;
-
-            double hoodRad = Math.toRadians(hoodDeg);
-            double ballAngRad = Math.toRadians(ballAngDeg);
-            out.table.computeIfAbsent(rpm, k -> new TreeMap<>())
-                .put(hoodRad, new MeasuredBallOutcome(ballAngRad, ballSpd,
-                        (rpmDrop != null) ? rpmDrop : Double.NaN,
-                        (rec != null) ? rec : Double.NaN));
-            goodLines++;
+        /**
+         * Load an artillery table from a CSV on the roboRIO.
+         *
+         * <p>
+         * Recommended location: put the file under src/main/deploy and load it with
+         * {@link #loadFromDeployCsv(String)}.
+         *
+         * <h3>CSV format</h3>
+         * <ul>
+         * <li>Header row is optional. Lines starting with '#' are ignored.</li>
+         * <li>Delimiter: comma</li>
+         * <li>Required columns (either order):
+         * <ul>
+         * <li>shooter_rpm (double)</li>
+         * <li>hood_deg (double) - hood command angle in degrees</li>
+         * <li>measured_ball_angle_deg (double) - measured exit angle above horizontal,
+         * degrees</li>
+         * <li>measured_ball_speed_mps (double)</li>
+         * </ul>
+         * </li>
+         * <li>Optional columns:
+         * <ul>
+         * <li>measured_rpm_drop (double) - RPM dip when firing one ball</li>
+         * <li>measured_recovery_time_sec (double) - time to recover to "ready"</li>
+         * </ul>
+         * </li>
+         * </ul>
+         *
+         * <p>
+         * Units are explicit to avoid confusion. If you prefer radians in the file,
+         * convert before writing.
+         *
+         * <p>
+         * Error handling policy:
+         * <ul>
+         * <li>Bad lines are skipped (and counted).</li>
+         * <li>If <b>no valid samples</b> are parsed, {@code hasAnyData()} will be
+         * false.</li>
+         * </ul>
+         */
+        public static ArtilleryTableIndexedByShooterRpmAndHoodAngle loadFromDeployCsv(String deployRelativePath) {
+            Path file = Filesystem.getDeployDirectory().toPath().resolve(deployRelativePath);
+            return loadFromCsv(file);
         }
-    } catch (IOException e) {
-        // Leave table empty; caller can detect via hasAnyData()
-        return out;
-    }
 
-    // Note: We intentionally do not throw if all lines were bad; empty table => invalid solution.
-    return out;
-}
+        /**
+         * Same as {@link #loadFromDeployCsv(String)} but takes an absolute/relative
+         * {@link Path}.
+         */
+        public static ArtilleryTableIndexedByShooterRpmAndHoodAngle loadFromCsv(Path csvPath) {
+            ArtilleryTableIndexedByShooterRpmAndHoodAngle out = new ArtilleryTableIndexedByShooterRpmAndHoodAngle();
+            if (csvPath == null)
+                return out;
+            if (!Files.exists(csvPath)) {
+                return out;
+            }
 
-private static Double tryParse(String s) {
-    if (s == null) return null;
-    s = s.trim();
-    if (s.isEmpty()) return null;
-    try {
-        return Double.parseDouble(s);
-    } catch (NumberFormatException ex) {
-        return null;
-    }
-}
+            int badLines = 0;
+            int goodLines = 0;
+
+            try (BufferedReader br = Files.newBufferedReader(csvPath, StandardCharsets.UTF_8)) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    line = line.trim();
+                    if (line.isEmpty() || line.startsWith("#"))
+                        continue;
+                    // Allow a header by skipping any line that contains non-numeric tokens in the
+                    // first 2 columns.
+                    String[] parts = line.split(",");
+                    if (parts.length < 4) {
+                        badLines++;
+                        continue;
+                    }
+                    Double rpm = tryParse(parts[0]);
+                    Double hoodDeg = tryParse(parts[1]);
+                    Double ballAngDeg = tryParse(parts[2]);
+                    Double ballSpd = tryParse(parts[3]);
+                    if (rpm == null || hoodDeg == null || ballAngDeg == null || ballSpd == null) {
+                        // Header or malformed line
+                        badLines++;
+                        continue;
+                    }
+                    Double rpmDrop = (parts.length >= 5) ? tryParse(parts[4]) : null;
+                    Double rec = (parts.length >= 6) ? tryParse(parts[5]) : null;
+
+                    double hoodRad = Math.toRadians(hoodDeg);
+                    double ballAngRad = Math.toRadians(ballAngDeg);
+                    out.table.computeIfAbsent(rpm, k -> new TreeMap<>())
+                            .put(hoodRad, new MeasuredBallOutcome(ballAngRad, ballSpd,
+                                    (rpmDrop != null) ? rpmDrop : Double.NaN,
+                                    (rec != null) ? rec : Double.NaN));
+                    goodLines++;
+                }
+            } catch (IOException e) {
+                // Leave table empty; caller can detect via hasAnyData()
+                return out;
+            }
+
+            // Note: We intentionally do not throw if all lines were bad; empty table =>
+            // invalid solution.
+            return out;
+        }
+
+        private static Double tryParse(String s) {
+            if (s == null)
+                return null;
+            s = s.trim();
+            if (s.isEmpty())
+                return null;
+            try {
+                return Double.parseDouble(s);
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+        }
 
         /**
          * Inverse lookup:
@@ -252,39 +272,28 @@ private static Double tryParse(String s) {
                 double desiredBallExitSpeedMps,
                 double angleWeight,
                 double speedWeight) {
-            if (table.isEmpty())
+            if (table.isEmpty()) {
                 return makeNotARealCommandsAndOutcome();
-            ShooterCommandsAndMeasuredOutcome best = null;
-            double bestError = Double.POSITIVE_INFINITY;
-            // Search all measured grid points. This is simple, robust, and fast enough for
-            // typical table sizes.
-            for (Map.Entry<Double, TreeMap<Double, MeasuredBallOutcome>> rpmRow : table.entrySet()) {
-                double rpm = rpmRow.getKey();
-                TreeMap<Double, MeasuredBallOutcome> hoodMap = rpmRow.getValue();
-                if (hoodMap == null || hoodMap.isEmpty())
-                    continue;
-                for (Map.Entry<Double, MeasuredBallOutcome> hoodEntry : hoodMap.entrySet()) {
-                    double hood = hoodEntry.getKey();
-                    MeasuredBallOutcome out = hoodEntry.getValue();
-                    if (out == null)
-                        continue;
-                    double angleErr = Math.abs(wrapToPi(out.ballOutputAngleRad - desiredBallOutputAngleRad));
-                    double speedErr = Math.abs(out.ballExitSpeedMps - desiredBallExitSpeedMps);
-                    double error = angleWeight * angleErr + speedWeight * speedErr;
-                    if (error < bestError - 1e-12) {
-                        bestError = error;
-                        best = new ShooterCommandsAndMeasuredOutcome(rpm, hood, out.ballOutputAngleRad,
-                                out.ballExitSpeedMps);
-                    } else if (Math.abs(error - bestError) <= 1e-12 && best != null) {
-                        // Tie-break: prefer lower RPM
-                        if (rpm < best.shooterRpmCommand - 1e-9) {
-                            best = new ShooterCommandsAndMeasuredOutcome(rpm, hood, out.ballOutputAngleRad,
-                                    out.ballExitSpeedMps);
-                        }
-                    }
-                }
             }
-            return (best != null) ? best : makeNotARealCommandsAndOutcome();
+
+            ShooterCommandsAndMeasuredOutcome coarseBest = findBestMeasuredGridPointMatchingDesiredBallAngleAndSpeed(
+                    desiredBallOutputAngleRad,
+                    desiredBallExitSpeedMps,
+                    angleWeight,
+                    speedWeight);
+
+            if (!isFiniteCommandsAndOutcome(coarseBest)) {
+                return makeNotARealCommandsAndOutcome();
+            }
+
+            ShooterCommandsAndMeasuredOutcome refinedBest = refineBestMeasuredGridPointUsingInterpolation(
+                    coarseBest,
+                    desiredBallOutputAngleRad,
+                    desiredBallExitSpeedMps,
+                    angleWeight,
+                    speedWeight);
+
+            return isFiniteCommandsAndOutcome(refinedBest) ? refinedBest : coarseBest;
         }
 
         /**
@@ -336,6 +345,161 @@ private static Double tryParse(String s) {
             double ang = lerpAngle(a.ballOutputAngleRad, b.ballOutputAngleRad, t);
             double spd = lerp(a.ballExitSpeedMps, b.ballExitSpeedMps, t);
             return new MeasuredBallOutcome(ang, spd);
+        }
+
+        private ShooterCommandsAndMeasuredOutcome findBestMeasuredGridPointMatchingDesiredBallAngleAndSpeed(
+                double desiredBallOutputAngleRad,
+                double desiredBallExitSpeedMps,
+                double angleWeight,
+                double speedWeight) {
+            ShooterCommandsAndMeasuredOutcome best = null;
+            double bestError = Double.POSITIVE_INFINITY;
+
+            for (Map.Entry<Double, TreeMap<Double, MeasuredBallOutcome>> rpmRow : table.entrySet()) {
+                double rpm = rpmRow.getKey();
+                TreeMap<Double, MeasuredBallOutcome> hoodMap = rpmRow.getValue();
+                if (hoodMap == null || hoodMap.isEmpty()) {
+                    continue;
+                }
+
+                for (Map.Entry<Double, MeasuredBallOutcome> hoodEntry : hoodMap.entrySet()) {
+                    double hood = hoodEntry.getKey();
+                    MeasuredBallOutcome out = hoodEntry.getValue();
+                    if (out == null) {
+                        continue;
+                    }
+
+                    double error = computeDesiredBallMatchError(
+                            out.ballOutputAngleRad,
+                            out.ballExitSpeedMps,
+                            desiredBallOutputAngleRad,
+                            desiredBallExitSpeedMps,
+                            angleWeight,
+                            speedWeight);
+
+                    if (error < bestError - 1e-12) {
+                        bestError = error;
+                        best = new ShooterCommandsAndMeasuredOutcome(
+                                rpm,
+                                hood,
+                                out.ballOutputAngleRad,
+                                out.ballExitSpeedMps);
+                    } else if (Math.abs(error - bestError) <= 1e-12 && best != null) {
+                        // Tie-break: prefer lower RPM
+                        if (rpm < best.shooterRpmCommand - 1e-9) {
+                            best = new ShooterCommandsAndMeasuredOutcome(
+                                    rpm,
+                                    hood,
+                                    out.ballOutputAngleRad,
+                                    out.ballExitSpeedMps);
+                        }
+                    }
+                }
+            }
+
+            return (best != null) ? best : makeNotARealCommandsAndOutcome();
+        }
+
+        private ShooterCommandsAndMeasuredOutcome refineBestMeasuredGridPointUsingInterpolation(
+                ShooterCommandsAndMeasuredOutcome coarseBest,
+                double desiredBallOutputAngleRad,
+                double desiredBallExitSpeedMps,
+                double angleWeight,
+                double speedWeight) {
+            if (!isFiniteCommandsAndOutcome(coarseBest)) {
+                return makeNotARealCommandsAndOutcome();
+            }
+
+            double coarseRpm = coarseBest.shooterRpmCommand;
+            double coarseHood = coarseBest.hoodCommandAngleRad;
+
+            Double rpmLowObj = table.lowerKey(coarseRpm);
+            Double rpmHighObj = table.higherKey(coarseRpm);
+
+            double rpmMin = (rpmLowObj != null) ? rpmLowObj : coarseRpm;
+            double rpmMax = (rpmHighObj != null) ? rpmHighObj : coarseRpm;
+
+            TreeMap<Double, MeasuredBallOutcome> hoodMapAtCoarseRpm = table.get(coarseRpm);
+            if (hoodMapAtCoarseRpm == null || hoodMapAtCoarseRpm.isEmpty()) {
+                return coarseBest;
+            }
+
+            Double hoodLowObj = hoodMapAtCoarseRpm.lowerKey(coarseHood);
+            Double hoodHighObj = hoodMapAtCoarseRpm.higherKey(coarseHood);
+
+            double hoodMin = (hoodLowObj != null) ? hoodLowObj : coarseHood;
+            double hoodMax = (hoodHighObj != null) ? hoodHighObj : coarseHood;
+
+            int rpmSubdivisions = nearlyEqual(rpmMin, rpmMax) ? 1 : 10;
+            int hoodSubdivisions = nearlyEqual(hoodMin, hoodMax) ? 1 : 10;
+
+            ShooterCommandsAndMeasuredOutcome best = coarseBest;
+            double bestError = computeDesiredBallMatchError(
+                    coarseBest.measuredBallOutputAngleRad,
+                    coarseBest.measuredBallExitSpeedMps,
+                    desiredBallOutputAngleRad,
+                    desiredBallExitSpeedMps,
+                    angleWeight,
+                    speedWeight);
+
+            for (int i = 0; i <= rpmSubdivisions; i++) {
+                double rpm = (rpmSubdivisions == 1)
+                        ? coarseRpm
+                        : lerp(rpmMin, rpmMax, i / (double) rpmSubdivisions);
+
+                for (int j = 0; j <= hoodSubdivisions; j++) {
+                    double hood = (hoodSubdivisions == 1)
+                            ? coarseHood
+                            : lerp(hoodMin, hoodMax, j / (double) hoodSubdivisions);
+
+                    MeasuredBallOutcome out = estimateMeasuredBallOutcomeForShooterRpmAndHoodAngleUsingInterpolation(
+                            rpm, hood);
+
+                    if (!isFiniteOutcome(out)) {
+                        continue;
+                    }
+
+                    double error = computeDesiredBallMatchError(
+                            out.ballOutputAngleRad,
+                            out.ballExitSpeedMps,
+                            desiredBallOutputAngleRad,
+                            desiredBallExitSpeedMps,
+                            angleWeight,
+                            speedWeight);
+
+                    if (error < bestError - 1e-12) {
+                        bestError = error;
+                        best = new ShooterCommandsAndMeasuredOutcome(
+                                rpm,
+                                hood,
+                                out.ballOutputAngleRad,
+                                out.ballExitSpeedMps);
+                    } else if (Math.abs(error - bestError) <= 1e-12) {
+                        // Tie-break: prefer lower RPM
+                        if (rpm < best.shooterRpmCommand - 1e-9) {
+                            best = new ShooterCommandsAndMeasuredOutcome(
+                                    rpm,
+                                    hood,
+                                    out.ballOutputAngleRad,
+                                    out.ballExitSpeedMps);
+                        }
+                    }
+                }
+            }
+
+            return best;
+        }
+
+        private static double computeDesiredBallMatchError(
+                double actualBallOutputAngleRad,
+                double actualBallExitSpeedMps,
+                double desiredBallOutputAngleRad,
+                double desiredBallExitSpeedMps,
+                double angleWeight,
+                double speedWeight) {
+            double angleErr = Math.abs(wrapToPi(actualBallOutputAngleRad - desiredBallOutputAngleRad));
+            double speedErr = Math.abs(actualBallExitSpeedMps - desiredBallExitSpeedMps);
+            return angleWeight * angleErr + speedWeight * speedErr;
         }
     }
 
@@ -405,30 +569,65 @@ private static Double tryParse(String s) {
             this.tableMatchedBallExitSpeedMps = tableMatchedBallExitSpeedMps;
         }
 
-        /** Robot-relative turret yaw in degrees (0 = robot forward, CCW positive). */
-        public static double computeTurretYawAngleRelativeToRobotDeg(Pose2d robotPose, Translation2d targetPosition,
-                double vx, double vy, double omega, double readinessTimeMs, Twist2d turretOffset) {
-            // Convert readiness time to seconds
+        /**
+         * Compute the turret command angle in degrees, relative to turret zero.
+         *
+         * Conventions:
+         * - Robot frame: +X forward, +Y left.
+         * - Field yaw: CCW positive from field +X.
+         * - Returned angle is relative to turret zero, not robot forward.
+         * - Turret zero direction is defined by
+         * Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG.
+         *
+         * This method handles:
+         * - constant-velocity prediction over readiness time
+         * - turret pivot translation offset from robot origin
+         * - turret zero-direction offset from robot forward
+         *
+         * This method does NOT decide what to do if the angle is outside legal turret
+         * rotation limits. That decision should stay separate.
+         */
+        public static double computeTurretYawAngleRelativeToRobotDeg(
+                Pose2d robotPose,
+                Translation2d targetPosition,
+                double vx,
+                double vy,
+                double omega,
+                double readinessTimeMs) {
+
             double readinessTimeSec = readinessTimeMs / 1000.0;
 
-            // Predict the robot's future position
-            double futureX = robotPose.getX() + vx * readinessTimeSec;
-            double futureY = robotPose.getY() + vy * readinessTimeSec;
-            double futureTheta = robotPose.getRotation().getDegrees() + omega * readinessTimeSec;
+            // Predict robot origin in the field frame at readiness time.
+            Translation2d predictedRobotOriginField = robotPose.getTranslation().plus(
+                    new Translation2d(vx * readinessTimeSec, vy * readinessTimeSec));
 
-            // Calculate the relative position between the predicted robot position and the
-            // target position
-            double dx = targetPosition.getX() - futureX - turretOffset.dx;
-            double dy = targetPosition.getY() - futureY - turretOffset.dy;
+            // Predict robot heading at readiness time.
+            Rotation2d predictedRobotHeading = robotPose.getRotation().plus(
+                    Rotation2d.fromRadians(omega * readinessTimeSec));
 
-            // Calculate the angle to the target
-            double targetAngle = Math.toDegrees(Math.atan2(dy, dx));
+            // Rotate turret pivot offset from robot frame into field frame, then add it to
+            // the predicted robot origin to get the predicted turret pivot position.
+            Translation2d turretPivotField = predictedRobotOriginField.plus(
+                    Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+                            .rotateBy(predictedRobotHeading));
 
-            // Calculate the turret angle, accounting for the robot's orientation
-            double turretAngle = targetAngle - futureTheta;
-            turretAngle = MathUtil.angleModulus(turretAngle); // Normalize to [-180, 180] degrees
+            // Vector from turret pivot to target in the field frame.
+            Translation2d pivotToTargetField = targetPosition.minus(turretPivotField);
 
-            return turretAngle;
+            // Field yaw from turret pivot to target.
+            Rotation2d desiredYawField = pivotToTargetField.getAngle();
+
+            // Convert field yaw into robot-relative yaw.
+            Rotation2d robotRelativeYaw = desiredYawField.minus(predictedRobotHeading);
+
+            // Convert robot-forward-relative yaw into turret-zero-relative yaw.
+            Rotation2d turretZeroOffset = Rotation2d.fromDegrees(
+                    Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG);
+
+            Rotation2d turretRelativeYaw = robotRelativeYaw.minus(turretZeroOffset);
+
+            // Returns (-180, 180], so an exact "behind" result will be +180.
+            return turretRelativeYaw.getDegrees();
         }
 
         /**
@@ -443,6 +642,113 @@ private static Double tryParse(String s) {
             out.add(desiredBallOutputAngleRad);
             return out;
         }
+    }
+
+    /**
+     * Convert an aim target enum into a field-frame Translation2d.
+     */
+    public static Translation2d aimTargetToFieldTranslation(
+            Constants.FieldTargets.AimTarget aimTarget,
+            boolean isRedAlliance) {
+
+        // System.out.println("Hub X: " + aimTarget.getX(isRedAlliance));
+
+        return new Translation2d(
+                aimTarget.getX(isRedAlliance),
+                aimTarget.getY(isRedAlliance));
+    }
+
+    /**
+     * Stationary/raw turret angle helper:
+     * - readiness time = 0
+     * - vx = 0
+     * - vy = 0
+     * - omega = 0
+     *
+     * Returned angle is relative to turret zero.
+     */
+    public static double computeStationaryRawTurretYawDeg(
+            Pose2d robotPose,
+            Translation2d targetPositionField) {
+        return Solution.computeTurretYawAngleRelativeToRobotDeg(
+                robotPose,
+                targetPositionField,
+                0.0,
+                0.0,
+                0.0,
+                0.0);
+    }
+
+    /**
+     * Inclusive window test for turret angles in degrees.
+     */
+    public static boolean isTurretAngleWithinWindowDeg(
+            double turretDeg,
+            double minDeg,
+            double maxDeg) {
+        return Double.isFinite(turretDeg)
+                && turretDeg >= minDeg
+                && turretDeg <= maxDeg;
+    }
+
+    /**
+     * Compute the signed robot heading change (degrees) needed to move a turret
+     * solution into the requested window.
+     *
+     * Sign convention:
+     * - positive result => rotate robot CCW
+     * - negative result => rotate robot CW
+     *
+     * If already in the window, returns 0.
+     */
+    public static double computeRobotHeadingDeltaDegToEnterTurretWindowDeg(
+            double turretDeg,
+            double minDeg,
+            double maxDeg) {
+        if (!Double.isFinite(turretDeg) || minDeg > maxDeg) {
+            return Double.NaN;
+        }
+
+        double targetTurretDeg = MathUtil.clamp(turretDeg, minDeg, maxDeg);
+        return turretDeg - targetTurretDeg;
+    }
+
+    /**
+     * One-call convenience helper for the stationary illegal-shot auto-turn assist.
+     *
+     * Returns:
+     * - 0 if the current stationary shot is already inside the comfort window
+     * - otherwise a signed normalized omega command in [-1, +1]
+     */
+    public static double computeStationaryRobotAutoTurnCommandToEnterLegalShotWindow(
+            Pose2d robotPose,
+            Translation2d targetPositionField,
+            double comfortMarginDeg,
+            double fixedAbsTurnCmd) {
+
+        double rawTurretDeg = computeStationaryRawTurretYawDeg(robotPose, targetPositionField);
+
+        double comfortMinDeg = Constants.OperatorConstants.Turret.MIN_ANGLE_DEG + comfortMarginDeg;
+        double comfortMaxDeg = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG - comfortMarginDeg;
+
+        if (!Double.isFinite(rawTurretDeg) || comfortMinDeg > comfortMaxDeg) {
+            return 0.0;
+        }
+
+        if (isTurretAngleWithinWindowDeg(rawTurretDeg, comfortMinDeg, comfortMaxDeg)) {
+            return 0.0;
+        }
+
+        double robotHeadingDeltaDeg = computeRobotHeadingDeltaDegToEnterTurretWindowDeg(
+                rawTurretDeg,
+                comfortMinDeg,
+                comfortMaxDeg);
+
+        if (!Double.isFinite(robotHeadingDeltaDeg) || Math.abs(robotHeadingDeltaDeg) < 1e-9) {
+            return 0.0;
+        }
+
+        return Math.copySign(Math.abs(fixedAbsTurnCmd), robotHeadingDeltaDeg);
     }
 
     // ---------------------------------------------------------------------------

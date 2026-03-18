@@ -17,7 +17,7 @@ public class RetractIntakeSequence extends SequentialCommandGroup {
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
 
-      new IntakeToPositionAndHold(IntakePositions.IntakeStowedDeg),
+      new IntakePowerIn(),
       new StopIntake()
     );
   }

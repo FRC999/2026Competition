@@ -59,6 +59,9 @@ import frc.robot.commands.ClimbDown;
 import frc.robot.commands.ClimbUp;
 import frc.robot.commands.DeployIntakeSequence;
 import frc.robot.commands.DriveManuallyCommand;
+import frc.robot.commands.IntakePowerIn;
+import frc.robot.commands.IntakePowerOut;
+import frc.robot.commands.IntakeRezeroFromRetractedHardStop;
 import frc.robot.commands.IntakeToPositionAndHold;
 import frc.robot.commands.RetractIntakeSequence;
 import frc.robot.commands.ReverseIntake;
@@ -71,6 +74,7 @@ import frc.robot.commands.StopClimb;
 import frc.robot.commands.StopIntake;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
+import frc.robot.commands.TestTurretAngleCommand;
 import frc.robot.commands.TurretCalibrationJogCommand;
 import frc.robot.commands.TurretJogCommand;
 import frc.robot.lib.ElasticHelpers;
@@ -86,6 +90,7 @@ import frc.robot.subsystems.SpindexerSubsystem;
 import frc.robot.subsystems.TransferSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.HoodSubsystem;
+import frc.robot.commands.PrintTurretShotDiagnosticsCommand;
 
 public class RobotContainer {
 
@@ -126,11 +131,12 @@ public class RobotContainer {
 
     setYaws();
 
-    driveSubsystem.setDefaultCommand(
+        driveSubsystem.setDefaultCommand(
         new DriveManuallyCommand(
             () -> getDriverXAxis(),
             () -> getDriverYAxis(),
-            () -> getDriverOmegaAxis()));
+            () -> getDriverOmegaAxis(),
+            () -> turretStick.getRawButton(2)));
     CommandScheduler.getInstance().schedule(FollowPathCommand.warmupCommand());
 
     AutonomousConfigure();
@@ -221,7 +227,7 @@ public class RobotContainer {
     if (Constants.DebugTelemetrySubsystems.calibration) {
       //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
-      configureIntakeCalibrationBindings();
+      //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
@@ -234,11 +240,15 @@ public class RobotContainer {
   public static Controller getDriveController() {
     return xboxDriveController;
   }
+
+ public static Joystick getTurretStick() {
+    return turretStick;
+  }
   private void competitionXBOXButtonBindings() {
     new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
         .whileTrue(new DeployIntakeSequence());
 
-    new JoystickButton(xboxDriveController, 5)
+    new JoystickButton(xboxDriveController, 5) // LB
         .onTrue(new RetractIntakeSequence())
         .onFalse(new StopIntake());
 
@@ -250,16 +260,16 @@ public class RobotContainer {
     //     .onTrue(new ClimbDown())
     //     .onFalse(new StopClimb());
 
-    new JoystickButton(xboxDriveController, 8)
+    new JoystickButton(xboxDriveController, 8) // Left of X
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
             .andThen(new InstantCommand(() -> questNavSubsystem.zeroYaw())));
     
-    new JoystickButton(xboxDriveController, 7)
-        .onTrue(new InstantCommand(() -> questNavSubsystem.customQuestPose(new Pose2d(2.33045, 2.22885, Rotation2d.kZero)))
-            .alongWith(new InstantCommand(() -> driveSubsystem.resetCTREPose(new Pose2d(2.33045, 2.22885, Rotation2d.kZero)))));
+    // new JoystickButton(xboxDriveController, 7)
+    //     .onTrue(new InstantCommand(() -> questNavSubsystem.customQuestPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))
+    //         .alongWith(new InstantCommand(() -> driveSubsystem.resetCTREPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))));
 
     // Trigger 3: MOVING shot while held (no drivetrain hold)
-    new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3)
+    new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3) // RT
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO,
             false))
@@ -267,22 +277,34 @@ public class RobotContainer {
             .alongWith(new InstantCommand(() -> transferSubsystem.stop()))
             .alongWith(new InstantCommand(() -> spindexerSubsystem.stop())));
 
-    // Button 6: STATIC HUB BASE shot while held (drivetrain hold heading)
-    new JoystickButton(xboxDriveController, 3)
+    // Button 3: STATIC HUB BASE shot while held (drivetrain hold heading)
+    new JoystickButton(xboxDriveController, 3) // X
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
             true));
 
     // Button B: STATIC TOWER BASE shot while held (drivetrain hold heading)
-    new JoystickButton(xboxDriveController, 2)
+    new JoystickButton(xboxDriveController, 2) // B
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
             true));
 
-    new POVButton(xboxDriveController, 0)
-        .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeDeployedDeg));        
-    new POVButton(xboxDriveController, 180)
-        .onTrue(new IntakeToPositionAndHold(IntakePositions.IntakeStowedDeg));
+    new POVButton(xboxDriveController, 0) // AGR 2 OR Down Button
+        .onTrue(new IntakePowerOut());        
+        
+    new POVButton(xboxDriveController, 180) // AGL 2 OR Up Button
+        .onTrue(new IntakePowerIn());
+
+    new POVButton(xboxDriveController, 90)
+        .onTrue(new TurretJogCommand(turretSubsystem, 0.25))
+        .onFalse(new InstantCommand(() -> turretSubsystem.stop()));
+
+    new POVButton(xboxDriveController, 270)
+        .onTrue(new TurretJogCommand(turretSubsystem, -0.25))
+        .onFalse(new InstantCommand(() -> turretSubsystem.stop()));
+
+    new JoystickButton(turretStick, 6) // RB
+      .onTrue(new IntakeRezeroFromRetractedHardStop());
 
   }
   private void configureSpindexerCalibrationBindings() {
@@ -346,6 +368,20 @@ public class RobotContainer {
     new JoystickButton(xboxDriveController, 3)
         .whileTrue(new InstantCommand(() -> spindexerSubsystem.runBase()))
         .whileFalse(new InstantCommand(() -> spindexerSubsystem.stop()));
+
+    new JoystickButton(turretStick, 1)
+        .onTrue(new TestTurretAngleCommand());
+
+    new JoystickButton(turretStick, 5)
+    .onTrue(new PrintTurretShotDiagnosticsCommand());
+
+        new JoystickButton(turretStick, 11)
+        .whileTrue(new ShootWhileHeld(
+            AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED,
+            false))
+        .onFalse(new InstantCommand(() -> shooterSubsystem.stop())
+            .alongWith(new InstantCommand(() -> transferSubsystem.stop()))
+            .alongWith(new InstantCommand(() -> spindexerSubsystem.stop())));
   }
 
     private void configureTransferCalibrationBindings() {
@@ -534,16 +570,16 @@ private void configureIntakeCalibrationBindings() {
   final double ROLLER_LOW_RPS = 20.0;
   final double ROLLER_HIGH_RPS = Constants.OperatorConstants.IntakeConstants.ROLLER_INTAKE_RPS;
 
-  new JoystickButton(turretStick, 1)
-      .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
+//   new JoystickButton(turretStick, 1)
+//       .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
 
   new JoystickButton(turretStick, 2)
-      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
-      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+      .whileTrue(new RunCommand(() -> intakeSubsystem.setPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.exitOpenLoopHold()));
 
   new JoystickButton(turretStick, 3)
-      .whileTrue(new RunCommand(() -> intakeSubsystem.setCalibrationPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
-      .onFalse(new InstantCommand(() -> intakeSubsystem.exitCalibrationOpenLoopHold()));
+      .whileTrue(new RunCommand(() -> intakeSubsystem.setPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
+      .onFalse(new InstantCommand(() -> intakeSubsystem.exitOpenLoopHold()));
 
   new JoystickButton(turretStick, 4)
       .onTrue(new InstantCommand(() -> {
@@ -578,6 +614,11 @@ private void configureIntakeCalibrationBindings() {
 
   new JoystickButton(turretStick, 10)
       .onTrue(new RetractIntakeSequence());
+
+       new JoystickButton(turretStick, 1)
+      .onTrue(new IntakeRezeroFromRetractedHardStop());
+
+
 
   // new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_FWD)
   //     .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kForward));

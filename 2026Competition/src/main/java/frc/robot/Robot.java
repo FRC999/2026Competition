@@ -30,8 +30,8 @@ public class Robot extends LoggedRobot {
       // Logger.addDataReceiver(new NT4Publisher());
     } else {
       // NORMAL SIMULATION (no replay, real timing)
-      Logger.addDataReceiver(new NT4Publisher());
-      Logger.addDataReceiver(new WPILOGWriter("logs/sim"));
+      // Logger.addDataReceiver(new NT4Publisher());
+      // Logger.addDataReceiver(new WPILOGWriter("logs/sim"));
     }
 
     //Logger.start();

@@ -120,26 +120,26 @@ public final class Constants {
     public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = true;
-    public static boolean calibration = true;
+    public static boolean calibration = false;
   }
 
   public static final class DebugTelemetrySubsystems {
     public static final boolean odometry = false;
     public static final boolean imu = true;
     public static final boolean chassis = true;
-    public static final boolean ll = true;
+    public static final boolean ll = false;
     public static final boolean questnav = true;
     public static final boolean intake = true;
-    public static final boolean shooter = true;
-    public static final boolean turret = true; 
-    public static final boolean hood = true;
+    public static final boolean shooter = false;
+    public static final boolean turret = false; 
+    public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
-    public static final boolean supervisor = true;
+    public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
-    public static final boolean smartDashboard = true;
+    public static final boolean smartDashboard = false;
 
     // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
     public static final boolean calibration = true; // PLACEHOLDER set true only while calibrating
@@ -422,23 +422,21 @@ public final class Constants {
       /** Turret is NOT drivetrain; it lives on the roboRIO CAN bus. */
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
-      /** Absolute PWM encoder reference (PulseWidth 0-4095 equivalent). */
-      public static final int ABS_TICKS_PER_REV = 4096;
-      /** Absolute encoder tick value that corresponds to turret pointing forward. */
-     // public static final int ABS_FORWARD_TICKS = 1282;
+            /** CANcoder magnet offset in rotations. Matches Phoenix Tuner. */
+      public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521;
 
-      public static final int ABS_ZERO_TICKS = 2762;
+      /** After applying magnet offset, turret-zero should read 0.0 rotations. */
+      public static final double ABS_ZERO_ROTATIONS = 0.0;
 
       /**
-       * Boot assumption: at robot power-on, turret is within +/- 180 degrees of
-       * forward.
-       * Used to seed the software unwrapped angle.
+       * Boot assumption: at robot power-on, turret is within +/- 120 degrees of
+       * turret zero.
        */
-      public static final double BOOT_MAX_ABS_DEG = 100.0;
+      public static final double BOOT_MAX_ABS_DEG = 120.0;
 
       /** Mechanical safe range relative to forward (degrees). */
-      public static final double MIN_ANGLE_DEG = -100.0; // CW hard stop -100
-      public static final double MAX_ANGLE_DEG = 100.0; // CCW hard stop 100
+      public static final double MIN_ANGLE_DEG = -110.0; // CW hard stop -100
+      public static final double MAX_ANGLE_DEG = 110.0; // CCW hard stop 100
 
       /**
        * "Soft" limit for auto-aiming (degrees from your turret ZERO). Your notes
@@ -472,7 +470,7 @@ public final class Constants {
        * left,
        * then this constant is +90.
        */
-      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 0.0; //180.0
+      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 180.0; //180.0
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
@@ -735,15 +733,74 @@ public final class Constants {
       public static final double FLIP_SUPPRESS_SEC = 0.35;
 
       // ---------------------------------------------------------------------
+      // MOVING AUTO SHOT DISTANCE TABLE
+      // ---------------------------------------------------------------------
+      // Distance is measured from turret center to hub center.
+      // These arrays must stay sorted ascending by distance.
+      public static final double[] MOVING_AUTO_SHOT_DISTANCE_M = {
+          1.471,
+          1.758,
+          2.132,
+          2.591,
+          2.603,
+          3.089,
+          3.647,
+          3.953,
+          4.501,
+          5.187
+      };
+
+      public static final double[] MOVING_AUTO_SHOT_HOOD_DEG = {
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          3.0
+      };
+
+      public static final double[] MOVING_AUTO_SHOT_RPM = {
+          2020.3,
+          1989.1,
+          2114.1,
+          2207.9,
+          2192.9,
+          2396.9,
+          2570.1,
+          2522.8,
+          2774.0,
+          2900.8
+      };
+
+      // ---------------------------------------------------------------------
       // STATIC FAILSAFE SHOTS (pose-only, hardwired presets)
       // ---------------------------------------------------------------------
       // TODO: PLACEHOLDER: Tune these for your real "Hub Base" static spot.
-      public static final double STATIC_HUB_BASE_RPM = 4200.0;
-      public static final double STATIC_HUB_BASE_HOOD_DEG = 25.0;
+      public static final double STATIC_HUB_BASE_RPM = 1950.0;
+      public static final double STATIC_HUB_BASE_HOOD_DEG = 2.5;
 
       // TODO: PLACEHOLDER: Tune these for your real "Tower Base" static spot.
-      public static final double STATIC_TOWER_BASE_RPM = 4600.0;
-      public static final double STATIC_TOWER_BASE_HOOD_DEG = 30.0;
+      public static final double STATIC_TOWER_BASE_RPM = 2150.0;
+      public static final double STATIC_TOWER_BASE_HOOD_DEG = 5.0;
+
+            // ---------------------------------------------------------------------
+      // MANUAL FIXED SHOT (turret-stick button 11)
+      // ---------------------------------------------------------------------
+      /** Fixed hood angle for the manual fixed shot. */
+      public static final double MANUAL_FIXED_SHOT_HOOD_DEG = 3.0; // TODO: tune
+
+      /** Base shooter RPM for the manual fixed shot. */
+      public static final double MANUAL_FIXED_SHOT_BASE_RPM = 2200.0; // TODO: tune
+
+      /**
+       * Shooter RPM trim from the joystick twist ("tail").
+       * A twist input of -1..+1 becomes -1000..+1000 RPM.
+       */
+      public static final double MANUAL_FIXED_SHOT_RPM_TRIM_RANGE = 1000.0;
 
       // "Robot stopped" gating for static shots (prevents feeding while sliding).
       // TODO: PLACEHOLDER: Tune thresholds (start conservative).
@@ -758,6 +815,29 @@ public final class Constants {
       public static final double STATIC_HOLD_HEADING_kD = 0.0;
       public static final double STATIC_HOLD_MAX_OMEGA_DEG_PER_S = 180.0;
 
+      /** RT threshold for the stationary illegal-shot auto-turn assist. */
+      public static final double STATIONARY_ASSIST_TRIGGER_THRESHOLD = 0.30;
+
+      /**
+       * Additional comfort margin inside turret hard limits for deciding when the
+       * chassis should auto-turn to make a shot legal.
+       *
+       * With turret hard limits of [-110, +110], a value of 10 creates a comfort
+       * window of [-100, +100].
+       */
+      public static final double STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG = 10.0;
+
+            /**
+       * Fixed robot angular speed for the stationary illegal-shot auto-turn assist.
+       * Units are actual robot angular speed in rad/s.
+       */
+      public static final double STATIONARY_ILLEGAL_SHOT_FIXED_AUTO_TURN_RAD_PER_SEC = 1.5;
+
+      /**
+       * Driver omega deadband for allowing the stationary illegal-shot auto-turn
+       * assist to take over.
+       */
+      public static final double STATIONARY_ASSIST_OMEGA_DEADBAND = 0.30;
       /** Shooter enters recovery if actual RPM <= targetRPM * this fraction. */
   public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;
 
@@ -909,7 +989,7 @@ public final class Constants {
        * If you later prefer a very slow "creep hold", change this to a small nonzero
        * value.
        */
-      public static final double THROAT_BLOCKED_STAGE_RPS = -15; // TODO: placeholder (0 = stop)
+      public static final double THROAT_BLOCKED_STAGE_RPS = 0.0;
 
       // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
       // TODO: All gains are placeholders and MUST be tuned on the real robot.
@@ -1006,7 +1086,7 @@ public final class Constants {
        * Turret pivot position relative to robot origin, in the ROBOT frame (meters).
        */
       public static final Translation2d TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS = new Translation2d(
-          -0.1778, 0.0); // TODO set
+          -0.15, -0.06); //-0.1778, -0.07
 
       /** Ball release height above field when leaving shooter, meters. TODO set. */
       public static final double BALL_RELEASE_HEIGHT_METERS = 0.4318;
@@ -1083,6 +1163,9 @@ public final class Constants {
       public static final double ROLLER_INTAKE_RPS = 50.0;
       public static final double ROLLER_REVERSE_RPS = -20.0;
 
+      public static final double INTAKE_PIVOT_REZERO_RETRACT_DUTY = 0.20;
+      public static final double INTAKE_PIVOT_REZERO_RETRACT_TIME_SEC = 0.50;
+
       // Gear ratios
       // Pivot: given as 1 / 26.7 arm rotations per motor rotation,
       // so motor-to-arm ratio is 26.7 motor rotations per arm rotation.
@@ -1109,11 +1192,13 @@ public final class Constants {
       public static final double PIVOT_MIN_DEG = 0; // retracted hard stop = 0 deg
       public static final double PIVOT_MAX_DEG = 53; // TODO: PLACEHOLDER - verify true max
 
-      public static final double CAL_PIVOT_JOG_DUTY = 0.08;
+      public static final double CAL_PIVOT_JOG_DUTY = 0.20;
       // TODO: PLACEHOLDER - start low, raise carefully if needed
 
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
+      public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.10;
+      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.75;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         IntakeStowedDeg(37.0),

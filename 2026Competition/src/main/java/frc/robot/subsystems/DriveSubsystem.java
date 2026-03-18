@@ -116,9 +116,10 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             new SysIdRoutine.Config(
                     null, // Use default ramp rate (1 V/s)
                     Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
-                    null, // Use default timeout (10 s)
+                    null // Use default timeout (10 s)
                     // Log state with SignalLogger class
-                    state -> SignalLogger.writeString("SysIdTranslation_State", state.toString())),
+                    //state -> SignalLogger.writeString("SysIdTranslation_State", state.toString())
+                    ),
             new SysIdRoutine.Mechanism(
                     output -> setControl(translationCharacterization.withVolts(output)),
                     null,
@@ -132,9 +133,10 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             new SysIdRoutine.Config(
                     null, // Use default ramp rate (1 V/s)
                     Volts.of(7), // Use dynamic voltage of 7 V
-                    null, // Use default timeout (10 s)
+                    null // Use default timeout (10 s)
                     // Log state with SignalLogger class
-                    state -> SignalLogger.writeString("SysIdSteer_State", state.toString())),
+                    //state -> SignalLogger.writeString("SysIdSteer_State", state.toString())
+                    ),
             new SysIdRoutine.Mechanism(
                     volts -> setControl(steerCharacterization.withVolts(volts)),
                     null,
@@ -161,7 +163,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                         /* output is actually radians per second, but SysId only supports "volts" */
                         setControl(rotationCharacterization.withRotationalRate(output.in(Volts)));
                         /* also log the requested output for SysId */
-                        SignalLogger.writeDouble("Rotational_Rate", output.in(Volts));
+                        //SignalLogger.writeDouble("Rotational_Rate", output.in(Volts));
                     },
                     null,
                     this));
@@ -451,8 +453,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     }
 
     public void drive(double xVelocity_m_per_s, double yVelocity_m_per_s, double omega_rad_per_s) {
-        // System.out.println("X: " + xVelocity_m_per_s + " y: " + yVelocity_m_per_s + "
-        // o:" + omega_rad_per_s/SwerveChassis.MaxAngularRate);
+        //System.out.println("X: " + xVelocity_m_per_s + " y: " + yVelocity_m_per_s + "o:" + omega_rad_per_s);
         // SmartDashboard.putString("Manual Drive Command Velocities","X: " +
         // xVelocity_m_per_s + " y: " + yVelocity_m_per_s + " o:" + omega_rad_per_s);
         lastCommandedOmegaRadPerSec = omega_rad_per_s;

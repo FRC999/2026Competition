@@ -8,6 +8,9 @@ import frc.robot.RobotContainer;
 import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.math.geometry.Translation2d;
+import frc.robot.Constants;
+import frc.robot.RobotContainer;
 
 /**
  * Generic "shoot while held" command.
@@ -76,18 +79,48 @@ public class ShootWhileHeld extends Command {
     RobotContainer.getDriveController().setRumble(RumbleType.kRightRumble, right);
   }
 
-  @Override
-  public void initialize() {
-    RobotContainer.autoShootSupervisorSubsystem.setShotMode(mode);
-    RobotContainer.autoShootSupervisorSubsystem.setShootRequested(true);
 
-    if (holdDriveHeading) {
-      // Capture heading at the moment the button is pressed
-      headingSetpointDeg = RobotContainer.driveSubsystem.getYaw();
-      headingPid.reset();
-      headingPid.setSetpoint(headingSetpointDeg);
-    }
+  @Override
+public void initialize() {
+  RobotContainer.autoShootSupervisorSubsystem.setShotMode(mode);
+  RobotContainer.autoShootSupervisorSubsystem.setShootRequested(true);
+
+  // Print diagnostics once when manual fixed shot begins
+  if (mode == AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED) {
+
+    var driveState = RobotContainer.driveSubsystem.getState();
+    var pose = driveState.Pose;
+
+    Translation2d hub =
+        RobotContainer.autoShootSupervisorSubsystem
+            .getAllianceAwareAimTarget(Constants.FieldTargets.AimTarget.HUB);
+
+    Translation2d turretCenter =
+        pose.getTranslation().plus(
+            Constants.OperatorConstants.TurretGeometry
+                .TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+                .rotateBy(pose.getRotation()));
+
+    double distance = turretCenter.getDistance(hub);
+
+    double axis3 =
+        MathUtil.clamp(RobotContainer.getTurretStick().getRawAxis(3), -1.0, 1.0);
+
+    double rpm =
+        Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
+            + axis3 * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
+
+    double hood =
+        Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG;
+
+    System.out.println("========================================");
+    System.out.println("MANUAL FIXED SHOT");
+    System.out.printf("Distance turret->hub: %.3f m%n", distance);
+    System.out.printf("Hood angle: %.2f deg%n", hood);
+    System.out.printf("Shooter RPM: %.1f%n", rpm);
+    System.out.println("========================================");
   }
+}
 
   @Override
   public void execute() {

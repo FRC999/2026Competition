@@ -302,12 +302,6 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
     final double fwdSoftLimitRot = IntakeConstants.PIVOT_MAX_DEG * IntakeConstants.PIVOT_MOTOR_TO_ARM_GEAR_RATIO
         / 360.0;
 
-    pidPivotConfig.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-    pidPivotConfig.SoftwareLimitSwitch.ForwardSoftLimitThreshold = fwdSoftLimitRot;
-
-    pidPivotConfig.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
-    pidPivotConfig.SoftwareLimitSwitch.ReverseSoftLimitThreshold = 0.0;
-
     configureMotionMagicDutyCycle(pidPivotConfig);
 
     StatusCode statusPivot = StatusCode.StatusCodeNotInitialized;
@@ -396,11 +390,11 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
 
   public void setTargetPivotDeg(double armDeg) {
     // Clamp to configured range
-    double clampedDeg = MathUtil.clamp(armDeg, IntakeConstants.PIVOT_MIN_DEG, IntakeConstants.PIVOT_MAX_DEG);
-    targetPivotDeg = clampedDeg;
+    // double clampedDeg = MathUtil.clamp(armDeg, IntakeConstants.PIVOT_MIN_DEG, IntakeConstants.PIVOT_MAX_DEG);
+    // targetPivotDeg = clampedDeg;
 
     // Convert to motor rotations
-    double targetRot = intakePivotEncoderZero + motorRotFromArmDeg(clampedDeg);
+    double targetRot = intakePivotEncoderZero + motorRotFromArmDeg(armDeg);
 
     intakePivotMotor.setControl(motionMagicVoltage.withPosition(targetRot));
   }
@@ -418,12 +412,12 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
     pivotZeroed = true;
   }
 
-  public void setCalibrationPivotDutyCycle(double duty) {
+  public void setPivotDutyCycle(double duty) {
     // Voltage consistency is good, but for "jog", duty is fine and simple.
     intakePivotMotor.setControl(new DutyCycleOut(MathUtil.clamp(duty, -1.0, 1.0)));
   }
 
-  public void exitCalibrationOpenLoopHold() {
+  public void exitOpenLoopHold() {
     intakePivotMotor.setControl(new DutyCycleOut(0.0));
   }
 

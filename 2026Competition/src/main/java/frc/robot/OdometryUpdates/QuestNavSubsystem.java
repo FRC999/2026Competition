@@ -62,6 +62,7 @@ public class QuestNavSubsystem extends SubsystemBase {
  
 
   PoseFrame[] poseFrames;
+  private int telemetryLoopCounter = 0;
 
   /** Creates a new QuestNavSubsystem. */
   public QuestNavSubsystem() {
@@ -75,7 +76,20 @@ public class QuestNavSubsystem extends SubsystemBase {
   public void resetToZeroPose() {
     Pose3d questPose = (QuestNavConstants.robotZeroPose3d.transformBy(QuestNavConstants.ROBOT_TO_QUEST_3D));
     questNav.setPose(questPose);
-    System.out.println("****QRobot reset to zero pose: " + questPose.toString());
+    //System.out.println("****QRobot reset to zero pose: " + questPose.toString());
+  }
+
+    private boolean isReasonableQuestRobotPose(Pose2d pose) {
+    if (pose == null) {
+      return false;
+    }
+
+    return Double.isFinite(pose.getX())
+        && Double.isFinite(pose.getY())
+        && Double.isFinite(pose.getRotation().getRadians())
+        && Math.abs(pose.getX()) < OdometryConstants.MAX_REASONABLE_FIELD_COORD_ABS_METERS
+        && Math.abs(pose.getY()) < OdometryConstants.MAX_REASONABLE_FIELD_COORD_ABS_METERS
+        && !pose.equals(QuestNavConstants.nullPose);
   }
 
 
@@ -85,13 +99,21 @@ public class QuestNavSubsystem extends SubsystemBase {
    * @param angle (degrees)
    */
   public void resetQuestIMUToAngle(double angle) {
-    System.out.println("Quest Robot Pose: " + 
-        java.util.Objects.requireNonNullElse(getQuestRobotPose2d(),"").toString());
-    System.out.println("QAngle: " + angle);
-    System.out.println("New QAngle: " + (Rotation2d.fromDegrees(angle).
-        minus(getQuestRobotPose2d().getRotation())).getDegrees());
-    
-    Pose2d newRobotPose = new Pose2d(getQuestRobotPose2d().getTranslation(), Rotation2d.fromDegrees(angle));
+    Pose2d currentRobotPose = getQuestRobotPose2d();
+
+    // System.out.println("*************Quest Robot Pose: "
+    //     + java.util.Objects.requireNonNullElse(currentRobotPose, "").toString());
+    // System.out.println("***************QAngle: " + angle);
+
+    if (!isReasonableQuestRobotPose(currentRobotPose)) {
+      System.out.println("*************Quest IMU reset skipped: invalid Quest robot pose");
+      return;
+    }
+
+    System.out.println("*****************New QAngle: "
+        + (Rotation2d.fromDegrees(angle).minus(currentRobotPose.getRotation())).getDegrees());
+
+    Pose2d newRobotPose = new Pose2d(currentRobotPose.getTranslation(), Rotation2d.fromDegrees(angle));
     System.out.println(newRobotPose.toString());
     questNav.setPose(new Pose3d(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST)));
   }
@@ -138,7 +160,7 @@ public class QuestNavSubsystem extends SubsystemBase {
     } else {
       resetQuestIMUToAngle(0);
     }
-    System.out.println("New Yaw: " + getQuestRobotYaw());
+    //System.out.println("New Yaw: " + getQuestRobotYaw());
     return previousYaw;
   }
 
@@ -369,25 +391,30 @@ public class QuestNavSubsystem extends SubsystemBase {
 
     if (questNav.isTracking()) {
       // This method will be called once per scheduler run
+      poseFrames = questNav.getAllUnreadPoseFrames();
 
-      // QuestNav telemetry
-      if (DebugTelemetrySubsystems.questnav) {
-        SmartDashboard.putString("QuestNav/RobotPose/Translation", getQuestRobotPose3d().getTranslation().toString());
-        SmartDashboard.putNumber("QuestNav/RobotPose/YawDeg", (getQuestRobotPose3d().getRotation().getMeasureZ().magnitude()*180/Math.PI));
-        SmartDashboard.putString("QuestNav/QuestPose/Translation", getQuestPose3d().getTranslation().toString());
-        SmartDashboard.putNumber("QuestNav/QuestPose/YawDeg", (getQuestPose3d().getRotation().getMeasureZ().magnitude()*180/Math.PI));
-        SmartDashboard.putNumber("QuestNav/Timestamp/DataSec", getQTimeStamp());
-        SmartDashboard.putNumber("QuestNav/Timestamp/AppSec", getQAppTimeStamp());
-        SmartDashboard.putNumber("QuestNav/Timestamp/FPGASecConverted", Utils.fpgaToCurrentTime(getQTimeStamp()));
-        SmartDashboard.putNumber("QuestNav/FPGA/TimeSec", Timer.getFPGATimestamp());
-        if(poseFrames != null) {
-          SmartDashboard.putNumber("QuestNav/FramesCount", poseFrames.length);
+            if (DebugTelemetrySubsystems.questnav) {
+        telemetryLoopCounter++;
+
+        if (telemetryLoopCounter >= 5) {
+          telemetryLoopCounter = 0;
+
+          SmartDashboard.putString("QuestNav/RobotPose/Translation", getQuestRobotPose3d().getTranslation().toString());
+          SmartDashboard.putNumber("QuestNav/RobotPose/YawDeg", (getQuestRobotPose3d().getRotation().getMeasureZ().magnitude() * 180 / Math.PI));
+          SmartDashboard.putString("QuestNav/QuestPose/Translation", getQuestPose3d().getTranslation().toString());
+          SmartDashboard.putNumber("QuestNav/QuestPose/YawDeg", (getQuestPose3d().getRotation().getMeasureZ().magnitude() * 180 / Math.PI));
+          SmartDashboard.putNumber("QuestNav/Timestamp/DataSec", getQTimeStamp());
+          SmartDashboard.putNumber("QuestNav/Timestamp/AppSec", getQAppTimeStamp());
+          SmartDashboard.putNumber("QuestNav/Timestamp/FPGASecConverted", Utils.fpgaToCurrentTime(getQTimeStamp()));
+          SmartDashboard.putNumber("QuestNav/FPGA/TimeSec", Timer.getFPGATimestamp());
+          if (poseFrames != null) {
+            SmartDashboard.putNumber("QuestNav/FramesCount", poseFrames.length);
+          }
         }
       }
 
 
       //update pose Frames
-      poseFrames = questNav.getAllUnreadPoseFrames();
 
  
       // // Display number of frames provided
