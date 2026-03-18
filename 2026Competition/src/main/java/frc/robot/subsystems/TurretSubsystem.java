@@ -317,27 +317,21 @@ private final double forwardDeg =
    * Read absolute angle (deg) in [0, 360).
    * If signal is stale, returns last known value.					   
    */
-  private double getAbsDegWrapped() {
-    // Refresh the absolute signal before using it.
-    absPosSig.refresh();
+    private double getAbsDegWrapped(boolean refreshSignal) {
+    if (refreshSignal) {
+      absPosSig.refresh();
+    }
 
-    // Capture status so we can see CAN dropouts / signal errors on dashboard.
     StatusCode status = absPosSig.getStatus();
-    //SmartDashboard.putString("Turret/AbsStatus", status.toString());
 
-    // If not OK, keep last known value (prevents large jumps in unwrap logic).
     if (status != StatusCode.OK) {
       return lastAbsDegWrapped;
     }
 
-    // Read absolute rotations (nominally [0,1) but we defensively wrap it anyway).
     double rot = absPosSig.getValueAsDouble();
-    rot = rot - Math.floor(rot); // ensure [0,1)
+    rot = rot - Math.floor(rot);
 
-    // Convert rotations to degrees.
     double deg = rot * 360.0;
-
-    // Force degrees into [0,360) for stable delta math.
     return wrapTo0To360(deg);
   }
 
@@ -349,7 +343,7 @@ private final double forwardDeg =
     Timer.delay(0.05);
 
     // Get current absolute angle (wrapped [0,360)).
-    double absDeg = getAbsDegWrapped();
+  double absDeg = getAbsDegWrapped(true);
 
     // Initialize last wrapped state for future delta calculations.
     lastAbsDegWrapped = absDeg;	
@@ -403,7 +397,7 @@ private final double forwardDeg =
 
     // Force Phoenix to update the cached CAN/sim signals before we read them.
     // This is the missing step that makes motorPosSig change in simulation.
-    BaseStatusSignal.refreshAll(motorPosSig, absPosSig);
+    BaseStatusSignal.refreshAll(motorPosSig);
 
     // Optional: if position is not OK, don't update the mechanism/angle this loop.
     if (motorPosSig.getStatus() != StatusCode.OK) {
@@ -437,14 +431,15 @@ private final double forwardDeg =
     continuousDeg = nextClamped;                // used for safety + control
     lastUpdateTs = now;
 
-    SmartDashboard.putNumber("Turret/MeasuredContinuousDeg", continuousDeg);
-    SmartDashboard.putNumber("Turret/MeasuredContinuousDegUnclamped", continuousDegUnclamped);
-    SmartDashboard.putNumber("Turret/MotorSensorRot", motorRotSensor);
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      SmartDashboard.putNumber("Turret/MeasuredContinuousDeg", continuousDeg);
+      SmartDashboard.putNumber("Turret/MeasuredContinuousDegUnclamped", continuousDegUnclamped);
+      SmartDashboard.putNumber("Turret/MotorSensorRot", motorRotSensor);
+    }
 
 
     // Keep abs wrapped for telemetry/diagnostics
-    lastAbsDegWrapped = getAbsDegWrapped();
-    
+  lastAbsDegWrapped = getAbsDegWrapped(false);    
   }
 
 
@@ -547,13 +542,14 @@ private final double forwardDeg =
     // alex test
     turret.setControl(mmRequest.withPosition(motorRotTarget));
 
-    SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
-    //System.out.println("Target Turret: " + targetDeg);
-    SmartDashboard.putNumber("Turret/DeltaDegCmd", targetDeg - continuousDeg);
-    SmartDashboard.putNumber("Turret/DesiredDegInput", desiredDeg);
-    SmartDashboard.putNumber("Turret/CurrentContinuousDeg", continuousDeg);
-    SmartDashboard.putNumber("Turret/MotorRotTarget", motorRotTarget);
-    SmartDashboard.putString("Turret/GoalStatus", "MM_WRAP_OFF_CLAMPED");
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
+      SmartDashboard.putNumber("Turret/DeltaDegCmd", targetDeg - continuousDeg);
+      SmartDashboard.putNumber("Turret/DesiredDegInput", desiredDeg);
+      SmartDashboard.putNumber("Turret/CurrentContinuousDeg", continuousDeg);
+      SmartDashboard.putNumber("Turret/MotorRotTarget", motorRotTarget);
+      SmartDashboard.putString("Turret/GoalStatus", "MM_WRAP_OFF_CLAMPED");
+    }
 }
 
   /** true if turret is within tolerance of desired angle (deg), using best safe equivalent. */
@@ -640,7 +636,7 @@ private final double forwardDeg =
   private double tunedKd = Constants.OperatorConstants.Turret.kD;
 
   public void reseedIntegratedFromAbsoluteNow() {
-    double absDeg = getAbsDegWrapped();
+    double absDeg = getAbsDegWrapped(true);
     lastAbsDegWrapped = absDeg;
 
     double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
@@ -658,14 +654,17 @@ private final double forwardDeg =
     turret.setPosition(ANGLE_SIGN * motorRot);
 
     targetDeg = continuousDeg;
-
-    // SmartDashboard.putNumber("Turret/ReseedAbsDeg", absDeg);
-    // SmartDashboard.putNumber("Turret/ReseedContinuousDeg", continuousDeg);
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      SmartDashboard.putNumber("Turret/ReseedAbsDeg", absDeg);
+      SmartDashboard.putNumber("Turret/ReseedContinuousDeg", continuousDeg);
+    }
   }
 
   public void captureAbsForwardTicksCandidate() {
     int ticks = getAbsoluteTicks();
-    // SmartDashboard.putNumber("Turret/AbsForwardTicksCandidate", ticks);
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      SmartDashboard.putNumber("Turret/AbsForwardTicksCandidate", ticks);
+    }
   }
 
   public void adjustKp(double delta) {
@@ -688,9 +687,10 @@ private final double forwardDeg =
         .withKA(Constants.OperatorConstants.Turret.kA);
 
     turret.getConfigurator().apply(slot0);
-
-    // SmartDashboard.putNumber("Turret/TunedKP", tunedKp);
-    // SmartDashboard.putNumber("Turret/TunedKD", tunedKd);
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      SmartDashboard.putNumber("Turret/TunedKP", tunedKp);
+      SmartDashboard.putNumber("Turret/TunedKD", tunedKd);
+    }
   }
 
   // =======================
@@ -701,7 +701,7 @@ private final double forwardDeg =
    * Calibration: reseed TalonFX integrated position from absolute encoder NOW.
    */
   public void calibrationReseedIntegratedFromAbsoluteNow() {
-    double absDeg = getAbsDegWrapped();
+    double absDeg = getAbsDegWrapped(true);
     lastAbsDegWrapped = absDeg;
 
     double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
@@ -717,9 +717,10 @@ private final double forwardDeg =
     turret.setPosition(ANGLE_SIGN * motorRot);
 
     targetDeg = continuousDeg;
-
-    // SmartDashboard.putNumber("Turret/Cal/ReseedAbsDeg", absDeg);
-    // SmartDashboard.putNumber("Turret/Cal/ReseedContinuousDeg", continuousDeg);
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      SmartDashboard.putNumber("Turret/Cal/ReseedAbsDeg", absDeg);
+      SmartDashboard.putNumber("Turret/Cal/ReseedContinuousDeg", continuousDeg);
+    }
   }
 
   /**
@@ -728,7 +729,9 @@ private final double forwardDeg =
  */
 public void calibrationCaptureAbsZeroTicksCandidate() {
   int ticks = getAbsoluteTicks();
-  // SmartDashboard.putNumber("Turret/AbsTicks", ticks);
+  if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+    SmartDashboard.putNumber("Turret/AbsTicks", ticks);
+  }
 }
 
   /**
@@ -744,12 +747,16 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     // Using internal state so the command can just toggle enable/disable.
     isCalSweepEnabled = true;
     calSweepStartTimeSec = Timer.getFPGATimestamp();
-    //SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", true);
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", true);
+    }
   }
 
   public void calibrationStopSweep() {
     isCalSweepEnabled = false;
-    //SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", false);
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", false);
+    }
   }
 
   /** Calibration: adjust tuned Slot0 kP by delta (testing only). */

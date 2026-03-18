@@ -51,7 +51,7 @@ public class PrintTurretShotDiagnosticsCommand extends InstantCommand {
     double distanceMeters = turretCenterField.getDistance(hubCenterField);
 
     TurretHelpers.Solution solution =
-        RobotContainer.autoShootSupervisorSubsystem.getLastSolution();
+        RobotContainer.autoShootSupervisorSubsystem.calculateDiagnosticSolution();
 
     double turretRelativeAngleDeg = RobotContainer.turretSubsystem.getAngleDeg();
 
@@ -85,7 +85,7 @@ public class PrintTurretShotDiagnosticsCommand extends InstantCommand {
         || !Double.isFinite(solution.hoodCommandAngleRad)) {
 
       System.out.println(
-          "4. No valid artillery-table solution is currently available.");
+          "4. No valid distance-table solution is currently available.");
 
     } else {
       double hoodDeg = Math.toDegrees(solution.hoodCommandAngleRad);
@@ -94,16 +94,7 @@ public class PrintTurretShotDiagnosticsCommand extends InstantCommand {
           "4. Apply hood=%.3f deg, shooter=%.1f RPM%n",
           hoodDeg,
           solution.shooterRpmCommand);
-
-      System.out.printf(
-          "   Solver desired ball exit: angle=%.3f deg, speed=%.3f m/s%n",
-          Math.toDegrees(solution.desiredBallOutputAngleRad),
-          solution.desiredBallExitSpeedMps);
-
-      System.out.printf(
-          "   Table-matched outcome: angle=%.3f deg, speed=%.3f m/s%n",
-          Math.toDegrees(solution.tableMatchedBallOutputAngleRad),
-          solution.tableMatchedBallExitSpeedMps);
+    
     }
 
     System.out.printf(
