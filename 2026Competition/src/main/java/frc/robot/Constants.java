@@ -780,12 +780,12 @@ public final class Constants {
       // STATIC FAILSAFE SHOTS (pose-only, hardwired presets)
       // ---------------------------------------------------------------------
       // TODO: PLACEHOLDER: Tune these for your real "Hub Base" static spot.
-      public static final double STATIC_HUB_BASE_RPM = 4200.0;
-      public static final double STATIC_HUB_BASE_HOOD_DEG = 25.0;
+      public static final double STATIC_HUB_BASE_RPM = 1950.0;
+      public static final double STATIC_HUB_BASE_HOOD_DEG = 2.5;
 
       // TODO: PLACEHOLDER: Tune these for your real "Tower Base" static spot.
-      public static final double STATIC_TOWER_BASE_RPM = 4600.0;
-      public static final double STATIC_TOWER_BASE_HOOD_DEG = 30.0;
+      public static final double STATIC_TOWER_BASE_RPM = 2150.0;
+      public static final double STATIC_TOWER_BASE_HOOD_DEG = 5.0;
 
             // ---------------------------------------------------------------------
       // MANUAL FIXED SHOT (turret-stick button 11)
