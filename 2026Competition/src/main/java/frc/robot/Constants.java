@@ -108,7 +108,7 @@ public final class Constants {
   public static final class EnabledSubsystems {
 
     public static final boolean chasis = true;
-    public static final boolean odometry = false;
+    public static final boolean odometry = true;
     public static final boolean ll = true;
     public static final boolean questnav = true;
     public static final boolean intake = true;
@@ -129,13 +129,13 @@ public final class Constants {
     public static final boolean chassis = true;
     public static final boolean ll = false;
     public static final boolean questnav = true;
-    public static final boolean intake = true;
+    public static final boolean intake = false;
     public static final boolean shooter = false;
-    public static final boolean turret = false; 
+    public static final boolean turret = true; 
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
@@ -989,7 +989,7 @@ public final class Constants {
        * If you later prefer a very slow "creep hold", change this to a small nonzero
        * value.
        */
-      public static final double THROAT_BLOCKED_STAGE_RPS = 0.0;
+      public static final double THROAT_BLOCKED_STAGE_RPS = -90.0;
 
       // ---------------- Closed-loop gains (Phoenix 6 Slot0) ----------------
       // TODO: All gains are placeholders and MUST be tuned on the real robot.

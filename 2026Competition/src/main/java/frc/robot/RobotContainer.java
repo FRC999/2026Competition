@@ -233,7 +233,7 @@ public class RobotContainer {
       //configureSpindexerCalibrationBindings();
     }
     competitionXBOXButtonBindings();
-    //betaTesting();
+    betaTesting();
     //setYaws();
   }
 
@@ -382,6 +382,10 @@ public class RobotContainer {
         .onFalse(new InstantCommand(() -> shooterSubsystem.stop())
             .alongWith(new InstantCommand(() -> transferSubsystem.stop()))
             .alongWith(new InstantCommand(() -> spindexerSubsystem.stop())));
+
+    new JoystickButton(turretStick, 12)
+        .onTrue(new InstantCommand(() -> transferSubsystem.runFeed()))
+        .onFalse(new InstantCommand(() -> transferSubsystem.stop()));
   }
 
     private void configureTransferCalibrationBindings() {

@@ -228,11 +228,11 @@ public class TransferSubsystem extends SubsystemBase {
       return;
     }
 
-    if (hasBallAtThroat()) {
-      runVelocityRps(Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
-      return;
-    }
-    runVelocityRps(Constants.OperatorConstants.Transfer.STAGE_RPS);
+    // if (hasBallAtThroat()) {
+    //   motor.set(-0.4);
+    //   return;
+    // }
+     motor.set(-0.75);
   }
 
   /**
