@@ -129,7 +129,7 @@ public final class Constants {
     public static final boolean chassis = false;
     public static final boolean ll = false;
     public static final boolean questnav = true;
-    public static final boolean intake = false;
+    public static final boolean intake = true;
     public static final boolean shooter = false;
     public static final boolean turret = false; 
     public static final boolean hood = false;
@@ -1104,6 +1104,9 @@ public final class Constants {
       public static final double ROLLER_INTAKE_RPS = 50.0;
       public static final double ROLLER_REVERSE_RPS = -20.0;
 
+      public static final double INTAKE_PIVOT_REZERO_RETRACT_DUTY = 0.20;
+      public static final double INTAKE_PIVOT_REZERO_RETRACT_TIME_SEC = 0.50;
+
       // Gear ratios
       // Pivot: given as 1 / 26.7 arm rotations per motor rotation,
       // so motor-to-arm ratio is 26.7 motor rotations per arm rotation.
@@ -1135,8 +1138,8 @@ public final class Constants {
 
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
-      public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.6;
-      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.3;
+      public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.10;
+      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.75;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         IntakeStowedDeg(37.0),
