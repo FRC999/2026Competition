@@ -30,11 +30,15 @@ public class IntakeRezeroFromRetractedHardStop extends Command {
     final boolean minTimeElapsed =
         timer.hasElapsed(IntakeConstants.INTAKE_PIVOT_REZERO_MIN_TIME_SEC);
 
-    final boolean currentHigh =
-        RobotContainer.intakeSubsystem.getPivotStatorCurrentAmps()
+    final boolean leaderCurrentHigh =
+        RobotContainer.intakeSubsystem.getPivotLeaderStatorCurrentAmps()
             >= IntakeConstants.INTAKE_PIVOT_REZERO_STATOR_CURRENT_TRIGGER_A;
 
-    if (minTimeElapsed && currentHigh) {
+    final boolean followerCurrentHigh =
+        RobotContainer.intakeSubsystem.getPivotFollowerStatorCurrentAmps()
+            >= IntakeConstants.INTAKE_PIVOT_REZERO_STATOR_CURRENT_TRIGGER_A;
+
+    if (minTimeElapsed && leaderCurrentHigh && followerCurrentHigh) {
       if (!currentDebounceTimer.isRunning()) {
         currentDebounceTimer.reset();
         currentDebounceTimer.start();
