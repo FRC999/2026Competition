@@ -76,14 +76,13 @@ public class IntakeSubsystem extends SubsystemBase {
   private boolean rollerVelocityClosedLoopEnabled = false;
   private double rollerCommandedMotorRps = 0.0;
 
-  // Status signals (telemetry + SysId logs)
+    // Status signals (telemetry + SysId logs)
   private StatusSignal<AngularVelocity> rollerVelSig;
   private StatusSignal<Voltage> rollerVoltageSig;
 
   private StatusSignal<Angle> pivotPosSig;
   private StatusSignal<AngularVelocity> pivotVelSig;
   private StatusSignal<Voltage> pivotVoltageSig;
-  private StatusSignal<Current> pivotStatorCurrentSig;
 
   // ---------------- SysId Characterization ----------------
   private final SysIdRoutine rollerSysIdRoutine = new SysIdRoutine(
@@ -148,12 +147,13 @@ public class IntakeSubsystem extends SubsystemBase {
     seedZeroFromRetractedHardStop();
   }
 
-  private void configureStatusSignals() {
+    private void configureStatusSignals() {
     rollerVelSig = intakeRollerMotor.getVelocity();
-        pivotPosSig = intakePivotMotor.getPosition();
+    rollerVoltageSig = intakeRollerMotor.getMotorVoltage();
+
+    pivotPosSig = intakePivotMotor.getPosition();
     pivotVelSig = intakePivotMotor.getVelocity();
     pivotVoltageSig = intakePivotMotor.getMotorVoltage();
-    pivotStatorCurrentSig = intakePivotMotor.getStatorCurrent();
 
     rollerVelSig.setUpdateFrequency(50.0);
     rollerVoltageSig.setUpdateFrequency(20.0);
@@ -161,14 +161,13 @@ public class IntakeSubsystem extends SubsystemBase {
     pivotPosSig.setUpdateFrequency(100.0);
     pivotVelSig.setUpdateFrequency(50.0);
     pivotVoltageSig.setUpdateFrequency(20.0);
-    pivotStatorCurrentSig.setUpdateFrequency(50.0);
-    pivotVelSig.setUpdateFrequency(50.0);
-    pivotVoltageSig.setUpdateFrequency(20.0);
 
     intakeRollerMotor.optimizeBusUtilization();
     intakePivotMotor.optimizeBusUtilization();
     intakePivotFollowerMotor.optimizeBusUtilization();
   }
+
+  
 
   private void configureHardware() {
     final var rollerCurrentLimits = new CurrentLimitsConfigs();
