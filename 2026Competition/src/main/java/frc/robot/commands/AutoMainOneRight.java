@@ -38,11 +38,11 @@ public class AutoMainOneRight extends SequentialCommandGroup {
           Set.of(RobotContainer.driveSubsystem)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralRight", false, false),
           new PrintCommand("Past hub right"),
-          new DeployIntakeSequence()
-            .raceWith(new WaitCommand(0.2)),
+          // new DeployIntakeSequence()
+          //   .raceWith(new WaitCommand(0.2)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueNeutralRightMiddle", false, false),
-          new RetractIntakeSequence()
-            .raceWith(new WaitCommand(0.2)),
+          // new RetractIntakeSequence()
+          //   .raceWith(new WaitCommand(0.2)),
           new PrintCommand("Past middle"),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRightMiddle_BlueNeutralHubRight", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTrenchRight2", false, false),
@@ -50,16 +50,16 @@ public class AutoMainOneRight extends SequentialCommandGroup {
             .raceWith(new WaitCommand(5)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueTrenchRight", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueAllianceRight", false, false),
-          new DeployIntakeSequence()
-            .raceWith(new WaitCommand(0.2)),
+          // new DeployIntakeSequence()
+          //   .raceWith(new WaitCommand(0.2)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceRight_BlueTrenchRight", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueTrenchRight2", false, false),
-          new RetractIntakeSequence()
-            .raceWith(new WaitCommand(0.2)),
+          // new RetractIntakeSequence()
+          //   .raceWith(new WaitCommand(0.2)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralHubRight", false, false),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTower(Under)", false, false),
-          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED, false)
-            .raceWith(new WaitCommand(5))
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTower(Under)", false, false)
+          // new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED, false)
+          //   .raceWith(new WaitCommand(5))
     );
   }
 }
