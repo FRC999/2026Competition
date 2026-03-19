@@ -92,6 +92,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   // Cached solver output
   private TurretHelpers.Solution lastSolution = TurretHelpers.makeInvalidSolution();
 
+  private final Timer shotCooldownTimer = new Timer();
+  private boolean shotCooldownActive = false;
+  private boolean lastBallAtThroat = false;
+
   
 
   public AutoShootSupervisorSubsystem() {
@@ -106,6 +110,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     // solver will return invalid.
     this.table = TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle
         .loadFromDeployCsv(Constants.OperatorConstants.ArtilleryTable.DEPLOY_CSV_PATH);
+
+    shotCooldownTimer.stop();
+    shotCooldownTimer.reset();
   }
 
   /**
@@ -450,6 +457,14 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     boolean shooterReady = RobotContainer.shooterSubsystem.isReadyToShoot();
     boolean ballAtThroat = RobotContainer.transferSubsystem.hasBallAtThroat();
 
+    if (lastBallAtThroat && !ballAtThroat) {
+  shotCooldownTimer.reset();
+  shotCooldownTimer.start();
+  shotCooldownActive = true;
+}
+
+lastBallAtThroat = ballAtThroat;
+
 
     double dx = target2d.getX() - poseField.getX();
     double dy = target2d.getY() - poseField.getY();
@@ -508,6 +523,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
           Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS.getY());
 
       // Log turret command issuance
+    }
+
+    if (shotCooldownActive && shotCooldownTimer.hasElapsed(0.060)) {
+      shotCooldownActive = false;
     }
 
     
@@ -601,12 +620,29 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     }
 
     if (state == VolleyState.FIRING || okToStartFeed) {
-      state = VolleyState.FIRING;
-      RobotContainer.transferSubsystem.runFeed();
-    } else {
-      state = VolleyState.ARMING;
-      RobotContainer.transferSubsystem.runStage();
-    }
+
+  if (state != VolleyState.FIRING) {
+    // entering FIRING for first time
+    shotCooldownTimer.reset();
+    shotCooldownTimer.start();
+    shotCooldownActive = true;
+  }
+
+  state = VolleyState.FIRING;
+
+  if (!shotCooldownActive) {
+    RobotContainer.transferSubsystem.runFeed();
+    RobotContainer.spindexerSubsystem.runSupply();
+  } else {
+    RobotContainer.transferSubsystem.stop();
+    RobotContainer.spindexerSubsystem.stop();
+  }
+
+} else {
+  state = VolleyState.ARMING;
+  RobotContainer.transferSubsystem.stop();
+  RobotContainer.spindexerSubsystem.stop();
+}
 
     publishTelemetry();
   }

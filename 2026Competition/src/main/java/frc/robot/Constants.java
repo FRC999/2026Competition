@@ -738,16 +738,16 @@ public final class Constants {
       // Distance is measured from turret center to hub center.
       // These arrays must stay sorted ascending by distance.
       public static final double[] MOVING_AUTO_SHOT_DISTANCE_M = {
-          1.471,
-          1.758,
-          2.132,
-          2.591,
-          2.603,
-          3.089,
-          3.647,
-          3.953,
-          4.501,
-          5.187
+          1.371,
+          1.935,
+          2.274,
+          2.700,
+          3.291,
+          3.444,
+          4.127,
+          4.391,
+          4.961,
+          5.512
       };
 
       public static final double[] MOVING_AUTO_SHOT_HOOD_DEG = {
@@ -758,22 +758,22 @@ public final class Constants {
           0.0,
           0.0,
           0.0,
-          0.0,
-          0.0,
+          3.0,
+          3.0,
           3.0
       };
 
       public static final double[] MOVING_AUTO_SHOT_RPM = {
-          2020.3,
-          1989.1,
-          2114.1,
-          2207.9,
-          2192.9,
-          2396.9,
-          2570.1,
-          2522.8,
-          2774.0,
-          2900.8
+          2098.4,
+          2184.4,
+          2247.2,
+          2381.1,
+          2507.1,
+          2609.4,
+          2766.9,
+          2656.7,
+          2892.9,
+          3026.8
       };
 
       // ---------------------------------------------------------------------
