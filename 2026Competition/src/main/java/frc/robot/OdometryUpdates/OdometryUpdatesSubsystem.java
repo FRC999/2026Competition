@@ -512,24 +512,33 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       }
       case CALIBRATED_NO_Q -> {
         Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
-        if (RobotContainer.questNavSubsystem.isTracking()) { // Quest magically came up!!!
-          // Set Quest IMU to current robot yaw
-          RobotContainer.questNavSubsystem.resetQuestIMUToAngle(robotPose.getRotation().getDegrees());
 
-          transitionTo(VisionState.SEEKING_TAGS_Q, "Quest regained; reseed and re-seek"); // CALIBRATED_NO_Q -> SEEKING_TAGS_Q
-          //state = VisionState.SEEKING_TAGS_Q; // Transition state indicating that we have Quest now. 
-                                              //  The LL Yaw will be tracked by Quest then.
-        }
-
-        // Update LL Yaw based on Robot Yaw
+        // Update LL Yaw based on Robot Yaw while LL remains primary
         RobotContainer.llAprilTagSubsystem.setLLOrientation(
             robotPose.getRotation().getDegrees(), RobotContainer.driveSubsystem.getTurnRate());
 
-        // Even if Quest came up this cycle, I want to update odometry from LL
+        // Keep fusing LL while operating without Quest as primary
         for (LLCamera llcamera : RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
           fuseLLCamera(llcamera);
         }
-        //RobotContainer.AutonomousConfigure();
+
+        // If Quest has returned, do NOT switch back immediately.
+        // Wait until LL has a good field pose, then use LL to re-anchor Quest.
+        if (RobotContainer.questNavSubsystem.isTracking()) {
+          var bestPoseEstimate = RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL();
+
+          if (bestPoseEstimate != null) {
+            calibrateQuestFromLL(bestPoseEstimate.pose);
+            RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);
+            RobotContainer.questNavSubsystem.setInitialPoseSet(true);
+            hasQuestEverBeenFieldCalibrated = true;
+            allowStartupFallbackAnchor = false;
+            gatePassOverride = false;
+
+            transitionTo(VisionState.CALIBRATED_Q, "Quest regained; re-anchored from LL");
+            return;
+          }
+        }
       }
     }
   }
