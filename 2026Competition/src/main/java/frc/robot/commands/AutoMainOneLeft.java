@@ -29,21 +29,21 @@ public class AutoMainOneLeft extends SequentialCommandGroup {
               TrajectoryHelper.AutoDesiredPoses.BlueTrenchLeft,
               //RobotContainer.driveSubsystem.getPose(),
               TrajectoryHelper.AutoDesiredPoses.BlueTrenchLeft2),
-          Set.of(RobotContainer.driveSubsystem)),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft2_BlueNeutralLeft", false, false),
-          //new StartIntake(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeft_BlueNeutralLeftMiddle", false, false),
-          //new StopIntake(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeftMiddle_BlueNeutralHubLeft", false, false),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubLeft_BlueBumpLeft2", false, false),
-          //new AutoShootUntilEmpty(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueAllianceLeft", false, false),
-          //new StartIntake(), 
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceLeft_BlueTrenchLeft", false, false),
-          //new StopIntake(),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft_BlueTrenchLeft2", false, false),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft2_BlueNeutralHubLeft", false, false),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubLeft_BlueTower", false, false)
+          Set.of(RobotContainer.driveSubsystem))
+          // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft2_BlueNeutralLeft", false, false),
+          // //new DeployIntakeSequence(),
+          // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeft_BlueNeutralLeftMiddle", false, false),
+          // //new RetractIntakeSequence(),
+          // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralLeftMiddle_BlueNeutralHubLeft", false, false),
+          // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubLeft_BlueBumpLeft2", false, false),
+          // //new ShootWhileHeld(),
+          // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueBumpLeft2_BlueAllianceLeft", false, false),
+          // //new StartIntake(), 
+          // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceLeft_BlueTrenchLeft", false, false),
+          // //new StopIntake(),
+          // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft_BlueTrenchLeft2", false, false),
+          // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchLeft2_BlueNeutralHubLeft", false, false),
+          // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubLeft_BlueTower", false, false)
           //.alongWith(new AutoShootUntilEmpty())
     );
   }

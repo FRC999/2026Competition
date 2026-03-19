@@ -271,7 +271,7 @@ public class RobotContainer {
     // Trigger 3: MOVING shot while held (no drivetrain hold)
     new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3) // RT
         .whileTrue(new ShootWhileHeld(
-            AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO,
+            AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED,
             false))
         .onFalse(new InstantCommand(() -> shooterSubsystem.stop())
             .alongWith(new InstantCommand(() -> transferSubsystem.stop()))
