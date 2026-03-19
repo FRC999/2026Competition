@@ -1177,6 +1177,9 @@ public final class Constants {
       public static final double ROLLER_REVERSE_RPS = -20.0;
 
       public static final double INTAKE_PIVOT_REZERO_RETRACT_DUTY = 0.20;
+      public static final double INTAKE_PIVOT_REZERO_MIN_TIME_SEC = 0.25;
+      public static final double INTAKE_PIVOT_REZERO_STATOR_CURRENT_TRIGGER_A = 20.0;
+      public static final double INTAKE_PIVOT_REZERO_CURRENT_DEBOUNCE_SEC = 0.06;
       public static final double INTAKE_PIVOT_REZERO_RETRACT_TIME_SEC = 0.50;
 
       // Gear ratios

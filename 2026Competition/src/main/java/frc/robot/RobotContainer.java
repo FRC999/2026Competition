@@ -304,7 +304,7 @@ public class RobotContainer {
         .onTrue(new TurretJogCommand(turretSubsystem, -0.25))
         .onFalse(new InstantCommand(() -> turretSubsystem.stop()));
 
-    new JoystickButton(turretStick, 6) // RB
+    new JoystickButton(bb, OIContants.BB_INTAKE_REZERO)
       .onTrue(new IntakeRezeroFromRetractedHardStop());
 
   }

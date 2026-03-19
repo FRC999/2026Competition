@@ -7,6 +7,7 @@ import frc.robot.RobotContainer;
 
 public class IntakeRezeroFromRetractedHardStop extends Command {
   private final Timer timer = new Timer();
+  private final Timer currentDebounceTimer = new Timer();
 
   public IntakeRezeroFromRetractedHardStop() {
     addRequirements(RobotContainer.intakeSubsystem);
@@ -17,21 +18,41 @@ public class IntakeRezeroFromRetractedHardStop extends Command {
     timer.reset();
     timer.start();
 
-    // Retract into the hard stop using open-loop power.
-    // Follower remains active because only the leader is being commanded.
+    currentDebounceTimer.stop();
+    currentDebounceTimer.reset();
+
     RobotContainer.intakeSubsystem.setPivotDutyCycle(
         -IntakeConstants.INTAKE_PIVOT_REZERO_RETRACT_DUTY);
   }
 
   @Override
-  public void execute() {}
+  public void execute() {
+    final boolean minTimeElapsed =
+        timer.hasElapsed(IntakeConstants.INTAKE_PIVOT_REZERO_MIN_TIME_SEC);
+
+    final boolean currentHigh =
+        RobotContainer.intakeSubsystem.getPivotStatorCurrentAmps()
+            >= IntakeConstants.INTAKE_PIVOT_REZERO_STATOR_CURRENT_TRIGGER_A;
+
+    if (minTimeElapsed && currentHigh) {
+      if (!currentDebounceTimer.isRunning()) {
+        currentDebounceTimer.reset();
+        currentDebounceTimer.start();
+      }
+    } else {
+      currentDebounceTimer.stop();
+      currentDebounceTimer.reset();
+    }
+  }
 
   @Override
   public void end(boolean interrupted) {
     RobotContainer.intakeSubsystem.exitOpenLoopHold();
-    timer.stop();
 
-    // Only accept the new zero if the full retract routine completed.
+    timer.stop();
+    currentDebounceTimer.stop();
+    currentDebounceTimer.reset();
+
     if (!interrupted) {
       RobotContainer.intakeSubsystem.seedZeroFromRetractedHardStop();
     }
@@ -39,6 +60,8 @@ public class IntakeRezeroFromRetractedHardStop extends Command {
 
   @Override
   public boolean isFinished() {
-    return timer.hasElapsed(IntakeConstants.INTAKE_PIVOT_REZERO_RETRACT_TIME_SEC);
+    return currentDebounceTimer.hasElapsed(
+            IntakeConstants.INTAKE_PIVOT_REZERO_CURRENT_DEBOUNCE_SEC)
+        || timer.hasElapsed(IntakeConstants.INTAKE_PIVOT_REZERO_RETRACT_TIME_SEC);
   }
 }
