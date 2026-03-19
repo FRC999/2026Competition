@@ -200,6 +200,16 @@ public final class Constants {
           false,
           false);
 
+      public static final int BUTTON_BOX = 4;
+
+      // Button Box Buttons
+      public static final int BB_TOGGLE_HUB_TRACKING = 1;
+      public static final int BB_UNUSED_2 = 2;
+      public static final int BB_UNUSED_3 = 3;
+      public static final int BB_UNUSED_4 = 4;
+      public static final int BB_INTAKE_REZERO = 5;
+      public static final int BB_TURRET_ZERO = 6;
+
     }
 
     /** Swerve-wide constants and module mappings */
