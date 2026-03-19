@@ -47,6 +47,7 @@ import frc.robot.commands.AutoMainOneRight;
 import frc.robot.commands.AutoMainTwoDepotHubSide;
 import frc.robot.commands.AutoMainTwoDepotMiddle;
 import frc.robot.commands.AutoShootUntilEmpty;
+import frc.robot.commands.AutoSimpleMoveAndShootLastResort;
 import frc.robot.commands.AutoStrategyEight;
 import frc.robot.commands.AutoStrategyFive;
 import frc.robot.commands.AutoStrategyFour;
@@ -173,6 +174,7 @@ public class RobotContainer {
     autoChooser.addOption("AutoMainTwoDepotHubSide", new AutoMainTwoDepotHubSide());
     autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
     autoChooser.addOption("Test Auto", new TestAuto());
+    autoChooser.addOption("SimpleMoveAndShootLastResort", new AutoSimpleMoveAndShootLastResort());
   }
 
   private void configureBindings() {
