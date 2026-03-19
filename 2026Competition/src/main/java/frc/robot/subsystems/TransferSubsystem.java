@@ -232,7 +232,7 @@ public class TransferSubsystem extends SubsystemBase {
     //   motor.set(-0.4);
     //   return;
     // }
-     motor.set(-0.75);
+     motor.set(-0.60);
   }
 
   /**
@@ -274,6 +274,15 @@ public class TransferSubsystem extends SubsystemBase {
     }
 
     motor.set(-0.90);
+    //runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
+  }
+
+  public void runThroat() {
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+
+    motor.set(-0.40);
     //runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
   }
 

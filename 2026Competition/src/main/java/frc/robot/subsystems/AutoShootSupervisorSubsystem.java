@@ -93,10 +93,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private TurretHelpers.Solution lastSolution = TurretHelpers.makeInvalidSolution();
 
   private final Timer shotCooldownTimer = new Timer();
-  private boolean shotCooldownActive = false;
-  private boolean lastBallAtThroat = false;
-
-  
+private boolean shotCooldownActive = false;
+private boolean lastBallAtThroat = false;
 
   public AutoShootSupervisorSubsystem() {
 
@@ -110,7 +108,6 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     // solver will return invalid.
     this.table = TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle
         .loadFromDeployCsv(Constants.OperatorConstants.ArtilleryTable.DEPLOY_CSV_PATH);
-
     shotCooldownTimer.stop();
     shotCooldownTimer.reset();
   }
@@ -134,8 +131,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     shootRequested = requested;
 
     if (!shootRequested) {
-      RobotContainer.transferSubsystem.runVelocityRps(
-          Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      // RobotContainer.transferSubsystem.runVelocityRps(
+      //     Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      RobotContainer.transferSubsystem.runThroat();
       RobotContainer.spindexerSubsystem.stop();
       RobotContainer.shooterSubsystem.stopFeederRelatedOutputs();
     }
@@ -262,6 +260,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.supervisor) {
       return;
     }
+
 
     final double now = Timer.getFPGATimestamp();
     if (isCalibrationActive()) {
@@ -456,7 +455,6 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     boolean turretAimed = isTurretAimed(desiredTurretDeg);
     boolean shooterReady = RobotContainer.shooterSubsystem.isReadyToShoot();
     boolean ballAtThroat = RobotContainer.transferSubsystem.hasBallAtThroat();
-
     if (lastBallAtThroat && !ballAtThroat) {
   shotCooldownTimer.reset();
   shotCooldownTimer.start();
@@ -524,8 +522,7 @@ lastBallAtThroat = ballAtThroat;
 
       // Log turret command issuance
     }
-
-    if (shotCooldownActive && shotCooldownTimer.hasElapsed(0.060)) {
+    if (shotCooldownActive && shotCooldownTimer.hasElapsed(0.03)) {
       shotCooldownActive = false;
     }
 
@@ -565,26 +562,28 @@ lastBallAtThroat = ballAtThroat;
 
     RobotContainer.shooterSubsystem.setTargetRpm(lastSolution.shooterRpmCommand);
     RobotContainer.hoodSubsystem.setTargetAngleRad(compensatedHoodRad);
-    RobotContainer.spindexerSubsystem.runSupply();
+    // RobotContainer.spindexerSubsystem.runSupply();
 
     // Turret-only invalid: keep aiming and spun up, but do not feed.
     if (solutionValidity == SolutionValidity.TURRET_ONLY_INVALID) {
       state = VolleyState.NO_SOLUTION;
-      RobotContainer.transferSubsystem.runVelocityRps(
-          Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      // RobotContainer.transferSubsystem.runVelocityRps(
+      //     Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      RobotContainer.transferSubsystem.runThroat();
       publishTelemetry();
       return;
     }
 
     // If suppressing due to edge handling, do not feed.
-    if (suppress) {
-      state = VolleyState.ARMING;
-      RobotContainer.transferSubsystem.runStage();
-      publishTelemetry();
-      return;
-    }
+  if (suppress) {
+    state = VolleyState.ARMING;
+    RobotContainer.transferSubsystem.stop();
+    RobotContainer.spindexerSubsystem.stop();
+    publishTelemetry();
+    return;
+  }
 
-    boolean okToStartFeed = turretAimed && shooterReady && ballAtThroat;
+    boolean okToStartFeed = turretAimed && shooterReady;
 
     if (shotMode == ShotMode.STATIC_HUB_BASE
         || shotMode == ShotMode.STATIC_TOWER_BASE) {
@@ -600,26 +599,28 @@ lastBallAtThroat = ballAtThroat;
     }
 
     boolean hoodCompAvailable = isCompensatedHoodAllowed(compensatedHoodRad);
-    boolean rpmDroppedTooFar = hasShooterDroppedTooFar(lastSolution.shooterRpmCommand);
+        boolean shouldRecover = !hoodCompAvailable;
 
     if (state == VolleyState.FIRING) {
-      if (!hoodCompAvailable || rpmDroppedTooFar) {
+      if (shouldRecover) {
         state = VolleyState.RECOVERING;
       }
-    } else if (state == VolleyState.RECOVERING) {
+    } 
+    
+    else if (state == VolleyState.RECOVERING) {
       if (shooterReady) {
         state = VolleyState.ARMING;
       }
     }
 
     if (state == VolleyState.RECOVERING) {
-      RobotContainer.transferSubsystem.runStage();
-      RobotContainer.spindexerSubsystem.runSlow();
+      RobotContainer.transferSubsystem.stop();
+      RobotContainer.spindexerSubsystem.stop();
       publishTelemetry();
       return;
     }
 
-    if (state == VolleyState.FIRING || okToStartFeed) {
+ if (state == VolleyState.FIRING || okToStartFeed) {
 
   if (state != VolleyState.FIRING) {
     // entering FIRING for first time

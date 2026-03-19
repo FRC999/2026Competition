@@ -435,7 +435,7 @@ public void runIntake(double rollerRps) {
   //System.out.println("Running intake at " + rollerRps + " roller RPS");
 
   rollerDesiredMode = RollerDesiredMode.VELOCITY;
-  intakeRollerMotor.set(0.7);
+  intakeRollerMotor.set(0.9); //0.7
   // commandRollerVelocityInternal(rollerRps);
 }
 

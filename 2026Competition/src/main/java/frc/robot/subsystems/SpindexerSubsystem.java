@@ -275,7 +275,7 @@ public class SpindexerSubsystem extends SubsystemBase {
     }
 
     calMode = "OFF";
-    motor.set(0.9);
+    motor.set(0.7);
     //requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SUPPLY_RPS);
   }
 

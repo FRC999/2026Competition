@@ -128,14 +128,14 @@ public final class Constants {
     public static final boolean imu = true;
     public static final boolean chassis = true;
     public static final boolean ll = false;
-    public static final boolean questnav = true;
+    public static final boolean questnav = false;
     public static final boolean intake = false;
-    public static final boolean shooter = false;
-    public static final boolean turret = true; 
+    public static final boolean shooter = true;
+    public static final boolean turret = false; 
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
-    public static final boolean transfer = true;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
@@ -743,6 +743,7 @@ public final class Constants {
           2.274,
           2.700,
           3.291,
+          3.417,
           3.444,
           4.127,
           4.391,
@@ -751,6 +752,7 @@ public final class Constants {
       };
 
       public static final double[] MOVING_AUTO_SHOT_HOOD_DEG = {
+          0.0,
           0.0,
           0.0,
           0.0,
@@ -769,6 +771,7 @@ public final class Constants {
           2247.2,
           2381.1,
           2507.1,
+          2601.6,
           2609.4,
           2766.9,
           2656.7,
@@ -791,7 +794,7 @@ public final class Constants {
       // MANUAL FIXED SHOT (turret-stick button 11)
       // ---------------------------------------------------------------------
       /** Fixed hood angle for the manual fixed shot. */
-      public static final double MANUAL_FIXED_SHOT_HOOD_DEG = 3.0; // TODO: tune
+      public static final double MANUAL_FIXED_SHOT_HOOD_DEG = 0.0; // TODO: tune
 
       /** Base shooter RPM for the manual fixed shot. */
       public static final double MANUAL_FIXED_SHOT_BASE_RPM = 2200.0; // TODO: tune
@@ -1160,7 +1163,7 @@ public final class Constants {
       public static final boolean intakePivotMotorInverted = true;
 
       // Intake roller setpoints are in RPS at the ROLLER, not motor RPS.
-      public static final double ROLLER_INTAKE_RPS = 50.0;
+      public static final double ROLLER_INTAKE_RPS = 75.0; //50
       public static final double ROLLER_REVERSE_RPS = -20.0;
 
       public static final double INTAKE_PIVOT_REZERO_RETRACT_DUTY = 0.20;
@@ -1197,8 +1200,9 @@ public final class Constants {
 
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
-      public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.10;
-      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.75;
+      public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.20;
+      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.1;
+      public static final double INTAKE_PIVOT_POWER_IN_TIME_SEC = 0.1;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         IntakeStowedDeg(37.0),

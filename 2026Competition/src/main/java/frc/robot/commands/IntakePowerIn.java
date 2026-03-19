@@ -44,6 +44,6 @@ public class IntakePowerIn extends Command {
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    return timer.hasElapsed(IntakeConstants.INTAKE_PIVOT_POWER_OUT_TIME_SEC);
+    return timer.hasElapsed(IntakeConstants.INTAKE_PIVOT_POWER_IN_TIME_SEC);
   }
 }
