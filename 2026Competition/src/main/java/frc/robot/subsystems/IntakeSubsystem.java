@@ -28,6 +28,7 @@ import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
@@ -82,6 +83,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private StatusSignal<Angle> pivotPosSig;
   private StatusSignal<AngularVelocity> pivotVelSig;
   private StatusSignal<Voltage> pivotVoltageSig;
+  private StatusSignal<Current> pivotStatorCurrentSig;
 
   // ---------------- SysId Characterization ----------------
   private final SysIdRoutine rollerSysIdRoutine = new SysIdRoutine(
@@ -148,16 +150,18 @@ public class IntakeSubsystem extends SubsystemBase {
 
   private void configureStatusSignals() {
     rollerVelSig = intakeRollerMotor.getVelocity();
-    rollerVoltageSig = intakeRollerMotor.getMotorVoltage();
-
-    pivotPosSig = intakePivotMotor.getPosition();
+        pivotPosSig = intakePivotMotor.getPosition();
     pivotVelSig = intakePivotMotor.getVelocity();
     pivotVoltageSig = intakePivotMotor.getMotorVoltage();
+    pivotStatorCurrentSig = intakePivotMotor.getStatorCurrent();
 
     rollerVelSig.setUpdateFrequency(50.0);
     rollerVoltageSig.setUpdateFrequency(20.0);
 
     pivotPosSig.setUpdateFrequency(100.0);
+    pivotVelSig.setUpdateFrequency(50.0);
+    pivotVoltageSig.setUpdateFrequency(20.0);
+    pivotStatorCurrentSig.setUpdateFrequency(50.0);
     pivotVelSig.setUpdateFrequency(50.0);
     pivotVoltageSig.setUpdateFrequency(20.0);
 
@@ -415,6 +419,10 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
   public void setPivotDutyCycle(double duty) {
     // Voltage consistency is good, but for "jog", duty is fine and simple.
     intakePivotMotor.setControl(new DutyCycleOut(MathUtil.clamp(duty, -1.0, 1.0)));
+  }
+
+  public double getPivotStatorCurrentAmps() {
+    return intakePivotMotor.getStatorCurrent().getValueAsDouble();
   }
 
   public void exitOpenLoopHold() {

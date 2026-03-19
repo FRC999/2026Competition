@@ -105,6 +105,7 @@ public class RobotContainer {
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
   private static final Joystick turretStick = new Joystick(0);
+  public static final Joystick bb = new Joystick(OIContants.BUTTON_BOX);
 
   public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
@@ -303,7 +304,7 @@ public class RobotContainer {
         .onTrue(new TurretJogCommand(turretSubsystem, -0.25))
         .onFalse(new InstantCommand(() -> turretSubsystem.stop()));
 
-    new JoystickButton(turretStick, 6) // RB
+    new JoystickButton(bb, OIContants.BB_INTAKE_REZERO)
       .onTrue(new IntakeRezeroFromRetractedHardStop());
 
   }
