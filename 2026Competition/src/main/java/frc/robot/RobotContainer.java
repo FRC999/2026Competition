@@ -46,6 +46,8 @@ import frc.robot.commands.AutoMainOneLeft;
 import frc.robot.commands.AutoMainOneRight;
 import frc.robot.commands.AutoMainTwoDepotHubSide;
 import frc.robot.commands.AutoMainTwoDepotMiddle;
+import frc.robot.commands.AutoRedSimpleMoveAndShootLastResort;
+import frc.robot.commands.AutoRedTrenchToOutpostAndShoot;
 import frc.robot.commands.AutoShootUntilEmpty;
 import frc.robot.commands.AutoSimpleMoveAndShootLastResort;
 import frc.robot.commands.AutoStrategyEight;
@@ -56,7 +58,9 @@ import frc.robot.commands.AutoStrategySeven;
 import frc.robot.commands.AutoStrategySix;
 import frc.robot.commands.AutoStrategyThree;
 import frc.robot.commands.AutoStrategyTwo;
-import frc.robot.commands.AutoTrenchToOutpostAndShoot;
+import frc.robot.commands.AutoBlueHubSimpleMoveAndShoot;
+import frc.robot.commands.AutoBlueSimpleMoveAndShootLastResort;
+import frc.robot.commands.AutoBlueTrenchToOutpostAndShoot;
 import frc.robot.commands.ClimbDown;
 import frc.robot.commands.ClimbUp;
 import frc.robot.commands.DeployIntakeSequence;
@@ -180,8 +184,12 @@ public class RobotContainer {
     autoChooser.addOption("AutoMainTwoDepotHubSide", new AutoMainTwoDepotHubSide());
     autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
     autoChooser.addOption("Test Auto", new TestAuto());
-    autoChooser.addOption("SimpleMoveAndShootLastResort", new AutoSimpleMoveAndShootLastResort());
-    autoChooser.addOption("AutoTrenchToOutpostAndShoot", new AutoTrenchToOutpostAndShoot());
+    autoChooser.addOption("Blue - SimpleMoveAndShootLastResort", new AutoBlueSimpleMoveAndShootLastResort());
+    autoChooser.addOption("Blue - AutoTrenchToOutpostAndShoot", new AutoBlueTrenchToOutpostAndShoot());
+    autoChooser.addOption("Blue - HubSimpleMoveAndShoot ", new AutoBlueHubSimpleMoveAndShoot());
+    autoChooser.addOption("Red - SimpleMoveAndShootLastResort", new AutoRedSimpleMoveAndShootLastResort());
+    autoChooser.addOption("Red - AutoTrenchToOutpostAndShoot", new AutoRedTrenchToOutpostAndShoot());
+    autoChooser.addOption("Red - HubSimpleMoveAndShoot", new AutoRedHubSimpleMoveAndShoot());
   }
 
   private void configureBindings() {
