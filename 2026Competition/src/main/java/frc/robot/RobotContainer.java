@@ -304,13 +304,13 @@ public class RobotContainer {
         .onTrue(new IntakePowerIn());
 
     new POVButton(xboxDriveController, 90)
-        .onTrue(new TurretJogCommand(turretSubsystem, 0.25))
-        .onFalse(new InstantCommand(() -> turretSubsystem.stop()));
+        .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+        .whileTrue(new TurretJogCommand(turretSubsystem, 0.25));
 
     new POVButton(xboxDriveController, 270)
-        .onTrue(new TurretJogCommand(turretSubsystem, -0.25))
-        .onFalse(new InstantCommand(() -> turretSubsystem.stop()));
-
+        .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+        .whileTrue(new TurretJogCommand(turretSubsystem, -0.25));
+        
     new JoystickButton(bb, OIContants.BB_INTAKE_REZERO)
       .onTrue(new IntakeRezeroFromRetractedHardStop());
 
