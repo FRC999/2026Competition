@@ -73,6 +73,7 @@ import frc.robot.commands.ShooterEnableCommand;
 import frc.robot.commands.StartIntake;
 import frc.robot.commands.StopClimb;
 import frc.robot.commands.StopIntake;
+import frc.robot.commands.StopIntakeAndMaybeRetract;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
 import frc.robot.commands.TestTurretAngleCommand;
@@ -108,6 +109,8 @@ public class RobotContainer {
   public static boolean isReversingControllerAndIMUForRed = true;
   private static final Joystick turretStick = new Joystick(0);
   public static final Joystick bb = new Joystick(OIContants.BUTTON_BOX);
+  private static boolean intakeStayOutAfterTriggerRelease =
+      OIContants.INTAKE_STAY_OUT_AFTER_TRIGGER_RELEASE_DEFAULT;
 
   public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
@@ -252,13 +255,28 @@ public class RobotContainer {
     return bb.getRawAxis(OIContants.BB_HUB_TRACKING_DISABLE_AXIS)
         < OIContants.BB_HUB_TRACKING_DISABLE_THRESHOLD;
   }
+  public static boolean isIntakeStayOutAfterTriggerReleaseEnabled() {
+    return intakeStayOutAfterTriggerRelease;
+  }
+
+  public static void toggleIntakeStayOutAfterTriggerReleaseMode() {
+    intakeStayOutAfterTriggerRelease = !intakeStayOutAfterTriggerRelease;
+  }
   private void competitionXBOXButtonBindings() {
-    new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
-        .whileTrue(new DeployIntakeSequence());
+
+    
+   new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
+        > OIContants.XBOX_TRIGGER_ACTIVE_THRESHOLD) // LT
+        .onTrue(new DeployIntakeSequence())
+        .onFalse(new StopIntakeAndMaybeRetract());
+
+    new JoystickButton(xboxDriveController, OIContants.XBOX_BUTTON_A)
+        .onTrue(new InstantCommand(RobotContainer::toggleIntakeStayOutAfterTriggerReleaseMode));
 
     new JoystickButton(xboxDriveController, 5) // LB
         .onTrue(new RetractIntakeSequence())
         .onFalse(new StopIntake());
+
 
     // new JoystickButton(xboxDriveController, 4)
     //     .onTrue(new ClimbUp())
@@ -367,9 +385,6 @@ public class RobotContainer {
   }
 
   private void betaTesting() {
-    new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
-        .onTrue(new DeployIntakeSequence())
-        .onFalse(new StopIntake());
 
         // Button B: STATIC TOWER BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 2)
