@@ -274,7 +274,7 @@ public class RobotContainer {
         .onTrue(new InstantCommand(RobotContainer::toggleIntakeStayOutAfterTriggerReleaseMode));
 
     new JoystickButton(xboxDriveController, 5) // LB
-        .onTrue(new RetractIntakeSequence())
+        .onTrue(new ReverseIntake())
         .onFalse(new StopIntake());
 
 

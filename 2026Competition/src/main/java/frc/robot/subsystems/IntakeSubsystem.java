@@ -456,6 +456,14 @@ public void runIntake(double rollerRps) {
   // commandRollerVelocityInternal(rollerRps);
 }
 
+public void runIntakeReverse() {
+  //System.out.println("Running intake at " + rollerRps + " roller RPS");
+
+  rollerDesiredMode = RollerDesiredMode.VELOCITY;
+  intakeRollerMotor.set(-1); //0.7
+  // commandRollerVelocityInternal(rollerRps);
+}
+
   /** Stop rotating the intake roller. */
   public void stopIntake() {
   rollerDesiredMode = RollerDesiredMode.OFF;
