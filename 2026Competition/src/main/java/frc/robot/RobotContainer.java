@@ -245,6 +245,10 @@ public class RobotContainer {
  public static Joystick getTurretStick() {
     return turretStick;
   }
+  public static boolean isHubTrackingDisabledByButtonBox() {
+    return bb.getRawAxis(OIContants.BB_HUB_TRACKING_DISABLE_AXIS)
+        < OIContants.BB_HUB_TRACKING_DISABLE_THRESHOLD;
+  }
   private void competitionXBOXButtonBindings() {
     new Trigger(() -> xboxDriveController.getRawAxis(2) > 0.3) // LT
         .whileTrue(new DeployIntakeSequence());

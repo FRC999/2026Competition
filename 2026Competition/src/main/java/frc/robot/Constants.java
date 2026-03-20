@@ -202,7 +202,10 @@ public final class Constants {
 
       public static final int BUTTON_BOX = 4;
 
-      // Button Box Buttons
+      // Button Box Inputs
+      public static final int BB_HUB_TRACKING_DISABLE_AXIS = 1;
+      public static final double BB_HUB_TRACKING_DISABLE_THRESHOLD = -0.3;
+
       public static final int BB_TOGGLE_HUB_TRACKING = 1;
       public static final int BB_UNUSED_2 = 2;
       public static final int BB_UNUSED_3 = 3;

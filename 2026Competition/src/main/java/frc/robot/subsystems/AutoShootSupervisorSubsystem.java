@@ -443,7 +443,10 @@ private boolean lastBallAtThroat = false;
               : Double.NaN;
     }
 
-    boolean aimEnabled = Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || effectiveShootRequested;
+    boolean aimEnabled =
+        (Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || effectiveShootRequested)
+            && !RobotContainer.isHubTrackingDisabledByButtonBox();
+
     if (aimEnabled && Double.isFinite(desiredTurretDeg)) {
       RobotContainer.turretSubsystem.goToAngleDeg(desiredTurretDeg);
     }
