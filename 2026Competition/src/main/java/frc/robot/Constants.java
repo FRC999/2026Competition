@@ -218,7 +218,7 @@ public final class Constants {
       public static final int XBOX_LEFT_TRIGGER_AXIS = 2;
       public static final double XBOX_TRIGGER_ACTIVE_THRESHOLD = 0.3;
       public static final boolean INTAKE_STAY_OUT_AFTER_TRIGGER_RELEASE_DEFAULT = false;
-      
+
     }
 
     /** Swerve-wide constants and module mappings */
@@ -859,6 +859,7 @@ public final class Constants {
        * Driver omega deadband for allowing the stationary illegal-shot auto-turn
        * assist to take over.
        */
+      public static final double IDLE_SHOOTER_RPM = 2200.0;
       public static final double STATIONARY_ASSIST_OMEGA_DEADBAND = 0.30;
       /** Shooter enters recovery if actual RPM <= targetRPM * this fraction. */
   public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;

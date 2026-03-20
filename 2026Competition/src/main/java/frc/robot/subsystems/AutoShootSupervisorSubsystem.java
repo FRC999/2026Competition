@@ -537,7 +537,13 @@ lastBallAtThroat = ballAtThroat;
       solutionValidity = SolutionValidity.GLOBAL_INVALID;
       RobotContainer.transferSubsystem.stop();
       RobotContainer.spindexerSubsystem.stop();
-      RobotContainer.shooterSubsystem.stop();
+
+      if (DriverStation.isEnabled()) {
+        RobotContainer.shooterSubsystem.setTargetRpm(
+            Constants.OperatorConstants.AutoShoot.IDLE_SHOOTER_RPM);
+      } else {
+        RobotContainer.shooterSubsystem.stop();
+      }
 
       if (teleopEnabled) {
         RobotContainer.hoodSubsystem.setTargetAngleRad(Constants.OperatorConstants.Hood.NEUTRAL_ANGLE_RAD);
