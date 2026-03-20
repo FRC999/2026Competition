@@ -254,7 +254,7 @@ public final class Constants {
                   // Swerve azimuth does not require much torque output, so we can set a
                   // relatively low
                   // stator current limit to help avoid brownouts without impacting performance.
-                  .withStatorCurrentLimit(Amps.of(60))
+                  .withStatorCurrentLimit(Amps.of(40)) //60
                   .withStatorCurrentLimitEnable(true));
       public static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration();
       public static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
@@ -272,7 +272,7 @@ public final class Constants {
       public static final int kPigeonId = 40; // 2025
       // public static final int kPigeonId = 15; // 2024
 
-      public static final Current kSlipCurrent = Amps.of(120.0);
+      public static final Current kSlipCurrent = Amps.of(80.0); //120
       public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.85);
       public static final ClosedLoopOutputType kSteerClosedLoopOutput = ClosedLoopOutputType.Voltage;
       public static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.FusedCANcoder;
@@ -859,7 +859,7 @@ public final class Constants {
        * Driver omega deadband for allowing the stationary illegal-shot auto-turn
        * assist to take over.
        */
-      public static final double IDLE_SHOOTER_RPM = 2200.0;
+      public static final double IDLE_SHOOTER_RPM = 0.0; //2200
       public static final double STATIONARY_ASSIST_OMEGA_DEADBAND = 0.30;
       /** Shooter enters recovery if actual RPM <= targetRPM * this fraction. */
   public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;
