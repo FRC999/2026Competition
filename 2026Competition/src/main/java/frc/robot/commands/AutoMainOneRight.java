@@ -48,7 +48,7 @@ public class AutoMainOneRight extends SequentialCommandGroup {
             .alongWith(new StopIntake()),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTrenchRight2", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueTrenchRight", false, false),
-          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED, false)
+          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
             .raceWith(new WaitCommand(5)),
           //RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueAllianceRight", false, false),
           // new DeployIntakeSequence() 
@@ -61,7 +61,7 @@ public class AutoMainOneRight extends SequentialCommandGroup {
             .alongWith(new StartIntake()),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTower", false, false)
             .alongWith(new StopIntake()),
-          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED, false)
+          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
             .raceWith(new WaitCommand(5))
     );
   }

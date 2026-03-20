@@ -4,7 +4,6 @@
 
 package frc.robot.commands;
 
-import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
@@ -13,15 +12,18 @@ import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
 // https://docs.wpilib.org/en/stable/docs/software/commandbased/convenience-features.html
-public class AutoSimpleMoveAndShootLastResort extends SequentialCommandGroup {
-  /** Creates a new AutoMoveOneMeterAndShootLastResort. */
-  public AutoSimpleMoveAndShootLastResort() {
+public class AutoBlueHubSimpleMoveAndShoot extends SequentialCommandGroup {
+  /** Creates a new AutoBlueHubSimpleMoveAndShoot. */
+  public AutoBlueHubSimpleMoveAndShoot() {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("SimpleMoveAndShoot", false, false),
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueHubMiddle_BlueAllianceMiddle", false, false),
       new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
-        .raceWith(new WaitCommand(10))
+        .raceWith(new WaitCommand(4)),
+      new RetractIntakeSequence(),
+      new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+        .raceWith(new WaitCommand(7))
     );
   }
 }

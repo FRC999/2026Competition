@@ -56,6 +56,7 @@ import frc.robot.commands.AutoStrategySeven;
 import frc.robot.commands.AutoStrategySix;
 import frc.robot.commands.AutoStrategyThree;
 import frc.robot.commands.AutoStrategyTwo;
+import frc.robot.commands.AutoTrenchToOutpostAndShoot;
 import frc.robot.commands.ClimbDown;
 import frc.robot.commands.ClimbUp;
 import frc.robot.commands.DeployIntakeSequence;
@@ -179,6 +180,7 @@ public class RobotContainer {
     autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
     autoChooser.addOption("Test Auto", new TestAuto());
     autoChooser.addOption("SimpleMoveAndShootLastResort", new AutoSimpleMoveAndShootLastResort());
+    autoChooser.addOption("AutoTrenchToOutpostAndShoot", new AutoTrenchToOutpostAndShoot());
   }
 
   private void configureBindings() {
