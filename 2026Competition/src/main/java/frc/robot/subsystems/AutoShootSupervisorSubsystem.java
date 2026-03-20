@@ -443,9 +443,11 @@ private boolean lastBallAtThroat = false;
               : Double.NaN;
     }
 
+    boolean manualTurretMode = RobotContainer.isHubTrackingDisabledByButtonBox();
+
     boolean aimEnabled =
         (Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || effectiveShootRequested)
-            && !RobotContainer.isHubTrackingDisabledByButtonBox();
+            && !manualTurretMode;
 
     if (aimEnabled && Double.isFinite(desiredTurretDeg)) {
       RobotContainer.turretSubsystem.goToAngleDeg(desiredTurretDeg);
@@ -455,7 +457,7 @@ private boolean lastBallAtThroat = false;
 
         boolean suppress = now < suppressShootUntilTs;
 
-    boolean turretAimed = isTurretAimed(desiredTurretDeg);
+    boolean turretAimed = manualTurretMode || isTurretAimed(desiredTurretDeg);
     boolean shooterReady = RobotContainer.shooterSubsystem.isReadyToShoot();
     boolean ballAtThroat = RobotContainer.transferSubsystem.hasBallAtThroat();
     if (lastBallAtThroat && !ballAtThroat) {
