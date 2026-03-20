@@ -706,7 +706,7 @@ public final class Constants {
       public static final double SIM_J_KGM2 = 0.02;
 
       public static final int READY_WINDOW_SAMPLES = 5; // 60ms @ 20ms loop
-      public static final double READY_RPM_TOLERANCE = 0.97; // 97% of target RPM
+      public static final double READY_RPM_TOLERANCE = 0.90; // 90% of target RPM ; was at 97
       public static final double READY_STDDEV_MAX = 0.015;
 
     }
