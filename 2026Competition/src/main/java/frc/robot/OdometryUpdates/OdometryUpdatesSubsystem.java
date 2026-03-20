@@ -320,6 +320,21 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       transitionTo(VisionState.CALIBRATED_NO_Q, "Manual override with good pose"); // SEEKING_TAGS_NO_Q -> CALIBRATED_NO_Q
     }
   }
+  public void requestReanchorFromLimelightAfterYawReset() {
+    gatePassOverride = true;
+
+    Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
+    RobotContainer.llAprilTagSubsystem.setLLOrientation(
+        robotPose.getRotation().getDegrees(),
+        RobotContainer.driveSubsystem.getTurnRate());
+
+    if (RobotContainer.questNavSubsystem.isTracking()) {
+      transitionTo(VisionState.SEEKING_TAGS_Q, "Driver yaw reset; re-seek LL and re-anchor Quest");
+    } else {
+      transitionTo(VisionState.SEEKING_TAGS_NO_Q, "Driver yaw reset; re-seek LL without Quest");
+    }
+    
+  }
 
   @Override
   public void periodic() {

@@ -288,8 +288,8 @@ public class RobotContainer {
 
     new JoystickButton(xboxDriveController, 8) // Left of X
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
-            .andThen(new InstantCommand(() -> questNavSubsystem.zeroYaw())));
-    
+            .andThen(new InstantCommand(() -> odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset())));
+
     // new JoystickButton(xboxDriveController, 7)
     //     .onTrue(new InstantCommand(() -> questNavSubsystem.customQuestPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))
     //         .alongWith(new InstantCommand(() -> driveSubsystem.resetCTREPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))));
@@ -730,7 +730,7 @@ private void configureIntakeCalibrationBindings() {
   public void setYaws() {
     new JoystickButton(xboxDriveController, 8)
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
-            .andThen(new InstantCommand(() -> questNavSubsystem.zeroYaw())));
+            .andThen(new InstantCommand(() -> odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset())));
     new JoystickButton(xboxDriveController, 7)
         .onTrue(new InstantCommand(() -> questNavSubsystem.resetToZeroPose()));
   }
