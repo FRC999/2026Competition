@@ -1217,7 +1217,7 @@ public final class Constants {
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
       public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.20;
-      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.1;
+      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.5;
       public static final double INTAKE_PIVOT_POWER_IN_TIME_SEC = 0.5;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
