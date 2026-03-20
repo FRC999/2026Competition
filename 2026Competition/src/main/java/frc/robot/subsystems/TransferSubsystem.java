@@ -277,6 +277,15 @@ public class TransferSubsystem extends SubsystemBase {
     //runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
   }
 
+  public void reverseTransfer() {
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+
+    motor.set(0.80);
+    //runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
+  }
+
   public void runThroat() {
     if (!EnabledSubsystems.transfer) {
       return;
