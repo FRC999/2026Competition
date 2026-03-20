@@ -200,7 +200,7 @@ public final class Constants {
           false,
           false);
 
-      public static final int BUTTON_BOX = 4;
+            public static final int BUTTON_BOX = 4;
 
       // Button Box Inputs
       public static final int BB_HUB_TRACKING_DISABLE_AXIS = 1;
@@ -213,6 +213,12 @@ public final class Constants {
       public static final int BB_INTAKE_REZERO = 5;
       public static final int BB_UNUSED_6 = 6;
 
+      // Xbox inputs used in competition bindings
+      public static final int XBOX_BUTTON_A = 1;
+      public static final int XBOX_LEFT_TRIGGER_AXIS = 2;
+      public static final double XBOX_TRIGGER_ACTIVE_THRESHOLD = 0.3;
+      public static final boolean INTAKE_STAY_OUT_AFTER_TRIGGER_RELEASE_DEFAULT = false;
+      
     }
 
     /** Swerve-wide constants and module mappings */
