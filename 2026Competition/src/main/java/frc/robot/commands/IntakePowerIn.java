@@ -28,12 +28,15 @@ public class IntakePowerIn extends Command {
 
     RobotContainer.intakeSubsystem.setPivotDutyCycle(
       -IntakeConstants.INTAKE_PIVOT_POWER_OUT_DUTY);
+    RobotContainer.intakeSubsystem.runIntake(IntakeConstants.ROLLER_INTAKE_RPS);
   }
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
-  public void execute() {}
-
+  public void execute() {
+    RobotContainer.intakeSubsystem.runIntake(IntakeConstants.ROLLER_INTAKE_RPS);
+  }
+  
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
