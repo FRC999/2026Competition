@@ -77,6 +77,7 @@ import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
 import frc.robot.commands.TestTurretAngleCommand;
 import frc.robot.commands.TurretCalibrationJogCommand;
+import frc.robot.commands.TurretGoToZeroCommand;
 import frc.robot.commands.TurretJogCommand;
 import frc.robot.lib.ElasticHelpers;
 import frc.robot.lib.TrajectoryHelper;
@@ -312,6 +313,10 @@ public class RobotContainer {
 
     new JoystickButton(bb, OIContants.BB_INTAKE_REZERO)
       .onTrue(new IntakeRezeroFromRetractedHardStop());
+
+    new JoystickButton(bb, OIContants.BB_TURRET_ZERO)
+      .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+      .onTrue(new TurretGoToZeroCommand());
 
   }
   private void configureSpindexerCalibrationBindings() {
