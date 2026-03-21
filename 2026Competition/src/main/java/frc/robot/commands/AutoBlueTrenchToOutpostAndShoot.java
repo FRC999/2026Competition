@@ -27,7 +27,7 @@ public class AutoBlueTrenchToOutpostAndShoot extends SequentialCommandGroup {
         .raceWith(new WaitCommand(4)),
       new RetractIntakeSequence(),
       new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
-        .raceWith(new WaitCommand(5))
+        .raceWith(new WaitCommand(10))
     );
   }
 }
