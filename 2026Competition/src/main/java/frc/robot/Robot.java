@@ -9,6 +9,8 @@ import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -35,8 +37,11 @@ public class Robot extends LoggedRobot {
     }
 
     //Logger.start();
-    m_robotContainer = new RobotContainer();
+    
     RobotContainer.setIfAllianceRed();
+
+    m_robotContainer = new RobotContainer();
+
   }
 
   @Override
@@ -46,6 +51,8 @@ public class Robot extends LoggedRobot {
     // The YAW should be set by autos and not really here
     //RobotContainer.driveSubsystem.zeroYaw(); //Sets Yaw to 180 if on Red Alliance, or 0 on Blue (theoretically)
     // RobotContainer.driveSubsystem.zeroYawInitial();
+
+    RobotContainer.driveSubsystem.zeroChassisYaw();
   }
 
   @Override
