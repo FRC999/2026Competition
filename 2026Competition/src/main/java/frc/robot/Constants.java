@@ -125,7 +125,7 @@ public final class Constants {
 
   public static final class DebugTelemetrySubsystems {
     public static final boolean odometry = true;
-    public static final boolean imu = false;
+    public static final boolean imu = true;
     public static final boolean chassis = false;
     public static final boolean ll = false;
     public static final boolean questnav = false;
