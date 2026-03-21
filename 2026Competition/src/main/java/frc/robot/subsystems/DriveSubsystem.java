@@ -548,13 +548,29 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return previousYaw;
     }
 
-    public void seedFieldRelativeOnce() {
+    public void resetChassisIMUToAngle(double angleDeg) {
+        StatusCode status = StatusCode.StatusCodeNotInitialized;
+        for (int i = 0; i < 5; ++i) {
+            status = imu.setYaw(angleDeg);
+            if (status.isOK()) {
+                break;
+            }
+        }
+
+        if (!status.isOK()) {
+            System.out.println("Could not set chassis IMU yaw, error code: " + status.toString());
+        }
+
+        yawSeedTimestamp = Timer.getFPGATimestamp();
+        setCurrentOdometryPoseToSpecificRotation(angleDeg);
+    }
+
+        public void seedFieldRelativeOnce() {
         if (hasSeeded) return;
 
         var alliance = DriverStation.getAlliance();
         if (alliance.isEmpty()) return;
 
-        // You can use either one — they are the same in your code
         Rotation2d yaw = OdometryConstants.initialYawForAlliance();
 
         imu.setYaw(yaw.getDegrees());
@@ -569,6 +585,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         hasSeeded = true;
     }
+
     public double getYawSeedTimestamp() {
         return yawSeedTimestamp;
     }

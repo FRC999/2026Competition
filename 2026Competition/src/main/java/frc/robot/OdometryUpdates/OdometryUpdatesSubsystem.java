@@ -115,6 +115,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private int loopsSinceSeed = 0;
   private boolean visionReady = false;
   private int loopsAfterReanchor = 0;
+  private final Timer delayedMegaTag1RecalTimer = new Timer();
+  private boolean waitingForMegaTag1Recal = false;
   
 
   /** Creates a new OdometryUpdatesSubsystem. */
@@ -312,7 +314,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
   }
 
-  public void handlePostYawSeed() {
+    public void handlePostYawSeed() {
     if (hasRequestedReanchor) return;
 
     loopsSinceSeed++;
@@ -333,6 +335,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   public void updateQuestAndState(Pose2d pose2d) {
     if (state == VisionState.SEEKING_TAGS_Q) {
       calibrateQuestFromLL(pose2d);
+      RobotContainer.driveSubsystem.resetChassisIMUToAngle(pose2d.getRotation().getDegrees());
       RobotContainer.driveSubsystem.resetCTREPose(pose2d);
       gatePassOverride = false;
       RobotContainer.questNavSubsystem.setInitialPoseSet(true);
@@ -342,13 +345,18 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
       transitionTo(VisionState.CALIBRATED_Q, "Manual override with good pose"); // SEEKING_TAGS_Q -> CALIBRATED_Q
     } else if (state == VisionState.SEEKING_TAGS_NO_Q) {
+      RobotContainer.driveSubsystem.resetChassisIMUToAngle(pose2d.getRotation().getDegrees());
       RobotContainer.driveSubsystem.resetCTREPose(pose2d);
       gatePassOverride = false;
 
       transitionTo(VisionState.CALIBRATED_NO_Q, "Manual override with good pose"); // SEEKING_TAGS_NO_Q -> CALIBRATED_NO_Q
     }
   }
-  public void requestReanchorFromLimelightAfterYawReset() {
+    public void requestReanchorFromLimelightAfterYawReset() {
+    if (!RobotContainer.driveSubsystem.hasFinishedSeeding()) {
+      return;
+    }
+
     gatePassOverride = true;
 
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
@@ -361,7 +369,32 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     } else {
       transitionTo(VisionState.SEEKING_TAGS_NO_Q, "Driver yaw reset; re-seek LL without Quest");
     }
-    
+  }
+
+    private void scheduleDelayedMegaTag1Recalibration() {
+    delayedMegaTag1RecalTimer.reset();
+    delayedMegaTag1RecalTimer.start();
+    waitingForMegaTag1Recal = true;
+    SmartDashboard.putBoolean("Odometry/WaitingForMegaTag1Recal", true);
+  }
+
+  private void cancelDelayedMegaTag1Recalibration() {
+    delayedMegaTag1RecalTimer.stop();
+    delayedMegaTag1RecalTimer.reset();
+    waitingForMegaTag1Recal = false;
+    SmartDashboard.putBoolean("Odometry/WaitingForMegaTag1Recal", false);
+  }
+
+  private void handleDelayedMegaTag1Recalibration() {
+    if (!waitingForMegaTag1Recal) {
+      return;
+    }
+
+    if (delayedMegaTag1RecalTimer.hasElapsed(5.0)) {
+      cancelDelayedMegaTag1Recalibration();
+      requestReanchorFromLimelightAfterYawReset();
+      System.out.println("Triggered delayed LL recalibration 5s after MegaTag1 anchor");
+    }
   }
 
   @Override
@@ -425,19 +458,24 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
           var bestPoseEstimate = RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL();
           if (bestPoseEstimate != null) {
-            // We see AT and have a good pose estimate
             calibrateQuestFromLL(bestPoseEstimate.pose);
             SmartDashboard.putString("Pose to Quest", bestPoseEstimate.pose.toString());
+            RobotContainer.driveSubsystem.resetChassisIMUToAngle(
+                bestPoseEstimate.pose.getRotation().getDegrees());
             RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);
             gatePassOverride = false;
             RobotContainer.questNavSubsystem.setInitialPoseSet(true);
             hasQuestEverBeenFieldCalibrated = true;
             allowStartupFallbackAnchor = false;
-    //System.out.println("Test5***");
 
-            transitionTo(VisionState.CALIBRATED_Q, "Good LL fix; anchored field pose"); // SEEKING_TAGS_Q -> CALIBRATED_Q
-            //state = VisionState.CALIBRATED_Q; // Now we're calibrated with Quest working
-            return; // No need to do anything else this cycle
+            if (RobotContainer.llAprilTagSubsystem.wasLastBestPoseMegaTag1()) {
+              scheduleDelayedMegaTag1Recalibration();
+            } else {
+              cancelDelayedMegaTag1Recalibration();
+            }
+
+            transitionTo(VisionState.CALIBRATED_Q, "Good LL fix; anchored field pose");
+            return;
           }
 
         } else { // Quest is not working anymore, so transition to no-quest state while still seeking the tags
@@ -460,6 +498,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     //System.out.println("Test8***");
 
           calibrateQuestFromLL(QuestNavConstants.startingPositionNoLL);
+          RobotContainer.driveSubsystem.resetChassisIMUToAngle(
+              QuestNavConstants.startingPositionNoLL.getRotation().getDegrees());
           RobotContainer.driveSubsystem.resetCTREPose(QuestNavConstants.startingPositionNoLL);
 
           gatePassOverride = false;
@@ -494,17 +534,22 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           return; // No need to do anything else this cycle; even if I see AT, I really want to deal with it if Quest is UP
         }
 
-        var poseEstimate = RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL();
+                var poseEstimate = RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL();
 
-        if (poseEstimate != null) { // We see AT and have a good pose estimate, though Quest is still not UP
-          // Set robot odometry to the pose detected
+        if (poseEstimate != null) {
+          RobotContainer.driveSubsystem.resetChassisIMUToAngle(
+              poseEstimate.pose.getRotation().getDegrees());
           RobotContainer.driveSubsystem.resetCTREPose(poseEstimate.pose);
           gatePassOverride = false;
-    //System.out.println("Test11***");
 
-          transitionTo(VisionState.CALIBRATED_NO_Q, "Good LL fix w/o Quest; anchored"); // SEEKING_TAGS_NO_Q -> CALIBRATED_NO_Q
-          //state = VisionState.CALIBRATED_NO_Q; // Now we're calibrated without Quest
-          return; // No need to do anything else this cycle
+          if (RobotContainer.llAprilTagSubsystem.wasLastBestPoseMegaTag1()) {
+            scheduleDelayedMegaTag1Recalibration();
+          } else {
+            cancelDelayedMegaTag1Recalibration();
+          }
+
+          transitionTo(VisionState.CALIBRATED_NO_Q, "Good LL fix w/o Quest; anchored");
+          return;
         }
       }
       case CALIBRATED_Q -> {
@@ -547,6 +592,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
             }
           }
         }
+        handleDelayedMegaTag1Recalibration();
     //System.out.println("Test15***");
         
           //RobotContainer.AutonomousConfigure();
@@ -572,6 +618,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
           if (bestPoseEstimate != null) {
             calibrateQuestFromLL(bestPoseEstimate.pose);
+            RobotContainer.driveSubsystem.resetChassisIMUToAngle(
+                bestPoseEstimate.pose.getRotation().getDegrees());
             RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);
             RobotContainer.questNavSubsystem.setInitialPoseSet(true);
             hasQuestEverBeenFieldCalibrated = true;
@@ -582,6 +630,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
             return;
           }
         }
+        handleDelayedMegaTag1Recalibration();
       }
     }
   }
