@@ -595,7 +595,7 @@ lastBallAtThroat = ballAtThroat;
 
       // Log turret command issuance
     }
-    if (shotCooldownActive && shotCooldownTimer.hasElapsed(0.03)) {
+    if (shotCooldownActive && shotCooldownTimer.hasElapsed(0.015)) {
       shotCooldownActive = false;
     }
 

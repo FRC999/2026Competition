@@ -29,6 +29,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -626,6 +627,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
 
         SmartDashboard.putString("Drive/Pose", this.getState().Pose.toString());
+        //SmartDashboard.putData("Drive/RealPose", (Sendable) this.getState().Pose);
 
         if(DebugTelemetrySubsystems.chassis){
             SmartDashboard.putNumber("Drive/PoseYawDeg", this.getState().Pose.getRotation().getDegrees());
