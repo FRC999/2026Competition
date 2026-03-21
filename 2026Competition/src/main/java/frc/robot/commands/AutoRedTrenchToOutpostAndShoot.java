@@ -18,7 +18,7 @@ public class AutoRedTrenchToOutpostAndShoot extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueOutpost", false, true),
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("RedTrenchRight_RedOutpost", false, false),
       new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
         .raceWith(new WaitCommand(5)),
       new RetractIntakeSequence(),
