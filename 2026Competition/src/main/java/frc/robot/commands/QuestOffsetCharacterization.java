@@ -48,10 +48,10 @@ public class QuestOffsetCharacterization extends Command {
   public void end(boolean interrupted) {
     try {
       var c = QuestHelpers.estimateCircleCenter(robotPoses);
-      System.out.println("X: " + c.getX() + " Y: " + c.getY() + " Num: " + robotPoses.size());
+      //System.out.println("X: " + c.getX() + " Y: " + c.getY() + " Num: " + robotPoses.size());
     }
     catch (Exception e) {
-      System.out.println(e);
+      //System.out.println(e);
     }
   }
 

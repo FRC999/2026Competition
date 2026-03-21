@@ -260,7 +260,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
       }
     }
     if (!statusRoller.isOK()) {
-      System.out.println("Could not apply configs, error code: " + statusRoller.toString());
+      //System.out.println("Could not apply configs, error code: " + statusRoller.toString());
     }
 
     intakeRollerMotor.getConfigurator().apply(pidRollerConfig);
@@ -305,7 +305,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
       }
     }
     if (!statusPivotFollower.isOK()) {
-      System.out.println("Could not apply follower current limits, error code: " + statusPivotFollower.toString());
+      //System.out.println("Could not apply follower current limits, error code: " + statusPivotFollower.toString());
     }
 
     final double fwdSoftLimitRot = IntakeConstants.PIVOT_MAX_DEG * IntakeConstants.PIVOT_MOTOR_TO_ARM_GEAR_RATIO
@@ -321,7 +321,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
       }
     }
     if (!statusPivot.isOK()) {
-      System.out.println("Could not apply configs, error code: " + statusPivot.toString());
+      //System.out.println("Could not apply configs, error code: " + statusPivot.toString());
     }
   }
 
@@ -377,7 +377,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
   }
 
   private static double motorRpsFromRollerRps(double rollerRps) {
-    System.out.println("Converting roller RPS " + rollerRps + " to motor RPS");
+    //System.out.println("Converting roller RPS " + rollerRps + " to motor RPS");
     return rollerRps * IntakeConstants.ROLLER_MOTOR_TO_ROLLER_GEAR_RATIO;
   }
 
@@ -460,6 +460,7 @@ public void runIntakeReverse() {
   //System.out.println("Running intake at " + rollerRps + " roller RPS");
 
   rollerDesiredMode = RollerDesiredMode.VELOCITY;
+  //System.out.println("Reversing intake");
   intakeRollerMotor.set(-1); //0.7
   // commandRollerVelocityInternal(rollerRps);
 }
@@ -491,7 +492,7 @@ public void runIntakeReverse() {
   }
 
   public boolean isAtPosition(IntakePositions position) {
-    System.out.println(Math.abs(position.getPosition() - getPivotDeg()) <= IntakePidConstants.tolerance);
+    //System.out.println(Math.abs(position.getPosition() - getPivotDeg()) <= IntakePidConstants.tolerance);
     return Math.abs(position.getPosition() - getPivotDeg()) <= IntakePidConstants.tolerance;
   }
 

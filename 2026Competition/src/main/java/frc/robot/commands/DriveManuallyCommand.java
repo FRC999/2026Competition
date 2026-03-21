@@ -47,9 +47,9 @@ public class DriveManuallyCommand extends Command {
    */
   @SuppressWarnings("unused")
   private void driveControlTelemetry(double dx, double dy, double dm) {
-    System.out.print("DX " + dx);
-    System.out.print(" DY " + dy);
-    System.out.println(" Dm " + dm);
+    //System.out.print("DX " + dx);
+    //System.out.print(" DY " + dy);
+    //System.out.println(" Dm " + dm);
   }
 
   // Called when the command is initially scheduled.
@@ -87,14 +87,14 @@ public class DriveManuallyCommand extends Command {
           RobotContainer.autoShootSupervisorSubsystem.getCurrentAimTarget(),
           RobotContainer.isAllianceRed);
 
-            System.out.println("AimTarget=" + RobotContainer.autoShootSupervisorSubsystem.getCurrentAimTarget()
-          + " allianceRed=" + RobotContainer.isAllianceRed);
+          //   System.out.println("AimTarget=" + RobotContainer.autoShootSupervisorSubsystem.getCurrentAimTarget()
+          // + " allianceRed=" + RobotContainer.isAllianceRed);
 
       autoTurnRawTurretDeg = TurretHelpers.computeStationaryRawTurretYawDeg(
           robotPoseField,
           targetPositionField);
 
-      System.out.println("AD:"+autoTurnRawTurretDeg + " RP:"+robotPoseField.toString()+ "TP:"+targetPositionField.toString());
+      // System.out.println("AD:"+autoTurnRawTurretDeg + " RP:"+robotPoseField.toString()+ "TP:"+targetPositionField.toString());
 
       double thresholdDeg = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG;
 
@@ -111,13 +111,13 @@ public class DriveManuallyCommand extends Command {
       autoTurnOmegaCmd = autoTurnOmegaRadPerSec / SwerveConstants.MaxAngularRate;
       autoTurnRobotHeadingDeltaDeg = autoTurnRawTurretDeg;
 
-      System.out.println(
-          "[StationaryAutoTurn] rawTurretDeg=" + autoTurnRawTurretDeg
-              + " thresholdDeg=" + thresholdDeg
-              + " omegaRadPerSec=" + autoTurnOmegaRadPerSec
-              + " omegaNormalized=" + autoTurnOmegaCmd
-              + " driverOmegaInput=" + omegaInput
-              + " omegaDeadband=" + omegaDeadband);
+      // System.out.println(
+      //     "[StationaryAutoTurn] rawTurretDeg=" + autoTurnRawTurretDeg
+      //         + " thresholdDeg=" + thresholdDeg
+      //         + " omegaRadPerSec=" + autoTurnOmegaRadPerSec
+      //         + " omegaNormalized=" + autoTurnOmegaCmd
+      //         + " driverOmegaInput=" + omegaInput
+      //         + " omegaDeadband=" + omegaDeadband);
 
       if (Math.abs(autoTurnOmegaRadPerSec) > 1e-9) {
         omegaInput = autoTurnOmegaCmd;

@@ -63,48 +63,48 @@ public class PrintTurretShotDiagnosticsCommand extends InstantCommand {
         -180.0,
         180.0);
 
-    System.out.println("========================================");
-    System.out.println("TURRET / SHOT DIAGNOSTICS");
-    System.out.println("========================================");
+    // System.out.println("========================================");
+    // System.out.println("TURRET / SHOT DIAGNOSTICS");
+    // System.out.println("========================================");
 
-    System.out.printf(
-        "1. Turret center field position: x=%.4f m, y=%.4f m%n",
-        turretCenterField.getX(),
-        turretCenterField.getY());
+    // System.out.printf(
+    //     "1. Turret center field position: x=%.4f m, y=%.4f m%n",
+    //     turretCenterField.getX(),
+    //     turretCenterField.getY());
 
-    System.out.printf(
-        "2. Absolute turret angle from field POV: %.3f deg%n",
-        absoluteTurretFieldDeg);
+    // System.out.printf(
+    //     "2. Absolute turret angle from field POV: %.3f deg%n",
+    //     absoluteTurretFieldDeg);
 
-    System.out.printf(
-        "3. Distance from turret center to hub center: %.4f m%n",
-        distanceMeters);
+    // System.out.printf(
+    //     "3. Distance from turret center to hub center: %.4f m%n",
+    //     distanceMeters);
 
     if (solution == null || !solution.valid
         || !Double.isFinite(solution.shooterRpmCommand)
         || !Double.isFinite(solution.hoodCommandAngleRad)) {
 
-      System.out.println(
-          "4. No valid distance-table solution is currently available.");
+    //   System.out.println(
+    //       "4. No valid distance-table solution is currently available.");
 
     } else {
       double hoodDeg = Math.toDegrees(solution.hoodCommandAngleRad);
 
-      System.out.printf(
-          "4. Apply hood=%.3f deg, shooter=%.1f RPM%n",
-          hoodDeg,
-          solution.shooterRpmCommand);
+    //   System.out.printf(
+    //       "4. Apply hood=%.3f deg, shooter=%.1f RPM%n",
+    //       hoodDeg,
+    //       solution.shooterRpmCommand);
     
     }
 
-    System.out.printf(
-    "5. Turret relative angle from turret zero POV: %.3f deg%n",
-    turretRelativeAngleDeg);
+    // System.out.printf(
+    // "5. Turret relative angle from turret zero POV: %.3f deg%n",
+    // turretRelativeAngleDeg);
 
-    System.out.printf(
-    "6. Expected turret relative angle to hub: %.3f deg%n",
-    expectedTurretRelativeAngleDeg);
+    // System.out.printf(
+    // "6. Expected turret relative angle to hub: %.3f deg%n",
+    // expectedTurretRelativeAngleDeg);
 
-    System.out.println("========================================");
+    // System.out.println("========================================");
   }
 }

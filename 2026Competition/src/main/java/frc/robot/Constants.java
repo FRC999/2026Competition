@@ -125,12 +125,12 @@ public final class Constants {
 
   public static final class DebugTelemetrySubsystems {
     public static final boolean odometry = true;
-    public static final boolean imu = true;
-    public static final boolean chassis = true;
+    public static final boolean imu = false;
+    public static final boolean chassis = false;
     public static final boolean ll = false;
-    public static final boolean questnav = true;
+    public static final boolean questnav = false;
     public static final boolean intake = false;
-    public static final boolean shooter = true;
+    public static final boolean shooter = false;
     public static final boolean turret = false; 
     public static final boolean hood = false;
     public static final boolean hopper = false;
@@ -1226,7 +1226,7 @@ public final class Constants {
 
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
-      public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.40;
+      public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.20;
       public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.5;
       public static final double INTAKE_PIVOT_POWER_IN_TIME_SEC = 0.5;
 

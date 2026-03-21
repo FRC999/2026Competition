@@ -283,7 +283,8 @@ public class RobotContainer {
         .onFalse(new StopIntakeAndMaybeRetract());
 
     new JoystickButton(xboxDriveController, OIContants.XBOX_BUTTON_A)
-        .onTrue(new InstantCommand(RobotContainer::toggleIntakeStayOutAfterTriggerReleaseMode));
+        .onTrue(new IntakePowerOut());
+        //.onTrue(new InstantCommand(RobotContainer::toggleIntakeStayOutAfterTriggerReleaseMode));
 
         new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
@@ -302,6 +303,10 @@ public class RobotContainer {
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_4M,
             true));
+    
+    new JoystickButton(xboxDriveController, 4) // LB
+        .onTrue(new RetractIntakeSequence())
+        .onFalse(new StopIntake());
 
     new JoystickButton(xboxDriveController, 5) // LB
         .onTrue(new ReverseIntake())

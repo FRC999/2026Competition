@@ -538,13 +538,13 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 break;
         }
         if (!status.isOK()) {
-            System.out.println("Could not apply configs, error code: " + status.toString());
+            //System.out.println("Could not apply configs, error code: " + status.toString());
         }
 
         // Reset IMU pose; may need to remove for the competition
         setCurrentOdometryPoseToSpecificRotation(OdometryConstants.teleopYawForAlliance().getDegrees());
 
-        System.out.println("New Yaw: " + imu.getYaw());
+        //System.out.println("New Yaw: " + imu.getYaw());
         return previousYaw;
     }
 
@@ -558,7 +558,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
 
         if (!status.isOK()) {
-            System.out.println("Could not set chassis IMU yaw, error code: " + status.toString());
+            //System.out.println("Could not set chassis IMU yaw, error code: " + status.toString());
         }
 
         yawSeedTimestamp = Timer.getFPGATimestamp();

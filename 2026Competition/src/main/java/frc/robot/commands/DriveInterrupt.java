@@ -19,6 +19,6 @@ public class DriveInterrupt extends InstantCommand {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    System.out.println("************* Drive Interrupted **********");
+    //System.out.println("************* Drive Interrupted **********");
   }
 }

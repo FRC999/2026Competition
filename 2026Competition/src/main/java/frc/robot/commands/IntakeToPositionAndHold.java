@@ -28,7 +28,7 @@ public class IntakeToPositionAndHold extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
-    System.out.println("Arm going to position: " + setPosition);
+    // System.out.println("Arm going to position: " + setPosition);
     RobotContainer.intakeSubsystem.setIntakePositionWithAngle(setPosition);
   }
 
@@ -39,7 +39,7 @@ public class IntakeToPositionAndHold extends Command {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    System.out.println("Arm at position: " + setPosition);
+    // System.out.println("Arm at position: " + setPosition);
   }
 
   // Returns true when the command should end.

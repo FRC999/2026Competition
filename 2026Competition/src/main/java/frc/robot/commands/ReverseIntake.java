@@ -23,11 +23,14 @@ public class ReverseIntake extends Command {
 
   // Called every time the scheduler runs while the command is scheduled.
   @Override
-  public void execute() {}
+  public void execute() {
+    RobotContainer.intakeSubsystem.runIntakeReverse();
+  }
 
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
+    //System.out.println("command interrupted");
     RobotContainer.intakeSubsystem.stopIntake();
   }
 

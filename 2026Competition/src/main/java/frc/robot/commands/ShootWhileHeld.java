@@ -113,12 +113,12 @@ public void initialize() {
     double hood =
         Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG;
 
-    System.out.println("========================================");
-    System.out.println("MANUAL FIXED SHOT");
-    System.out.printf("Distance turret->hub: %.3f m%n", distance);
-    System.out.printf("Hood angle: %.2f deg%n", hood);
-    System.out.printf("Shooter RPM: %.1f%n", rpm);
-    System.out.println("========================================");
+    // System.out.println("========================================");
+    // System.out.println("MANUAL FIXED SHOT");
+    // System.out.printf("Distance turret->hub: %.3f m%n", distance);
+    // System.out.printf("Hood angle: %.2f deg%n", hood);
+    // System.out.printf("Shooter RPM: %.1f%n", rpm);
+    // System.out.println("========================================");
   }
 }
 
