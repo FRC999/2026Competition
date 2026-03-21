@@ -65,7 +65,10 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private boolean simYawHoldActive = false;
     private double simYawHoldDeg = 0.0;
     
-
+    private boolean hasSeeded = false;
+    public boolean hasFinishedSeeding() {
+        return hasSeeded;
+    }
 
     private static final double kSimLoopPeriod = 0.005; // 5 ms
     private Notifier simNotifier = null;
@@ -542,6 +545,27 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         System.out.println("New Yaw: " + imu.getYaw());
         return previousYaw;
+    }
+
+    public void seedFieldRelativeOnce() {
+        if (hasSeeded) return;
+
+        var alliance = DriverStation.getAlliance();
+        if (alliance.isEmpty()) return;
+
+        // You can use either one — they are the same in your code
+        Rotation2d yaw = OdometryConstants.initialYawForAlliance();
+
+        imu.setYaw(yaw.getDegrees());
+
+        resetPose(new Pose2d(
+            getState().Pose.getTranslation(),
+            yaw
+        ));
+
+        System.out.println("Seeded Yaw: " + yaw.getDegrees());
+
+        hasSeeded = true;
     }
 
     /**

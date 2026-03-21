@@ -52,20 +52,28 @@ public class Robot extends LoggedRobot {
     //RobotContainer.driveSubsystem.zeroYaw(); //Sets Yaw to 180 if on Red Alliance, or 0 on Blue (theoretically)
     // RobotContainer.driveSubsystem.zeroYawInitial();
 
-    RobotContainer.driveSubsystem.zeroChassisYaw();
+    //RobotContainer.driveSubsystem.zeroChassisYaw();
   }
 
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
     //m_robotContainer.publishPoseToAdvantageScope();
+    
   }
 
   @Override
   public void disabledInit() {}
 
   @Override
-  public void disabledPeriodic() {}
+  public void disabledPeriodic() {
+      m_robotContainer.driveSubsystem.seedFieldRelativeOnce();
+
+      // Trigger LL + Quest reanchor AFTER drivetrain seed
+      if (m_robotContainer.driveSubsystem.hasFinishedSeeding()) {
+          m_robotContainer.odometryUpdateSubsystem.handlePostYawSeed();
+      }
+  }
 
   @Override
   public void disabledExit() {}

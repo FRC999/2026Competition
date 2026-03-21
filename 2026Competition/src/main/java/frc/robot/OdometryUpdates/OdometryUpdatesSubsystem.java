@@ -107,9 +107,12 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private int transitionSeq = 0;
   private Timer llTimer = new Timer();
 
-    private final Timer questLossHoldTimer = new Timer();
+  private final Timer questLossHoldTimer = new Timer();
   private boolean hasQuestEverBeenFieldCalibrated = false;
-    private boolean allowStartupFallbackAnchor = true;
+  private boolean allowStartupFallbackAnchor = true;
+
+  private boolean hasRequestedReanchor = false;
+  private int loopsSinceSeed = 0;
   
 
   /** Creates a new OdometryUpdatesSubsystem. */
@@ -122,7 +125,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     
     // The chassis yaw should be initialized regardless of quest or LL being operational
     // TODO: add LED lights and turn it on another color when zero chassis runs
-    RobotContainer.driveSubsystem.zeroChassisYaw();
+    // RobotContainer.driveSubsystem.zeroChassisYaw();
   }
 
   //Update odometry using Quest
@@ -298,6 +301,21 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       SmartDashboard.putString("Odometry/LastTransition", lastTransition);
       SmartDashboard.putNumber("Odometry/TransitionSeq", transitionSeq);
       SmartDashboard.putNumber("Odometry/LastTransitionTimeSec", lastTransitionTime);
+    }
+  }
+
+  public void handlePostYawSeed() {
+    if (hasRequestedReanchor) return;
+
+    loopsSinceSeed++;
+
+    // Wait 1–2 loops so IMU + pose fully propagate
+    if (loopsSinceSeed > 1) {
+        requestReanchorFromLimelightAfterYawReset();
+
+        System.out.println("LL + Quest Reanchor Triggered After Yaw Seed");
+
+        hasRequestedReanchor = true;
     }
   }
 
