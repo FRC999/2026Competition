@@ -92,8 +92,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private TurretHelpers.Solution lastSolution = TurretHelpers.makeInvalidSolution();
 
   private final Timer shotCooldownTimer = new Timer();
-private boolean shotCooldownActive = false;
-private boolean lastBallAtThroat = false;
+  private boolean shotCooldownActive = false;
+  private boolean lastBallAtThroat = false;
+  private double shootRequestStartTs = -1.0;
+  private static final double FEED_FORCE_START_AFTER_S = 1.0;
 
   public AutoShootSupervisorSubsystem() {
 
@@ -115,7 +117,7 @@ private boolean lastBallAtThroat = false;
    * Driver intent: true = attempt to run a volley; false = stop shooting
    * immediately.
    */
-    public void setShootRequested(boolean requested) {
+  public void setShootRequested(boolean requested) {
     if (requested && !shootRequested) {
       if (DriverStation.isTeleopEnabled()) {
         trenchLockoutActive = false;
@@ -125,13 +127,13 @@ private boolean lastBallAtThroat = false;
       suppressShootUntilTs = 0.0;
       solutionValidity = SolutionValidity.GLOBAL_INVALID;
       hoodCompensationRad = 0.0;
+      shootRequestStartTs = Timer.getFPGATimestamp();
     }
 
     shootRequested = requested;
 
     if (!shootRequested) {
-      // RobotContainer.transferSubsystem.runVelocityRps(
-      //     Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
+      shootRequestStartTs = -1.0;
       RobotContainer.transferSubsystem.runThroat();
       RobotContainer.spindexerSubsystem.stop();
       RobotContainer.shooterSubsystem.stopFeederRelatedOutputs();
@@ -641,15 +643,7 @@ lastBallAtThroat = ballAtThroat;
     RobotContainer.hoodSubsystem.setTargetAngleRad(compensatedHoodRad);
     // RobotContainer.spindexerSubsystem.runSupply();
 
-    // Turret-only invalid: keep aiming and spun up, but do not feed.
-    if (solutionValidity == SolutionValidity.TURRET_ONLY_INVALID) {
-      state = VolleyState.NO_SOLUTION;
-      // RobotContainer.transferSubsystem.runVelocityRps(
-      //     Constants.OperatorConstants.Transfer.THROAT_BLOCKED_STAGE_RPS);
-      RobotContainer.transferSubsystem.runThroat();
-      publishTelemetry();
-      return;
-    }
+    
 
     // If suppressing due to edge handling, do not feed.
   if (suppress) {
@@ -660,7 +654,11 @@ lastBallAtThroat = ballAtThroat;
     return;
   }
 
-    boolean okToStartFeed = turretAimed && shooterReady;
+      boolean feedTimeoutElapsed =
+        shootRequestStartTs >= 0.0
+            && (now - shootRequestStartTs) >= FEED_FORCE_START_AFTER_S;
+
+    boolean okToStartFeed = shooterReady || feedTimeoutElapsed;
 
     if (shotMode == ShotMode.STATIC_HUB_BASE
         || shotMode == ShotMode.STATIC_TOWER_BASE) {

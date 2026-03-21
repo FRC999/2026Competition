@@ -303,6 +303,19 @@ public class RobotContainer {
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_4M,
             true));
+
+    new JoystickButton(bb, OIContants.BB_FORCE_FEED)
+        .whileTrue(
+            new RunCommand(
+                () -> {
+                  transferSubsystem.runFeed();
+                  spindexerSubsystem.runSupply();
+                },
+                transferSubsystem,
+                spindexerSubsystem))
+        .onFalse(
+            new InstantCommand(() -> transferSubsystem.stop(), transferSubsystem)
+                .alongWith(new InstantCommand(() -> spindexerSubsystem.stop(), spindexerSubsystem)));
     
     new JoystickButton(xboxDriveController, 4) // LB
         .onTrue(new RetractIntakeSequence())

@@ -208,7 +208,7 @@ public final class Constants {
 
       public static final int BB_TURRET_ZERO = 1;
       public static final int BB_UNUSED_2 = 2;
-      public static final int BB_UNUSED_3 = 3;
+      public static final int BB_FORCE_FEED = 3;      
       public static final int BB_UNUSED_4 = 4;
       public static final int BB_INTAKE_REZERO = 5;
       public static final int BB_UNUSED_6 = 6;
@@ -788,17 +788,17 @@ public final class Constants {
       };
 
       public static final double[] MOVING_AUTO_SHOT_RPM = {
-          2098.4,
-          2184.4,
-          2247.2,
-          2381.1,
-          2507.1,
-          2601.6,
-          2609.4,
-          2766.9,
-          2656.7,
-          2892.9,
-          3026.8
+          2098.4 * 0.93,
+          2184.4 * 0.93,
+          2247.2 * 0.93,
+          2381.1 * 0.93,
+          2507.1 * 0.93,
+          2601.6 * 0.93,
+          2609.4 * 0.93,
+          2766.9 * 0.93,
+          2656.7 * 0.93,
+          2892.9 * 0.93,
+          3026.8 * 0.93
       };
 
       // ---------------------------------------------------------------------
