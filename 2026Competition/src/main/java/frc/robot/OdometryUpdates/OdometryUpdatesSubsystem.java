@@ -113,6 +113,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
   private boolean hasRequestedReanchor = false;
   private int loopsSinceSeed = 0;
+  private boolean visionReady = false;
+  private int loopsAfterReanchor = 0;
   
 
   /** Creates a new OdometryUpdatesSubsystem. */
@@ -157,7 +159,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
       if (gateMeasurement(robotPose, t, /*strict*/ false, speedNow, poseNow)) {
         Matrix<N3, N1> std = QuestHelpers.questStdDev(speedNow);
-        RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
+        if (t < RobotContainer.driveSubsystem.getYawSeedTimestamp()) return;
+        if (visionReady) {
+          RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, t, QuestNavConstants.QUESTNAV_STD_DEVS);
+        }
         //System.out.println("T");
         //System.out.println(Timer.getFPGATimestamp());
         gatePassOverrideIntermediate = false;
@@ -241,7 +246,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
 
     Matrix<N3, N1> std = LimelightHelpers.llStdDev(pe.avgTagDist, pe.tagCount, ambiguity);
-    RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
+    if (timestampLL < RobotContainer.driveSubsystem.getYawSeedTimestamp()) return;
+    if (visionReady) {
+      RobotContainer.driveSubsystem.addVisionMeasurement(robotPose, timestampLL, std);
+    }
     VisionHelpers.updateLLTelemetry(pe, cn);
   }
 
@@ -312,6 +320,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     // Wait 1–2 loops so IMU + pose fully propagate
     if (loopsSinceSeed > 1) {
         requestReanchorFromLimelightAfterYawReset();
+
+        visionReady = true; 
 
         System.out.println("LL + Quest Reanchor Triggered After Yaw Seed");
 

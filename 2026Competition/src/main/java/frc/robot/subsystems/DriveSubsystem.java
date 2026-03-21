@@ -66,6 +66,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private double simYawHoldDeg = 0.0;
     
     private boolean hasSeeded = false;
+    private double yawSeedTimestamp = 0.0;
     public boolean hasFinishedSeeding() {
         return hasSeeded;
     }
@@ -557,6 +558,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Rotation2d yaw = OdometryConstants.initialYawForAlliance();
 
         imu.setYaw(yaw.getDegrees());
+        yawSeedTimestamp = Timer.getFPGATimestamp();
 
         resetPose(new Pose2d(
             getState().Pose.getTranslation(),
@@ -566,6 +568,9 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         System.out.println("Seeded Yaw: " + yaw.getDegrees());
 
         hasSeeded = true;
+    }
+    public double getYawSeedTimestamp() {
+        return yawSeedTimestamp;
     }
 
     /**
