@@ -212,6 +212,9 @@ public final class Constants {
       public static final int BB_UNUSED_4 = 4;
       public static final int BB_INTAKE_REZERO = 5;
       public static final int BB_UNUSED_6 = 6;
+      public static final int BB_MANUAL_SHOT_2M = 2;
+      public static final int BB_MANUAL_SHOT_3M = 10;
+      public static final int BB_MANUAL_SHOT_4M = 11;
 
       // Xbox inputs used in competition bindings
       public static final int XBOX_BUTTON_A = 1;
