@@ -70,6 +70,7 @@ import frc.robot.commands.IntakePowerIn;
 import frc.robot.commands.IntakePowerOut;
 import frc.robot.commands.IntakeRezeroFromRetractedHardStop;
 import frc.robot.commands.IntakeToPositionAndHold;
+import frc.robot.commands.NoAuto_Auto;
 import frc.robot.commands.RetractIntakeSequence;
 import frc.robot.commands.ReverseIntake;
 import frc.robot.commands.ReverseTransfer;
@@ -192,6 +193,7 @@ public class RobotContainer {
     autoChooser.addOption("Red - SimpleMoveAndShootLastResort", new AutoRedSimpleMoveAndShootLastResort());
     autoChooser.addOption("Red - AutoTrenchToOutpostAndShoot", new AutoRedTrenchToOutpostAndShoot());
     autoChooser.addOption("Red - HubSimpleMoveAndShoot", new AutoRedHubSimpleMoveAndShoot());
+    autoChooser.addOption("no auto", new NoAuto_Auto());
   }
 
   private void configureBindings() {
