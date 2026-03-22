@@ -149,7 +149,8 @@ public class RobotContainer {
             () -> getDriverXAxis(),
             () -> getDriverYAxis(),
             () -> getDriverOmegaAxis(),
-            () -> turretStick.getRawButton(2)));
+            //() -> xboxDriveController.getRawAxis(3) > 0.3));
+            () -> false));
     CommandScheduler.getInstance().schedule(FollowPathCommand.warmupCommand());
 
     AutonomousConfigure();
@@ -251,8 +252,8 @@ public class RobotContainer {
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
     }
-    competitionXBOXButtonBindings();
-    betaTesting();
+    //competitionXBOXButtonBindings();
+    //betaTesting();
     //setYaws();
   }
 
