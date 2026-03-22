@@ -56,10 +56,10 @@ public final class Constants {
    * HUB_RED_X/Y).
    */
     public static final class FieldTargets {
-    public static final double HUB_BLUE_X = 4.611624;
-    public static final double HUB_BLUE_Y = 4.021328;
-    public static final double HUB_RED_X = 11.90142;
-    public static final double HUB_RED_Y = 4.021328;
+    public static final double HUB_BLUE_X = 4.611624; //4.611624
+    public static final double HUB_BLUE_Y = 4.021328; //4.021328
+    public static final double HUB_RED_X = 11.90142; //11.90142 | 12.02842
+    public static final double HUB_RED_Y = 4.021328; //4.021328
 
     public static final double NEUTRAL_LOW_BLUE_X = 0.0; // TODO set
     public static final double NEUTRAL_LOW_BLUE_Y = 0.0; // TODO set
@@ -722,6 +722,7 @@ public final class Constants {
     public static final class AutoShoot {
       /** If true, turret aims at target continuously even when not shooting. */
       public static final boolean ALWAYS_AIM = true;
+      public static final double RPM_PERCENT_MODIFIER = 0.925;
 
       /**
        * Default RPM used if you have not yet integrated the artillery table / hood.
@@ -788,17 +789,17 @@ public final class Constants {
       };
 
       public static final double[] MOVING_AUTO_SHOT_RPM = {
-          2098.4 * 0.9075,
-          2184.4 * 0.9075,
-          2247.2 * 0.9075,
-          2381.1 * 0.9075,
-          2507.1 * 0.9075,
-          2601.6 * 0.9075,
-          2609.4 * 0.9075,
-          2766.9 * 0.9075,
-          2656.7 * 0.9075,
-          2892.9 * 0.9075,
-          3026.8 * 0.9075
+          2098.4 * RPM_PERCENT_MODIFIER,
+          2184.4 * RPM_PERCENT_MODIFIER,
+          2247.2 * RPM_PERCENT_MODIFIER,
+          2381.1 * RPM_PERCENT_MODIFIER,
+          2507.1 * RPM_PERCENT_MODIFIER,
+          2601.6 * RPM_PERCENT_MODIFIER,
+          2609.4 * RPM_PERCENT_MODIFIER,
+          2766.9 * RPM_PERCENT_MODIFIER,
+          2656.7 * RPM_PERCENT_MODIFIER,
+          2892.9 * RPM_PERCENT_MODIFIER,
+          3026.8 * RPM_PERCENT_MODIFIER
       };
 
       // ---------------------------------------------------------------------
