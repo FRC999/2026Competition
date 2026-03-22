@@ -61,8 +61,8 @@ public class DriveManuallyCommand extends Command {
   @Override
   public void execute() {
     //System.out.println("stationary bool: **** " + mStationaryShotAutoTurnSupplier.getAsBoolean());
-    double xInput = mVxSupplier.getAsDouble() * 0.8;
-    double yInput = mVySupplier.getAsDouble() * 0.8;
+    double xInput = mVxSupplier.getAsDouble();
+    double yInput = mVySupplier.getAsDouble();
     double omegaInput = mOmegaSupplier.getAsDouble();
 
     boolean stationaryAutoTurnRequested = mStationaryShotAutoTurnSupplier.getAsBoolean();

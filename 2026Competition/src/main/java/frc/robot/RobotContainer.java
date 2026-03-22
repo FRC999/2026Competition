@@ -806,7 +806,7 @@ private void configureIntakeCalibrationBindings() {
     // return -xboxController.getLeftStickOmega();
     // SmartDashboard.putNumber("Z-Axis: ", -xboxDriveController.getLeftStickX() *
     // 0.6);
-    return -xboxDriveController.getRightStickX() * 0.9;
+    return -xboxDriveController.getRightStickX();
   }
 
   public static Command runTrajectoryPathPlannerWithForceResetOfStartingPose(String tr,
