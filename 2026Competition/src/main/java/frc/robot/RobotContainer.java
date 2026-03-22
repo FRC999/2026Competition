@@ -257,6 +257,9 @@ public class RobotContainer {
     //competitionXBOXButtonBindings();
     //betaTesting();
     //setYaws();
+
+    new JoystickButton(xboxDriveController, 8) // Left of X
+        .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())); //TODO: Should be removed after testing
   }
 
   public static Controller getDriveController() {
