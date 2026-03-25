@@ -637,7 +637,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
 
         
-        // update history of the chassis poses, needed for odometry updates using Quest or LL
+        // update history of the chassis poses for latency-compensated vision gating
         poseBuffer.addSample(Timer.getFPGATimestamp(), this.getPose());
     }
 

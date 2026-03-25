@@ -69,7 +69,7 @@ public class Robot extends LoggedRobot {
   public void disabledPeriodic() {
       m_robotContainer.driveSubsystem.seedFieldRelativeOnce();
 
-      // Trigger LL + Quest reanchor AFTER drivetrain seed
+      // Trigger LL reanchor AFTER drivetrain seed
       if (m_robotContainer.driveSubsystem.hasFinishedSeeding()) {
           m_robotContainer.odometryUpdateSubsystem.handlePostYawSeed();
       }

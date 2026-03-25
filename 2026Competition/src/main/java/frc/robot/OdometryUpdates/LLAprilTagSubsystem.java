@@ -15,6 +15,7 @@ import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.lib.VisionHelpers;
 import frc.robot.lib.ElasticHelpers;
+import java.util.Comparator;
 import java.util.Map;
 
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
@@ -31,8 +32,9 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   private boolean imuModeSet = false;
 
   private double maxBestAmbiguity = 0.5; // Puts pretty high standard on AprilTag position determination
-    private boolean lastPoseEstimateUsedMegaTag1 = false;
+  private boolean lastPoseEstimateUsedMegaTag1 = false;
   private boolean lastBestPoseUsedMegaTag1 = false;
+  private String lastBestPoseCameraName = null;
 
   Map<Pose2d, Integer> allianceTagPoses;
 
@@ -135,7 +137,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
    * @param cn - camera name
    * @return
    */
-    public LimelightHelpers.PoseEstimate getPoseEstimateFromLL(String cn) {
+  public LimelightHelpers.PoseEstimate getPoseEstimateFromLL(String cn) {
     LimelightHelpers.PoseEstimate megaTag1 = LimelightHelpers.getBotPoseEstimate_wpiBlue(cn);
 
     LimelightHelpers.PoseEstimate megaTag2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cn);
@@ -165,25 +167,50 @@ public class LLAprilTagSubsystem extends SubsystemBase {
       imuYawDiffDeg = 360.0 - imuYawDiffDeg;
     }
 
-    SmartDashboard.putNumber("Vision/" + cn + "/MegaTagYawDiffDeg", imuYawDiffDeg);
+    if (DebugTelemetrySubsystems.ll) {
+      SmartDashboard.putNumber("Vision/" + cn + "/MegaTagYawDiffDeg", imuYawDiffDeg);
+    }
 
     if (imuYawDiffDeg > 90.0) {
-      SmartDashboard.putBoolean("Vision/" + cn + "/UsingMegaTag1YawFailsafe", true);
-      SmartDashboard.putString("LL MegaTag1: ", megaTag1.pose.toString());
+      if (DebugTelemetrySubsystems.ll) {
+        SmartDashboard.putBoolean("Vision/" + cn + "/UsingMegaTag1YawFailsafe", true);
+        SmartDashboard.putString("LL MegaTag1: ", megaTag1.pose.toString());
+      }
       lastPoseEstimateUsedMegaTag1 = true;
       return megaTag1;
     }
 
-    SmartDashboard.putBoolean("Vision/" + cn + "/UsingMegaTag1YawFailsafe", false);
-    SmartDashboard.putString("LL MegaTag2: ", megaTag2.pose.toString());
+    if (DebugTelemetrySubsystems.ll) {
+      SmartDashboard.putBoolean("Vision/" + cn + "/UsingMegaTag1YawFailsafe", false);
+      SmartDashboard.putString("LL MegaTag2: ", megaTag2.pose.toString());
+    }
     lastPoseEstimateUsedMegaTag1 = false;
     return megaTag2;
   }
 
-   public LimelightHelpers.PoseEstimate getBestPoseEstimateFromAllLL() {
+  private double getPoseRankingScore(LimelightHelpers.PoseEstimate pe) {
+    if (pe == null || pe.rawFiducials == null || pe.rawFiducials.length == 0) {
+      return Double.NEGATIVE_INFINITY;
+    }
+
+    double ambiguity = pe.rawFiducials[0].ambiguity;
+    double avgTagDistance = pe.avgTagDist;
+    double latencyPenalty = pe.latency;
+
+    return pe.tagCount * 1000.0
+        - ambiguity * 100.0
+        - avgTagDistance * 10.0
+        - latencyPenalty;
+  }
+
+  public LimelightHelpers.PoseEstimate getBestPoseEstimateFromAllLL() {
     LimelightHelpers.PoseEstimate bestPose = null;
     double bestAmbiguity = 99;
     boolean bestPoseUsedMegaTag1 = false;
+    String bestCameraName = null;
+    Comparator<LimelightHelpers.PoseEstimate> poseComparator =
+        Comparator.comparingInt((LimelightHelpers.PoseEstimate poseEstimate) -> poseEstimate.tagCount)
+            .thenComparingDouble(this::getPoseRankingScore);
 
     for (LLCamera llcamera : LLCamera.values()) {
       String cn = llcamera.getCameraName();
@@ -192,10 +219,13 @@ public class LLAprilTagSubsystem extends SubsystemBase {
       if (pe != null) {
         VisionHelpers.updateLLTelemetry(pe, cn);
 
-        if (pe.rawFiducials[0].ambiguity < bestAmbiguity) {
+        if (pe.rawFiducials != null
+            && pe.rawFiducials.length > 0
+            && (bestPose == null || poseComparator.compare(pe, bestPose) > 0)) {
           bestAmbiguity = pe.rawFiducials[0].ambiguity;
           bestPose = pe;
           bestPoseUsedMegaTag1 = lastPoseEstimateUsedMegaTag1;
+          bestCameraName = cn;
         }
       } else {
         VisionHelpers.clearLLTelemetry(cn);
@@ -204,11 +234,32 @@ public class LLAprilTagSubsystem extends SubsystemBase {
 
     if (bestAmbiguity > maxBestAmbiguity) {
       lastBestPoseUsedMegaTag1 = false;
+      lastBestPoseCameraName = null;
+      if (DebugTelemetrySubsystems.llLight) {
+        SmartDashboard.putString("Vision/BestPose/Camera", "");
+        SmartDashboard.putNumber("Vision/BestPose/TagCount", 0);
+        SmartDashboard.putNumber("Vision/BestPose/Ambiguity", 10.0);
+        SmartDashboard.putNumber("Vision/BestPose/AvgTagDist", 0.0);
+        SmartDashboard.putNumber("Vision/BestPose/LatencySec", 0.0);
+        SmartDashboard.putBoolean("Vision/BestPose/UsedMegaTag1", false);
+      }
       return null;
     }
 
     lastBestPoseUsedMegaTag1 = bestPoseUsedMegaTag1;
-    SmartDashboard.putBoolean("Vision/BestPoseUsedMegaTag1", lastBestPoseUsedMegaTag1);
+    lastBestPoseCameraName = bestCameraName;
+    if (DebugTelemetrySubsystems.llLight) {
+      SmartDashboard.putString("Vision/BestPose/Camera", bestCameraName != null ? bestCameraName : "");
+      SmartDashboard.putNumber("Vision/BestPose/TagCount", bestPose != null ? bestPose.tagCount : 0);
+      SmartDashboard.putNumber(
+          "Vision/BestPose/Ambiguity",
+          bestPose != null && bestPose.rawFiducials != null && bestPose.rawFiducials.length > 0
+              ? bestPose.rawFiducials[0].ambiguity
+              : 10.0);
+      SmartDashboard.putNumber("Vision/BestPose/AvgTagDist", bestPose != null ? bestPose.avgTagDist : 0.0);
+      SmartDashboard.putNumber("Vision/BestPose/LatencySec", bestPose != null ? bestPose.latency : 0.0);
+      SmartDashboard.putBoolean("Vision/BestPose/UsedMegaTag1", lastBestPoseUsedMegaTag1);
+    }
 
     if (DebugTelemetrySubsystems.ll) {
       if (bestPose != null) {
@@ -223,8 +274,12 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     return bestPose;
   }
 
-    public boolean wasLastBestPoseMegaTag1() {
+  public boolean wasLastBestPoseMegaTag1() {
     return lastBestPoseUsedMegaTag1;
+  }
+
+  public String getLastBestPoseCameraName() {
+    return lastBestPoseCameraName;
   }
 
   @Override

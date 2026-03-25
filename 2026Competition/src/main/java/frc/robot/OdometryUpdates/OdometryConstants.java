@@ -11,10 +11,7 @@ public class OdometryConstants {
   public static final Rotation2d TELEOP_YAW_RED = Rotation2d.fromDegrees(180);
   public static final Rotation2d TELEOP_YAW_BLUE = Rotation2d.fromDegrees(0);
 
-  /** How long to wait after Quest tracking is lost before abandoning CALIBRATED_Q. */
-  public static final double QUEST_LOSS_HOLD_SEC = 5.0;
-
-  /** Reject obviously invalid Quest poses such as the sentinel -1000,-1000 pose. */
+  /** Reject obviously invalid field poses before vision fusion. */
   public static final double MAX_REASONABLE_FIELD_COORD_ABS_METERS = 100.0;
 
   public static Rotation2d initialYawForAlliance() {

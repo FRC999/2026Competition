@@ -110,7 +110,6 @@ public final class Constants {
     public static final boolean chasis = true;
     public static final boolean odometry = true;
     public static final boolean ll = true;
-    public static final boolean questnav = false;
     public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true;
@@ -128,7 +127,7 @@ public final class Constants {
     public static final boolean imu = false;
     public static final boolean chassis = true;
     public static final boolean ll = false;
-    public static final boolean questnav = false;
+    public static final boolean llLight = false;
     public static final boolean intake = false;
     public static final boolean shooter = false;
     public static final boolean turret = false; 
@@ -228,8 +227,6 @@ public final class Constants {
     public static final class SwerveConstants {
 
       public static final double CHASSIS_POSE_HISTORY_TIME = 0.6; // seconds
-
-      public static final boolean CTR_ODOMETRY_UPDATE_FROM_QUEST = true;
 
       public static final double MaxSpeed = 5.85; // m/s
       public static final double MaxAngularRate = 4.71238898038469; // rad/s

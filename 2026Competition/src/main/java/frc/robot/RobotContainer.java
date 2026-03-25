@@ -16,9 +16,7 @@ import com.pathplanner.lib.path.Waypoint;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -41,7 +39,6 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
-import frc.robot.OdometryUpdates.QuestNavSubsystem;
 import frc.robot.commands.AutoMainOneLeft;
 import frc.robot.commands.AutoMainOneRight;
 import frc.robot.commands.AutoMainTwoDepotHubSide;
@@ -117,7 +114,6 @@ public class RobotContainer {
   public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
-  public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
   public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
   public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
   public static ClimbSubsystem climbSubsystem = new ClimbSubsystem();
@@ -231,7 +227,7 @@ public class RobotContainer {
 
     // driveSubsystem.registerTelemetry(logger::telemeterize);
 
-    // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
+    // xboxDriveController.x().onTrue(new vision trajectory test)
     // .onFalse(stopRobotCommand());
     // testTurretShooter();
     // testAuto();
@@ -336,10 +332,6 @@ public class RobotContainer {
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
             .andThen(new InstantCommand(() -> odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset())));
 
-    // new JoystickButton(xboxDriveController, 7)
-    //     .onTrue(new InstantCommand(() -> questNavSubsystem.customQuestPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))
-    //         .alongWith(new InstantCommand(() -> driveSubsystem.resetCTREPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))));
-
     // Trigger 3: MOVING shot while held (no drivetrain hold)
     new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3) // RT
         .whileTrue(new ShootWhileHeld(
@@ -418,11 +410,6 @@ public class RobotContainer {
   new JoystickButton(turretStick, 7)
       .onTrue(new InstantCommand(() -> supplyRpsSet[0] = Math.max(0.0, supplyRpsSet[0] - SUPPLY_STEP_RPS)));
 }
-
-  public static void resetQuestNav() {
-    new JoystickButton(xboxDriveController, 1)
-      .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose3d())));
-  }
 
   private void betaTesting() {
 
@@ -590,14 +577,6 @@ public class RobotContainer {
           double nextDeg = 21; //the degree you're going to
           hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
         }));
-
-    new JoystickButton(xboxDriveController, 1)
-          .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
-          .onFalse(new StopRobot());
-
-    new JoystickButton(xboxDriveController, 2)
-          .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
-          .onFalse(new StopRobot());
 
     // new JoystickButton(turretStick, 2)
     // .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
@@ -771,8 +750,6 @@ private void configureIntakeCalibrationBindings() {
     new JoystickButton(xboxDriveController, 8)
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
             .andThen(new InstantCommand(() -> odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset())));
-    new JoystickButton(xboxDriveController, 7)
-        .onTrue(new InstantCommand(() -> questNavSubsystem.resetToZeroPose()));
   }
 
   // Driver preferred controls
@@ -825,15 +802,10 @@ private void configureIntakeCalibrationBindings() {
 
         return Commands.sequence(
             // new InstantCommand(
-            // () -> questNavSubsystem.resetQuestOdometry(new
-            // Pose3d(TrajectoryHelper.flipQuestPoseRed(startPose)))),
             AutoBuilder.resetOdom(startPose), new WaitCommand(0), AutoBuilder.followPath(path));
 
         // return Commands.sequence(AutoBuilder.resetOdom(startPose));
 
-        // return Commands.sequence(new InstantCommand(() ->
-        // questNavSubsystem.resetQuestOdometry(TrajectoryHelper.flipQuestPoseRed(startPose))),
-        // AutoBuilder.resetOdom(startPose));
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
@@ -908,8 +880,12 @@ private void configureIntakeCalibrationBindings() {
 
   public static void testAuto() {
     new JoystickButton(xboxDriveController, 1)
-        .onTrue(new InstantCommand(() -> odometryUpdateSubsystem.updateQuestAndState(
-            new Pose2d(3.5, 4.0, new Rotation2d()))));
+        .onTrue(new InstantCommand(() -> {
+          Pose2d pose = new Pose2d(3.5, 4.0, new Rotation2d());
+          driveSubsystem.resetChassisIMUToAngle(pose.getRotation().getDegrees());
+          driveSubsystem.resetCTREPose(pose);
+          odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset();
+        }));
   }
 
   public static void testTurretShooter() {
