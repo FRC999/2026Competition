@@ -202,6 +202,12 @@ public final class Constants {
             public static final int BUTTON_BOX = 4;
 
       // Button Box Inputs
+      // TODO: Verify on the real button box that the panic toggle is on axis 0,
+      // reads near +1.0 when ON and near 0.0 or -1.0 when OFF, and does not chatter.
+      // Test on-robot that turning it ON immediately stops shooter/intake/turret/transfer/
+      // spindexer/climb actions while drivetrain and odometry continue to run.
+      public static final int BB_PANIC_STOP_AXIS = 0;
+      public static final double BB_PANIC_STOP_THRESHOLD = 0.3;
       public static final int BB_HUB_TRACKING_DISABLE_AXIS = 1;
       public static final double BB_HUB_TRACKING_DISABLE_THRESHOLD = -0.3;
 

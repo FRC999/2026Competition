@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.RobotContainer;
+import frc.robot.RobotContainer;
 import frc.robot.lib.TurretHelpers;
 
 /**
@@ -293,6 +294,16 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   public void periodic() {
 
     if (!EnabledSubsystems.supervisor) {
+      return;
+    }
+
+    if (RobotContainer.isPanicStopActive()) {
+      shootRequested = false;
+      state = VolleyState.IDLE;
+      RobotContainer.transferSubsystem.stop();
+      RobotContainer.spindexerSubsystem.stop();
+      RobotContainer.shooterSubsystem.stop();
+      publishTelemetry();
       return;
     }
 
