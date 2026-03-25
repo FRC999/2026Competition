@@ -1228,13 +1228,11 @@ public final class Constants {
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
       public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.20;
-      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.5;
-      public static final double INTAKE_PIVOT_POWER_IN_TIME_SEC = 0.5;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
-        IntakeStowedDeg(37.0),
-        IntakeRetracted(51.0),
-        IntakeDeployedDeg(1.67);
+        // IntakeStowedDeg(37.0),
+        IntakeRetracted(0.0),
+        IntakeDeployedDeg(51.0);
 
         private double armDeg;
 
@@ -1276,7 +1274,7 @@ public final class Constants {
           public static final double intake_kD = 0.0;
         }
 
-        public static final double tolerance = 3.0; // TODO: PLACEHOLDER - your requirement
+        public static final double PIVOT_POSITION_TOLERANCE_PERCENT = 0.10; // 10% of full retract-to-deploy travel
       }
 
       /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */

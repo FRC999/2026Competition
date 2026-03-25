@@ -76,6 +76,15 @@ public class IntakeSubsystem extends SubsystemBase {
   private boolean rollerVelocityClosedLoopEnabled = false;
   private double rollerCommandedMotorRps = 0.0;
 
+  private enum IntakeDriverMode {
+    DEPLOYED_IDLE,
+    RETRACTED_IDLE
+  }
+
+  private IntakeDriverMode driverMode = IntakeDriverMode.RETRACTED_IDLE;
+  private boolean driverIntakeTriggerActive = false;
+  private boolean pivotSeekingDeployed = false;
+
     // Status signals (telemetry + SysId logs)
   private StatusSignal<AngularVelocity> rollerVelSig;
   private StatusSignal<Voltage> rollerVoltageSig;
@@ -273,7 +282,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
     intakePivotFollowerMotor.setControl(new Follower(IntakeConstants.intakePivotMotorId, alignment));
 
     var motorPivotConfig = new MotorOutputConfigs();
-    motorPivotConfig.NeutralMode = NeutralModeValue.Brake;
+    motorPivotConfig.NeutralMode = NeutralModeValue.Coast;
     motorPivotConfig.Inverted = (IntakeConstants.intakePivotMotorInverted
         ? InvertedValue.CounterClockwise_Positive
         : InvertedValue.Clockwise_Positive);
@@ -296,6 +305,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
 
     final TalonFXConfiguration pivotFollowerConfig = new TalonFXConfiguration();
     pivotFollowerConfig.CurrentLimits = pivotCurrentLimits;
+    pivotFollowerConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
     StatusCode statusPivotFollower = StatusCode.StatusCodeNotInitialized;
     for (int i = 0; i < 5; ++i) {
@@ -397,14 +407,45 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
     return pivotZeroed;
   }
 
+  public void selectDeployedMode() {
+    driverMode = IntakeDriverMode.DEPLOYED_IDLE;
+    pivotSeekingDeployed = true;
+  }
+
+  public void selectRetractedMode() {
+    driverMode = IntakeDriverMode.RETRACTED_IDLE;
+    pivotSeekingDeployed = false;
+  }
+
+  public void onDriverIntakeTriggerPressed() {
+    driverIntakeTriggerActive = true;
+
+    if (driverMode == IntakeDriverMode.RETRACTED_IDLE) {
+      pivotSeekingDeployed = true;
+    }
+  }
+
+  public void onDriverIntakeTriggerReleased() {
+    driverIntakeTriggerActive = false;
+    pivotSeekingDeployed = false;
+  }
+
+  private double getPivotTravelDeg() {
+    return Math.abs(
+        IntakePositions.IntakeRetracted.getPosition()
+            - IntakePositions.IntakeDeployedDeg.getPosition());
+  }
+
+  private double getPivotPositionToleranceDeg() {
+    return getPivotTravelDeg() * IntakePidConstants.PIVOT_POSITION_TOLERANCE_PERCENT;
+  }
+
   public void setTargetPivotDeg(double armDeg) {
-    // Clamp to configured range
-    // double clampedDeg = MathUtil.clamp(armDeg, IntakeConstants.PIVOT_MIN_DEG, IntakeConstants.PIVOT_MAX_DEG);
-    // targetPivotDeg = clampedDeg;
+    double clampedDeg =
+        MathUtil.clamp(armDeg, IntakeConstants.PIVOT_MIN_DEG, IntakeConstants.PIVOT_MAX_DEG);
+    targetPivotDeg = clampedDeg;
 
-    // Convert to motor rotations
-    double targetRot = intakePivotEncoderZero + motorRotFromArmDeg(armDeg);
-
+    double targetRot = intakePivotEncoderZero + motorRotFromArmDeg(clampedDeg);
     intakePivotMotor.setControl(motionMagicVoltage.withPosition(targetRot));
   }
 
@@ -448,22 +489,18 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
    *
    * @param rollerRps target roller speed in mechanism RPS
    */
-public void runIntake(double rollerRps) {
-  //System.out.println("Running intake at " + rollerRps + " roller RPS");
 
-  rollerDesiredMode = RollerDesiredMode.VELOCITY;
-  intakeRollerMotor.set(1); //0.7
-  // commandRollerVelocityInternal(rollerRps);
-}
+  public void runIntake(double rollerRps) {
+    rollerDesiredMode = RollerDesiredMode.VELOCITY;
+    rollerTargetRps = rollerRps;
+    commandRollerVelocityInternal(rollerRps);
+  }
 
-public void runIntakeReverse() {
-  //System.out.println("Running intake at " + rollerRps + " roller RPS");
-
-  rollerDesiredMode = RollerDesiredMode.VELOCITY;
-  //System.out.println("Reversing intake");
-  intakeRollerMotor.set(-1); //0.7
-  // commandRollerVelocityInternal(rollerRps);
-}
+  public void runIntakeReverse() {
+    rollerDesiredMode = RollerDesiredMode.VELOCITY;
+    rollerTargetRps = IntakeConstants.ROLLER_REVERSE_RPS;
+    commandRollerVelocityInternal(IntakeConstants.ROLLER_REVERSE_RPS);
+  }
 
   /** Stop rotating the intake roller. */
   public void stopIntake() {
@@ -492,8 +529,7 @@ public void runIntakeReverse() {
   }
 
   public boolean isAtPosition(IntakePositions position) {
-    //System.out.println(Math.abs(position.getPosition() - getPivotDeg()) <= IntakePidConstants.tolerance);
-    return Math.abs(position.getPosition() - getPivotDeg()) <= IntakePidConstants.tolerance;
+    return Math.abs(position.getPosition() - getPivotDeg()) <= getPivotPositionToleranceDeg();
   }
 
   // ---------------- SysId factory commands ----------------
@@ -568,46 +604,76 @@ public void runIntakeReverse() {
   }
 
   @Override
-public void periodic() {
-  if (!EnabledSubsystems.intake) {
-    return;
+  public void periodic() {
+    if (!EnabledSubsystems.intake) {
+      return;
+    }
+
+    BaseStatusSignal.refreshAll(rollerVelSig, rollerVoltageSig, pivotPosSig, pivotVelSig, pivotVoltageSig);
+
+    if (driverMode == IntakeDriverMode.DEPLOYED_IDLE) {
+      if (pivotSeekingDeployed) {
+        if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
+          setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
+        } else {
+          exitOpenLoopHold();
+          pivotSeekingDeployed = false;
+        }
+      } else {
+        exitOpenLoopHold();
+      }
+      if (driverIntakeTriggerActive) {
+        runIntake(IntakeConstants.ROLLER_INTAKE_RPS);
+      } else {
+        stopIntake();
+      }
+    } else {
+      if (driverIntakeTriggerActive) {
+        if (pivotSeekingDeployed) {
+          if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
+            setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
+            stopIntake();
+          } else {
+            exitOpenLoopHold();
+            pivotSeekingDeployed = false;
+            runIntake(IntakeConstants.ROLLER_INTAKE_RPS);
+          }
+        } else {
+          exitOpenLoopHold();
+          runIntake(IntakeConstants.ROLLER_INTAKE_RPS);
+        }
+      } else {
+        stopIntake();
+        setTargetPivotDeg(IntakePositions.IntakeRetracted.getPosition());
+      }
+    }
+
+    if (DebugTelemetrySubsystems.intake) {
+      SmartDashboard.putNumber(
+          "Intake/RollerVelRps",
+          rollerRpsFromMotorRps(rollerVelSig.getValueAsDouble()));
+      SmartDashboard.putNumber("Intake/RollerTargetRps", rollerTargetRps);
+      SmartDashboard.putNumber("Intake/RollerMotorVoltage", rollerVoltageSig.getValueAsDouble());
+      SmartDashboard.putBoolean("Intake/RollerVelocityClosedLoopEnabled", rollerVelocityClosedLoopEnabled);
+      SmartDashboard.putString("Intake/RollerDesiredMode", rollerDesiredMode.name());
+      SmartDashboard.putNumber("Intake/RollerCommandedMotorRps", rollerCommandedMotorRps);
+
+      SmartDashboard.putNumber("Intake/PivotPosRot", pivotPosSig.getValueAsDouble());
+      SmartDashboard.putNumber("Intake/PivotVelRps", pivotVelSig.getValueAsDouble());
+      SmartDashboard.putNumber("Intake/PivotMotorVoltage", pivotVoltageSig.getValueAsDouble());
+      SmartDashboard.putNumber("Intake/PivotEncoderZero", intakePivotEncoderZero);
+
+      SmartDashboard.putNumber("Intake/PivotPosDeg", getPivotDeg());
+      SmartDashboard.putNumber("Intake/PivotTargetDeg", getTargetPivotDeg());
+      SmartDashboard.putNumber("Intake/PivotErrorDeg", getTargetPivotDeg() - getPivotDeg());
+      SmartDashboard.putBoolean("Intake/PivotZeroed", isPivotZeroed());
+
+      SmartDashboard.putString("Intake/DriverMode", driverMode.name());
+      SmartDashboard.putBoolean("Intake/DriverTriggerActive", driverIntakeTriggerActive);
+      SmartDashboard.putNumber("Intake/PivotToleranceDeg", getPivotPositionToleranceDeg());
+      SmartDashboard.putBoolean("Intake/PivotSeekingDeployed", pivotSeekingDeployed);
+    }
   }
-
-  BaseStatusSignal.refreshAll(rollerVelSig, rollerVoltageSig, pivotPosSig, pivotVelSig, pivotVoltageSig);
-
-  switch (rollerDesiredMode) {
-    case VELOCITY:
-      commandRollerVelocityInternal(rollerTargetRps);
-      break;
-
-    case OFF:
-    default:
-      break;
-  }
-
-  if (DebugTelemetrySubsystems.intake) {
-    SmartDashboard.putNumber(
-        "Intake/RollerVelRps",
-        rollerRpsFromMotorRps(rollerVelSig.getValueAsDouble()));
-    SmartDashboard.putNumber("Intake/RollerTargetRps", rollerTargetRps);
-    SmartDashboard.putNumber("Intake/RollerMotorVoltage", rollerVoltageSig.getValueAsDouble());
-    SmartDashboard.putBoolean("Intake/RollerVelocityClosedLoopEnabled", rollerVelocityClosedLoopEnabled);
-    SmartDashboard.putString("Intake/RollerDesiredMode", rollerDesiredMode.name());
-    SmartDashboard.putNumber("Intake/RollerCommandedMotorRps", rollerCommandedMotorRps);
-
-    SmartDashboard.putNumber("Intake/PivotPosRot", pivotPosSig.getValueAsDouble());
-    SmartDashboard.putNumber("Intake/PivotVelRps", pivotVelSig.getValueAsDouble());
-    SmartDashboard.putNumber("Intake/PivotMotorVoltage", pivotVoltageSig.getValueAsDouble());
-    SmartDashboard.putNumber("Intake/PivotEncoderZero", intakePivotEncoderZero);
-
-    SmartDashboard.putNumber("Intake/PivotPosDeg", getPivotDeg());
-    SmartDashboard.putNumber("Intake/PivotTargetDeg", getTargetPivotDeg());
-    SmartDashboard.putNumber("Intake/PivotErrorDeg", getTargetPivotDeg() - getPivotDeg());
-    SmartDashboard.putBoolean("Intake/PivotZeroed", isPivotZeroed());
-  }
-
-  
-}
 
   public double getSimCurrentDrawAmps() {
     if (!isSim || !EnabledSubsystems.intake) {

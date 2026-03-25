@@ -66,22 +66,17 @@ import frc.robot.commands.ClimbDown;
 import frc.robot.commands.ClimbUp;
 import frc.robot.commands.DeployIntakeSequence;
 import frc.robot.commands.DriveManuallyCommand;
-import frc.robot.commands.IntakePowerIn;
-import frc.robot.commands.IntakePowerOut;
 import frc.robot.commands.IntakeRezeroFromRetractedHardStop;
 import frc.robot.commands.IntakeToPositionAndHold;
 import frc.robot.commands.NoAuto_Auto;
-import frc.robot.commands.RetractIntakeSequence;
 import frc.robot.commands.ReverseIntake;
 import frc.robot.commands.ReverseTransfer;
 import frc.robot.commands.ShootCalibrationBurstWhileHeld;
 import frc.robot.commands.ShootWhileHeld;
 import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
-import frc.robot.commands.StartIntake;
 import frc.robot.commands.StopClimb;
 import frc.robot.commands.StopIntake;
-import frc.robot.commands.StopIntakeAndMaybeRetract;
 import frc.robot.commands.StopRobot;
 import frc.robot.commands.TestAuto;
 import frc.robot.commands.TestTurretAngleCommand;
@@ -102,6 +97,7 @@ import frc.robot.subsystems.TransferSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.HoodSubsystem;
 import frc.robot.commands.PrintTurretShotDiagnosticsCommand;
+import frc.robot.commands.RetractIntakeSequence;
 
 public class RobotContainer {
 
@@ -117,8 +113,6 @@ public class RobotContainer {
   public static boolean isReversingControllerAndIMUForRed = true;
   private static final Joystick turretStick = new Joystick(0);
   public static final Joystick bb = new Joystick(OIContants.BUTTON_BOX);
-  private static boolean intakeStayOutAfterTriggerRelease =
-      OIContants.INTAKE_STAY_OUT_AFTER_TRIGGER_RELEASE_DEFAULT;
 
   public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
@@ -273,26 +267,22 @@ public class RobotContainer {
     return bb.getRawAxis(OIContants.BB_HUB_TRACKING_DISABLE_AXIS)
         < OIContants.BB_HUB_TRACKING_DISABLE_THRESHOLD;
   }
-  public static boolean isIntakeStayOutAfterTriggerReleaseEnabled() {
-    return intakeStayOutAfterTriggerRelease;
-  }
 
-  public static void toggleIntakeStayOutAfterTriggerReleaseMode() {
-    intakeStayOutAfterTriggerRelease = !intakeStayOutAfterTriggerRelease;
-  }
   private void competitionXBOXButtonBindings() {
 
     
    new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
-        > OIContants.XBOX_TRIGGER_ACTIVE_THRESHOLD) // LT
-        .onTrue(new DeployIntakeSequence())
-        .onFalse(new StopIntakeAndMaybeRetract());
+        > OIContants.XBOX_TRIGGER_ACTIVE_THRESHOLD)
+        .onTrue(new InstantCommand(() -> intakeSubsystem.onDriverIntakeTriggerPressed(), intakeSubsystem))
+        .onFalse(new InstantCommand(() -> intakeSubsystem.onDriverIntakeTriggerReleased(), intakeSubsystem));
 
     new JoystickButton(xboxDriveController, OIContants.XBOX_BUTTON_A)
-        .onTrue(new IntakePowerOut());
-        //.onTrue(new InstantCommand(RobotContainer::toggleIntakeStayOutAfterTriggerReleaseMode));
+        .onTrue(new InstantCommand(() -> intakeSubsystem.selectDeployedMode(), intakeSubsystem));
 
-        new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
+    new JoystickButton(xboxDriveController, 4) // Y
+        .onTrue(new InstantCommand(() -> intakeSubsystem.selectRetractedMode(), intakeSubsystem));
+
+    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
@@ -323,9 +313,7 @@ public class RobotContainer {
             new InstantCommand(() -> transferSubsystem.stop(), transferSubsystem)
                 .alongWith(new InstantCommand(() -> spindexerSubsystem.stop(), spindexerSubsystem)));
     
-    new JoystickButton(xboxDriveController, 4) // LB
-        .onTrue(new RetractIntakeSequence())
-        .onFalse(new StopIntake());
+
 
     new JoystickButton(xboxDriveController, 5) // LB
         .onTrue(new ReverseIntake())
@@ -372,12 +360,6 @@ public class RobotContainer {
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
             true));
-
-    new POVButton(xboxDriveController, 0) // AGR 2 OR Down Button
-        .onTrue(new IntakePowerOut());        
-        
-    new POVButton(xboxDriveController, 180) // AGL 2 OR Up Button
-        .onTrue(new IntakePowerIn());
 
     new POVButton(xboxDriveController, 90)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
@@ -676,9 +658,9 @@ private void configureIntakeCalibrationBindings() {
         intakeSubsystem.setTargetPivotDeg(STEP_LOW_DEG);
       }));
 
-  new JoystickButton(turretStick, 5)
-      .whileTrue(new StartIntake())
-      .onFalse(new StopIntake());
+  // new JoystickButton(turretStick, 5)
+  //     .whileTrue(new StartIntake())
+  //     .onFalse(new StopIntake());
 
   new JoystickButton(turretStick, 6)
       .whileTrue(new RunCommand(
