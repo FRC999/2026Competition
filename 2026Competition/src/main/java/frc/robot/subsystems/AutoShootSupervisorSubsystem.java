@@ -4,7 +4,6 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -57,10 +56,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   }
 
   private TurretHelpers.ArtilleryTableIndexedByShooterRpmAndHoodAngle table;
-    private final InterpolatingDoubleTreeMap movingAutoRpmByDistance =
-      new InterpolatingDoubleTreeMap();
-  private final InterpolatingDoubleTreeMap movingAutoHoodDegByDistance =
-      new InterpolatingDoubleTreeMap();
+  private TurretHelpers.MovingAutoShotTable movingAutoShotTable;
 
   // Driver request flag (set by commands)
   private boolean shootRequested = false;
@@ -103,7 +99,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       return;
     }
 
-    seedMovingAutoDistanceTables();
+    this.movingAutoShotTable =
+        TurretHelpers.MovingAutoShotTable.loadFromDeployCsv(
+            Constants.OperatorConstants.MovingAutoShotTable.DEPLOY_CSV_PATH);
 
     // Load artillery table once. If missing/empty, hasAnyData() will be false and
     // solver will return invalid.
@@ -344,8 +342,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     var poseField = driveState.Pose;
     //System.out.println("Pose to autoshoot: " + poseField.toString());
 
-    //currentAimTarget = selectAimTargetForPose(poseField);
-    currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
+    currentAimTarget = selectAimTargetForPose(poseField);
+    //currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
     Translation2d target2d = getAllianceAwareAimTarget(currentAimTarget);
 
     Translation3d target3d = new Translation3d(
@@ -740,19 +738,19 @@ lastBallAtThroat = ballAtThroat;
     return new Translation2d(ax, ay);
   }
 
-      private void seedMovingAutoDistanceTables() {
-    movingAutoRpmByDistance.clear();
-    movingAutoHoodDegByDistance.clear();
+  private void seedMovingAutoDistanceTables() {
+    // movingAutoRpmByDistance.clear();
+    // movingAutoHoodDegByDistance.clear();
 
-    double[] distances = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_DISTANCE_M;
-    double[] rpms = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_RPM;
-    double[] hoods = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_HOOD_DEG;
+    // double[] distances = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_DISTANCE_M;
+    // double[] rpms = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_RPM;
+    // double[] hoods = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_HOOD_DEG;
 
-    int n = Math.min(distances.length, Math.min(rpms.length, hoods.length));
-    for (int i = 0; i < n; i++) {
-      movingAutoRpmByDistance.put(distances[i], rpms[i]);
-      movingAutoHoodDegByDistance.put(distances[i], hoods[i]);
-    }
+    // int n = Math.min(distances.length, Math.min(rpms.length, hoods.length));
+    // for (int i = 0; i < n; i++) {
+    //   movingAutoRpmByDistance.put(distances[i], rpms[i]);
+    //   movingAutoHoodDegByDistance.put(distances[i], hoods[i]);
+    // }
   }
 
     private boolean isStaticShotMode(ShotMode mode) {
@@ -777,62 +775,27 @@ lastBallAtThroat = ballAtThroat;
     }
   }
 
-  private TurretHelpers.Solution solveManualPresetDistanceShot(
+    private TurretHelpers.Solution solveManualPresetDistanceShot(
       Pose2d poseField,
       Translation2d target2d,
       double presetDistanceMeters) {
 
-    double[] distances = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_DISTANCE_M;
-    if (distances.length == 0) {
+    if (movingAutoShotTable == null || !movingAutoShotTable.hasAnyData()) {
       return TurretHelpers.makeInvalidSolution();
     }
 
-    double clampedDistance =
-        MathUtil.clamp(presetDistanceMeters, distances[0], distances[distances.length - 1]);
+    double currentTurretAngleDeg = RobotContainer.turretSubsystem.getAngleDeg();
+    double preferredShooterRpm = RobotContainer.shooterSubsystem.getTargetRpm();
 
-    double shooterRpm = movingAutoRpmByDistance.get(clampedDistance);
-    double hoodDeg = movingAutoHoodDegByDistance.get(clampedDistance);
+    TurretHelpers.MovingAutoShotCommand shot =
+        movingAutoShotTable.findInterpolatedShot(
+            presetDistanceMeters,
+            currentTurretAngleDeg,
+            preferredShooterRpm);
 
-    if (!Double.isFinite(shooterRpm) || !Double.isFinite(hoodDeg)) {
-      return TurretHelpers.makeInvalidSolution();
-    }
-
-    double yawFieldRad =
-        Math.atan2(
-            target2d.getY() - poseField.getY(),
-            target2d.getX() - poseField.getX());
-
-    return new TurretHelpers.Solution(
-        true,
-        0.0,
-        yawFieldRad,
-        Double.NaN,
-        Double.NaN,
-        new Translation3d(),
-        shooterRpm,
-        Math.toRadians(hoodDeg),
-        Double.NaN,
-        Double.NaN);
-  }
-
-  private TurretHelpers.Solution solveDistanceInterpolatedMovingAutoShot(
-      Pose2d poseField,
-      Translation2d target2d) {
-
-    double distanceMeters = computeTurretCenterToTargetDistanceMeters(poseField, target2d);
-
-    double[] distances = Constants.OperatorConstants.AutoShoot.MOVING_AUTO_SHOT_DISTANCE_M;
-    if (distances.length == 0) {
-      return TurretHelpers.makeInvalidSolution();
-    }
-
-    double clampedDistance =
-        MathUtil.clamp(distanceMeters, distances[0], distances[distances.length - 1]);
-
-    double shooterRpm = movingAutoRpmByDistance.get(clampedDistance);
-    double hoodDeg = movingAutoHoodDegByDistance.get(clampedDistance);
-
-    if (!Double.isFinite(shooterRpm) || !Double.isFinite(hoodDeg)) {
+    if (!shot.valid
+        || !Double.isFinite(shot.shooterRpmCommand)
+        || !Double.isFinite(shot.hoodCommandAngleRad)) {
       return TurretHelpers.makeInvalidSolution();
     }
 
@@ -853,8 +816,56 @@ lastBallAtThroat = ballAtThroat;
         Double.NaN,
         Double.NaN,
         new Translation3d(),
-        shooterRpm,
-        Math.toRadians(hoodDeg),
+        shot.shooterRpmCommand,
+        shot.hoodCommandAngleRad,
+        Double.NaN,
+        Double.NaN);
+  }
+
+    private TurretHelpers.Solution solveDistanceInterpolatedMovingAutoShot(
+      Pose2d poseField,
+      Translation2d target2d) {
+
+    if (movingAutoShotTable == null || !movingAutoShotTable.hasAnyData()) {
+      return TurretHelpers.makeInvalidSolution();
+    }
+
+    double distanceMeters = computeTurretCenterToTargetDistanceMeters(poseField, target2d);
+    double currentTurretAngleDeg = RobotContainer.turretSubsystem.getAngleDeg();
+
+        double preferredShooterRpm = RobotContainer.shooterSubsystem.getTargetRpm();
+
+    TurretHelpers.MovingAutoShotCommand shot =
+        movingAutoShotTable.findInterpolatedShot(
+            distanceMeters,
+            currentTurretAngleDeg,
+            preferredShooterRpm);
+
+    if (!shot.valid
+        || !Double.isFinite(shot.shooterRpmCommand)
+        || !Double.isFinite(shot.hoodCommandAngleRad)) {
+      return TurretHelpers.makeInvalidSolution();
+    }
+
+    Translation2d turretCenterField =
+        poseField.getTranslation().plus(
+            Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+                .rotateBy(poseField.getRotation()));
+
+    double yawFieldRad =
+        Math.atan2(
+            target2d.getY() - turretCenterField.getY(),
+            target2d.getX() - turretCenterField.getX());
+
+    return new TurretHelpers.Solution(
+        true,
+        0.0,
+        yawFieldRad,
+        Double.NaN,
+        Double.NaN,
+        new Translation3d(),
+        shot.shooterRpmCommand,
+        shot.hoodCommandAngleRad,
         Double.NaN,
         Double.NaN);
   }
@@ -951,21 +962,36 @@ lastBallAtThroat = ballAtThroat;
     var alliance = DriverStation.getAlliance();
     boolean isRed = alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
 
-    double xBlueFrame = isRed
-        ? (Constants.OperatorConstants.FieldGeometry.FIELD_LENGTH_METERS - pose.getX())
-        : pose.getX();
-
-    double yBlueFrame = pose.getY();
-
-    if (xBlueFrame <= Constants.FieldTargets.ALLIANCE_ZONE_MAX_X_BLUE_FRAME_METERS) {
-      return Constants.FieldTargets.AimTarget.HUB;
+    if(!isRed && pose.getX()>=4.664 && pose.getY()<=4.002){
+      return Constants.FieldTargets.AimTarget.NEUTRAL_LOW;
     }
-
-    if (yBlueFrame <= Constants.FieldTargets.NEUTRAL_ZONE_Y_SPLIT_METERS) {
+    if(!isRed && pose.getX()>=4.664 && pose.getY()>4.002){
+      return Constants.FieldTargets.AimTarget.NEUTRAL_HIGH;
+    }
+    if(isRed && pose.getX()<=11.942 && pose.getY()<=4.002){
+      return Constants.FieldTargets.AimTarget.NEUTRAL_HIGH;
+    }
+    if(isRed && pose.getX()<=11.942 && pose.getY()>4.002){
       return Constants.FieldTargets.AimTarget.NEUTRAL_LOW;
     }
 
-    return Constants.FieldTargets.AimTarget.NEUTRAL_HIGH;
+    return Constants.FieldTargets.AimTarget.HUB;
+
+    // double xBlueFrame = isRed
+    //     ? (Constants.OperatorConstants.FieldGeometry.FIELD_LENGTH_METERS - pose.getX())
+    //     : pose.getX();
+
+    // double yBlueFrame = pose.getY();
+
+    // if (xBlueFrame <= Constants.FieldTargets.ALLIANCE_ZONE_MAX_X_BLUE_FRAME_METERS) {
+    //   return Constants.FieldTargets.AimTarget.HUB;
+    // }
+
+    // if (yBlueFrame <= Constants.FieldTargets.NEUTRAL_ZONE_Y_SPLIT_METERS) {
+    //   return Constants.FieldTargets.AimTarget.NEUTRAL_LOW;
+    // }
+
+    // return Constants.FieldTargets.AimTarget.NEUTRAL_HIGH;
   }
 
   private static boolean isTurretWithinLegalShootZone(double turretDeg) {

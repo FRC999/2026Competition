@@ -6,10 +6,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
-
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -18,6 +18,8 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj.Filesystem;
 import frc.robot.Constants;
 import frc.robot.lib.TurretHelpers.Solution;
+
+
 
 /**
  * TurretHelpers
@@ -502,6 +504,275 @@ public final class TurretHelpers {
             return angleWeight * angleErr + speedWeight * speedErr;
         }
     }
+
+        // ---------------------------------------------------------------------------
+    // Moving-auto shot lookup table keyed by (distance, turret angle)
+    // ---------------------------------------------------------------------------
+    public static class MovingAutoShotCommand {
+        public final boolean valid;
+        public final double shooterRpmCommand;
+        public final double hoodCommandAngleRad;
+        public final double batteryVoltage;
+
+        public MovingAutoShotCommand(
+                boolean valid,
+                double shooterRpmCommand,
+                double hoodCommandAngleRad,
+                double batteryVoltage) {
+            this.valid = valid;
+            this.shooterRpmCommand = shooterRpmCommand;
+            this.hoodCommandAngleRad = hoodCommandAngleRad;
+            this.batteryVoltage = batteryVoltage;
+        }
+    }
+
+    public static class MovingAutoShotSample {
+        public final double distanceMeters;
+        public final double turretAngleDeg;
+        public final double shooterRpmCommand;
+        public final double hoodCommandAngleRad;
+        public final double batteryVoltage;
+
+        public MovingAutoShotSample(
+                double distanceMeters,
+                double turretAngleDeg,
+                double shooterRpmCommand,
+                double hoodCommandAngleRad,
+                double batteryVoltage) {
+            this.distanceMeters = distanceMeters;
+            this.turretAngleDeg = turretAngleDeg;
+            this.shooterRpmCommand = shooterRpmCommand;
+            this.hoodCommandAngleRad = hoodCommandAngleRad;
+            this.batteryVoltage = batteryVoltage;
+        }
+    }
+
+    public static class MovingAutoShotTable {
+    private final TreeMap<Double, TreeMap<Double, ArrayList<MovingAutoShotSample>>> table =
+            new TreeMap<>();
+
+    public void addSample(
+            double distanceMeters,
+            double turretAngleDeg,
+            double shooterRpmCommand,
+            double hoodCommandAngleRad,
+            double batteryVoltage) {
+        table.computeIfAbsent(distanceMeters, k -> new TreeMap<>())
+                .computeIfAbsent(turretAngleDeg, k -> new ArrayList<>())
+                .add(
+                        new MovingAutoShotSample(
+                                distanceMeters,
+                                turretAngleDeg,
+                                shooterRpmCommand,
+                                hoodCommandAngleRad,
+                                batteryVoltage));
+    }
+
+    public boolean hasAnyData() {
+        return !table.isEmpty();
+    }
+
+    public double getMinDistanceMeters() {
+        return table.isEmpty() ? Double.NaN : table.firstKey();
+    }
+
+    public double getMaxDistanceMeters() {
+        return table.isEmpty() ? Double.NaN : table.lastKey();
+    }
+
+    public static MovingAutoShotTable loadFromDeployCsv(String deployRelativePath) {
+        Path file = Filesystem.getDeployDirectory().toPath().resolve(deployRelativePath);
+        return loadFromCsv(file);
+    }
+
+    public static MovingAutoShotTable loadFromCsv(Path csvPath) {
+        MovingAutoShotTable out = new MovingAutoShotTable();
+        if (csvPath == null || !Files.exists(csvPath)) {
+            return out;
+        }
+
+        try (BufferedReader br = Files.newBufferedReader(csvPath, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+
+                String[] parts = line.split(",");
+                if (parts.length < 4) {
+                    continue;
+                }
+
+                Double distanceMeters = tryParseMovingAuto(parts[0]);
+                Double shooterRpm = tryParseMovingAuto(parts[1]);
+                Double hoodAngleDeg = tryParseMovingAuto(parts[2]);
+                Double turretAngleDeg = tryParseMovingAuto(parts[3]);
+                Double batteryVoltage = (parts.length >= 5) ? tryParseMovingAuto(parts[4]) : null;
+
+                if (distanceMeters == null
+                        || shooterRpm == null
+                        || hoodAngleDeg == null
+                        || turretAngleDeg == null) {
+                    continue;
+                }
+
+                out.addSample(
+                        distanceMeters,
+                        turretAngleDeg,
+                        shooterRpm,
+                        Math.toRadians(hoodAngleDeg),
+                        batteryVoltage != null ? batteryVoltage : Double.NaN);
+            }
+        } catch (IOException e) {
+            return out;
+        }
+
+        return out;
+    }
+
+    public MovingAutoShotCommand findInterpolatedShot(
+            double distanceMeters,
+            double turretAngleDeg,
+            double preferredShooterRpm) {
+        if (table.isEmpty()
+                || !Double.isFinite(distanceMeters)
+                || !Double.isFinite(turretAngleDeg)) {
+            return makeInvalidMovingAutoShotCommand();
+        }
+
+        double distanceLow = floorKeyOrUseFirstKey(table, distanceMeters);
+        double distanceHigh = ceilKeyOrUseLastKey(table, distanceMeters);
+
+        if (nearlyEqual(distanceLow, distanceHigh)) {
+            return interpolateAcrossTurretAngleForSingleDistance(
+                    table.get(distanceLow),
+                    turretAngleDeg,
+                    preferredShooterRpm);
+        }
+
+        MovingAutoShotCommand low =
+                interpolateAcrossTurretAngleForSingleDistance(
+                        table.get(distanceLow),
+                        turretAngleDeg,
+                        preferredShooterRpm);
+        MovingAutoShotCommand high =
+                interpolateAcrossTurretAngleForSingleDistance(
+                        table.get(distanceHigh),
+                        turretAngleDeg,
+                        preferredShooterRpm);
+
+        if (!isFiniteMovingAutoShotCommand(low) || !isFiniteMovingAutoShotCommand(high)) {
+            return makeInvalidMovingAutoShotCommand();
+        }
+
+        double t = fraction(distanceMeters, distanceLow, distanceHigh);
+
+        return new MovingAutoShotCommand(
+                true,
+                lerp(low.shooterRpmCommand, high.shooterRpmCommand, t),
+                lerp(low.hoodCommandAngleRad, high.hoodCommandAngleRad, t),
+                lerp(low.batteryVoltage, high.batteryVoltage, t));
+    }
+
+    private static MovingAutoShotCommand interpolateAcrossTurretAngleForSingleDistance(
+            TreeMap<Double, ArrayList<MovingAutoShotSample>> angleMap,
+            double turretAngleDeg,
+            double preferredShooterRpm) {
+        if (angleMap == null || angleMap.isEmpty()) {
+            return makeInvalidMovingAutoShotCommand();
+        }
+
+        double angleLow = floorKeyOrUseFirstKey(angleMap, turretAngleDeg);
+        double angleHigh = ceilKeyOrUseLastKey(angleMap, turretAngleDeg);
+
+        if (nearlyEqual(angleLow, angleHigh)) {
+            MovingAutoShotSample s =
+                    chooseClosestRpmSample(angleMap.get(angleLow), preferredShooterRpm);
+            if (s == null) {
+                return makeInvalidMovingAutoShotCommand();
+            }
+            return new MovingAutoShotCommand(
+                    true,
+                    s.shooterRpmCommand,
+                    s.hoodCommandAngleRad,
+                    s.batteryVoltage);
+        }
+
+        MovingAutoShotSample a =
+                chooseClosestRpmSample(angleMap.get(angleLow), preferredShooterRpm);
+        MovingAutoShotSample b =
+                chooseClosestRpmSample(angleMap.get(angleHigh), preferredShooterRpm);
+
+        if (a == null || b == null) {
+            return makeInvalidMovingAutoShotCommand();
+        }
+
+        double t = fraction(turretAngleDeg, angleLow, angleHigh);
+
+        return new MovingAutoShotCommand(
+                true,
+                lerp(a.shooterRpmCommand, b.shooterRpmCommand, t),
+                lerp(a.hoodCommandAngleRad, b.hoodCommandAngleRad, t),
+                lerp(a.batteryVoltage, b.batteryVoltage, t));
+    }
+
+    private static MovingAutoShotSample chooseClosestRpmSample(
+            List<MovingAutoShotSample> candidates,
+            double preferredShooterRpm) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+
+        MovingAutoShotSample best = null;
+        double bestDelta = Double.POSITIVE_INFINITY;
+
+        for (MovingAutoShotSample s : candidates) {
+            if (s == null || !Double.isFinite(s.shooterRpmCommand)) {
+                continue;
+            }
+
+            double delta = Math.abs(s.shooterRpmCommand - preferredShooterRpm);
+
+            if (delta < bestDelta - 1e-12) {
+                bestDelta = delta;
+                best = s;
+            } else if (Math.abs(delta - bestDelta) <= 1e-12 && best != null) {
+                if (s.shooterRpmCommand < best.shooterRpmCommand) {
+                    best = s;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    private static boolean isFiniteMovingAutoShotCommand(MovingAutoShotCommand c) {
+        return c != null
+                && c.valid
+                && Double.isFinite(c.shooterRpmCommand)
+                && Double.isFinite(c.hoodCommandAngleRad);
+    }
+
+    private static MovingAutoShotCommand makeInvalidMovingAutoShotCommand() {
+        return new MovingAutoShotCommand(false, Double.NaN, Double.NaN, Double.NaN);
+    }
+
+    private static Double tryParseMovingAuto(String s) {
+        if (s == null) {
+            return null;
+        }
+        s = s.trim();
+        if (s.isEmpty()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(s);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+}
 
     // ---------------------------------------------------------------------------
     // Solver output (similar style to your sim code)

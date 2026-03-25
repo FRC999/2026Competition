@@ -61,15 +61,15 @@ public final class Constants {
     public static final double HUB_RED_X = 11.90142; //11.90142 | 12.02842
     public static final double HUB_RED_Y = 4.021328; //4.021328
 
-    public static final double NEUTRAL_LOW_BLUE_X = 0.0; // TODO set
-    public static final double NEUTRAL_LOW_BLUE_Y = 0.0; // TODO set
-    public static final double NEUTRAL_LOW_RED_X = 0.0; // TODO set
-    public static final double NEUTRAL_LOW_RED_Y = 0.0; // TODO set
+    public static final double NEUTRAL_LOW_BLUE_X = 2.216; // TODO set
+    public static final double NEUTRAL_LOW_BLUE_Y = 1.691; // TODO set
+    public static final double NEUTRAL_LOW_RED_X = 14.216; // TODO set
+    public static final double NEUTRAL_LOW_RED_Y = 6.691; // TODO set
 
-    public static final double NEUTRAL_HIGH_BLUE_X = 0.0; // TODO set
-    public static final double NEUTRAL_HIGH_BLUE_Y = 0.0; // TODO set
-    public static final double NEUTRAL_HIGH_RED_X = 0.0; // TODO set
-    public static final double NEUTRAL_HIGH_RED_Y = 0.0; // TODO set
+    public static final double NEUTRAL_HIGH_BLUE_X = 2.216; // TODO set
+    public static final double NEUTRAL_HIGH_BLUE_Y = 6.691; // TODO set
+    public static final double NEUTRAL_HIGH_RED_X = 14.216; // TODO set
+    public static final double NEUTRAL_HIGH_RED_Y = 1.691; // TODO set
 
     /**
      * Zone selection is evaluated in BLUE-frame coordinates.
@@ -1047,6 +1047,11 @@ public final class Constants {
     public static final class ArtilleryTable {
       /** Example: "artillery/rebuilt_shots.csv" */
       public static final String DEPLOY_CSV_PATH = "artillery/rebuilt_shots.csv";
+    }
+        /** Where the moving-auto shot CSV lives under src/main/deploy. */
+    public static final class MovingAutoShotTable {
+      /** Example: "artillery/moving_auto_shots.csv" */
+      public static final String DEPLOY_CSV_PATH = "artillery/moving_auto_shots.csv";
     }
 
     /** Solver tuning and physics constants. */
