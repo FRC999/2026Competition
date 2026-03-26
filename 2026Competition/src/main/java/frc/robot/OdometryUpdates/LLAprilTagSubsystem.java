@@ -286,11 +286,8 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   public void periodic() {
     
     if (!EnabledSubsystems.ll) {
-  return;
+      return;
     }
-
-    SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
-    ChassisSpeeds chassisSpeeds = swerveDriveState.Speeds;
 
     // One-time IMU mode set: 1 = mirror external yaw into LL IMU (keeps MT2/IMU consistent).
     if (!imuModeSet) {

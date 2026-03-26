@@ -111,13 +111,14 @@ public class DriveManuallyCommand extends Command {
       autoTurnOmegaCmd = autoTurnOmegaRadPerSec / SwerveConstants.MaxAngularRate;
       autoTurnRobotHeadingDeltaDeg = autoTurnRawTurretDeg;
 
-      System.out.println(
-          "[StationaryAutoTurn] rawTurretDeg=" + autoTurnRawTurretDeg
-              + " thresholdDeg=" + thresholdDeg
-              + " omegaRadPerSec=" + autoTurnOmegaRadPerSec
-              + " omegaNormalized=" + autoTurnOmegaCmd
-              + " driverOmegaInput=" + omegaInput
-              + " omegaDeadband=" + omegaDeadband);
+      // alex test
+      // System.out.println(
+      //     "[StationaryAutoTurn] rawTurretDeg=" + autoTurnRawTurretDeg
+      //         + " thresholdDeg=" + thresholdDeg
+      //         + " omegaRadPerSec=" + autoTurnOmegaRadPerSec
+      //         + " omegaNormalized=" + autoTurnOmegaCmd
+      //         + " driverOmegaInput=" + omegaInput
+      //         + " omegaDeadband=" + omegaDeadband);
 
       if (Math.abs(autoTurnOmegaRadPerSec) > 1e-9) {
         omegaInput = autoTurnOmegaCmd;

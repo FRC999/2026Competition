@@ -234,14 +234,18 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     delayedMegaTag1RecalTimer.reset();
     delayedMegaTag1RecalTimer.start();
     waitingForMegaTag1Recal = true;
-    SmartDashboard.putBoolean("Odometry/WaitingForMegaTag1Recal", true);
+    if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
+      SmartDashboard.putBoolean("Odometry/WaitingForMegaTag1Recal", true);
+    }
   }
 
   private void cancelDelayedMegaTag1Recalibration() {
     delayedMegaTag1RecalTimer.stop();
     delayedMegaTag1RecalTimer.reset();
     waitingForMegaTag1Recal = false;
-    SmartDashboard.putBoolean("Odometry/WaitingForMegaTag1Recal", false);
+    if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
+      SmartDashboard.putBoolean("Odometry/WaitingForMegaTag1Recal", false);
+    }
   }
 
   private void handleDelayedMegaTag1Recalibration() {
@@ -252,7 +256,9 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     if (delayedMegaTag1RecalTimer.hasElapsed(5.0)) {
       cancelDelayedMegaTag1Recalibration();
       requestReanchorFromLimelightAfterYawReset();
-      System.out.println("Triggered delayed LL recalibration 5s after MegaTag1 anchor");
+      if (DebugTelemetrySubsystems.odometry) {
+        System.out.println("Triggered delayed LL recalibration 5s after MegaTag1 anchor");
+      }
     }
   }
 
