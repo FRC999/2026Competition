@@ -11,7 +11,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.RobotContainer;
-import frc.robot.RobotContainer;
 import frc.robot.lib.TurretHelpers;
 
 /**
@@ -37,8 +36,6 @@ import frc.robot.lib.TurretHelpers;
  * - This subsystem does the math once per 20 ms loop (50 Hz). The solver itself
  * is lightweight.
  * - Artillery table is loaded once at startup from /deploy (CSV).
- * - Robot acceleration is estimated from two consecutive velocity samples (no
- * CTRE acceleration signal needed).
  */
 public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private static final int PERF_PUBLISH_EVERY_LOOPS = 25;
@@ -73,11 +70,6 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private Constants.FieldTargets.AimTarget currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
   private double rawDesiredTurretDeg = Double.NaN;
   private double hoodCompensationRad = 0.0;
-
-  // Estimated field acceleration
-  private double lastVelXField = 0.0;
-  private double lastVelYField = 0.0;
-  private double lastVelTs = -1.0;
 
   // Soft-limit flip suppression
   private boolean avoidingEdge = false;
@@ -597,9 +589,9 @@ lastBallAtThroat = ballAtThroat;
       SmartDashboard.putNumber("Turret/CurrentAngle", RobotContainer.turretSubsystem.getRelativePosition()); 
 
       // Log CTRE pose (if available)
-      SmartDashboard.putNumber("TurretTesting/RobotPoseX", RobotContainer.driveSubsystem.getState().Pose.getX());
-      SmartDashboard.putNumber("TurretTesting/RobotPoseY", RobotContainer.driveSubsystem.getState().Pose.getY());
-      SmartDashboard.putNumber("TurretTesting/RobotRotation", RobotContainer.driveSubsystem.getState().Pose.getRotation().getDegrees());
+      SmartDashboard.putNumber("TurretTesting/RobotPoseX", poseField.getX());
+      SmartDashboard.putNumber("TurretTesting/RobotPoseY", poseField.getY());
+      SmartDashboard.putNumber("TurretTesting/RobotRotation", poseField.getRotation().getDegrees());
 
       SmartDashboard.putNumber(
           "TurretTesting/StaticPivotAwareTurretDeg",
@@ -698,7 +690,7 @@ lastBallAtThroat = ballAtThroat;
     if (shotMode == ShotMode.STATIC_HUB_BASE
         || shotMode == ShotMode.STATIC_TOWER_BASE) {
 
-      var speeds = RobotContainer.driveSubsystem.getState().Speeds;
+      var speeds = driveState.Speeds;
 
       boolean stopped = Math.abs(speeds.vxMetersPerSecond) < Constants.OperatorConstants.AutoShoot.STATIC_MAX_VX_MPS
           && Math.abs(speeds.vyMetersPerSecond) < Constants.OperatorConstants.AutoShoot.STATIC_MAX_VY_MPS
@@ -760,22 +752,6 @@ lastBallAtThroat = ballAtThroat;
     recordPeriodicRuntime(Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
   }
    
-
-  private Translation2d estimateAccelerationField(double now, Translation2d vField) {
-    if (lastVelTs < 0) {
-      lastVelTs = now;
-      lastVelXField = vField.getX();
-      lastVelYField = vField.getY();
-      return new Translation2d(0.0, 0.0);
-    }
-    double dt = Math.max(1e-3, now - lastVelTs);
-    double ax = (vField.getX() - lastVelXField) / dt;
-    double ay = (vField.getY() - lastVelYField) / dt;
-    lastVelTs = now;
-    lastVelXField = vField.getX();
-    lastVelYField = vField.getY();
-    return new Translation2d(ax, ay);
-  }
 
   private void seedMovingAutoDistanceTables() {
     // movingAutoRpmByDistance.clear();

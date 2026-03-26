@@ -493,21 +493,21 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer) {
       return;
     }
-        double rpm = getVelRps();
-
-
     BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
     posRot = positionSig.getValueAsDouble();
     velRps = velocitySig.getValueAsDouble();
+    double rpm = velRps;
 
     updateEntryToThroatTimingTelemetry();
 
     if (!DebugTelemetrySubsystems.transfer) {
       return;
     }
+    boolean ballAtEntry = hasBallAtEntry();
+    boolean ballAtThroat = hasBallAtThroat();
     SmartDashboard.putNumber("Transfer/MotorVoltage", motorVoltageSig.getValueAsDouble());
-    SmartDashboard.putBoolean("Transfer/BallAtEntry", hasBallAtEntry());
-    SmartDashboard.putBoolean("Transfer/BallAtThroat", hasBallAtThroat());
+    SmartDashboard.putBoolean("Transfer/BallAtEntry", ballAtEntry);
+    SmartDashboard.putBoolean("Transfer/BallAtThroat", ballAtThroat);
     SmartDashboard.putNumber("Transfer/RPS", rpm);
 
 
