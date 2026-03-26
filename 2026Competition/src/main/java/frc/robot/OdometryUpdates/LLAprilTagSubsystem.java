@@ -27,9 +27,15 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class LLAprilTagSubsystem extends SubsystemBase {
+  private static final double ORIENTATION_UPDATE_MIN_INTERVAL_SEC = 0.05;
+  private static final double ORIENTATION_UPDATE_YAW_DELTA_DEG = 0.5;
+  private static final double ORIENTATION_UPDATE_YAW_RATE_DELTA_DEG_PER_SEC = 2.0;
   public static AprilTagFieldLayout fieldLayout;
   
   private boolean imuModeSet = false;
+  private double lastOrientationYawDeg = Double.NaN;
+  private double lastOrientationYawRateDegPerSec = Double.NaN;
+  private double lastOrientationUpdateTs = Double.NEGATIVE_INFINITY;
 
   private double maxBestAmbiguity = 0.5; // Puts pretty high standard on AprilTag position determination
   private boolean lastPoseEstimateUsedMegaTag1 = false;
@@ -127,9 +133,24 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   }
 
   public void setLLOrientation(double yaw, double yawrate){
-    for (LLCamera llcamera : LLCamera.values()) {
-      LimelightHelpers.SetRobotOrientation(llcamera.getCameraName(),  yaw, yawrate,0,0,0,0);
+    double now = edu.wpi.first.wpilibj.Timer.getFPGATimestamp();
+    boolean shouldUpdate =
+        !Double.isFinite(lastOrientationYawDeg)
+            || Math.abs(yaw - lastOrientationYawDeg) >= ORIENTATION_UPDATE_YAW_DELTA_DEG
+            || Math.abs(yawrate - lastOrientationYawRateDegPerSec)
+                >= ORIENTATION_UPDATE_YAW_RATE_DELTA_DEG_PER_SEC
+            || now - lastOrientationUpdateTs >= ORIENTATION_UPDATE_MIN_INTERVAL_SEC;
+
+    if (!shouldUpdate) {
+      return;
     }
+
+    for (LLCamera llcamera : LLCamera.values()) {
+      LimelightHelpers.SetRobotOrientation_NoFlush(llcamera.getCameraName(), yaw, yawrate, 0, 0, 0, 0);
+    }
+    lastOrientationYawDeg = yaw;
+    lastOrientationYawRateDegPerSec = yawrate;
+    lastOrientationUpdateTs = now;
   }
 
   /**

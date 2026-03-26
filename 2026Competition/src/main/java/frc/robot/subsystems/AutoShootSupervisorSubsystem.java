@@ -162,11 +162,6 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
     Translation2d target2d = getAllianceAwareAimTarget(currentAimTarget);
 
-    Translation3d target3d = new Translation3d(
-        target2d.getX(),
-        target2d.getY(),
-        Constants.OperatorConstants.FieldGeometry.HUB_OPENING_CENTER_Z_METERS);
-
     final boolean isStatic = isStaticShotMode(shotMode);
 
     double omega = driveState.Speeds.omegaRadiansPerSecond;
@@ -347,26 +342,25 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       }
     }
 
-    // --- 1) Compute target position ---
-        // --- 1) Read drive state first; target selection depends on pose ---
+    // --- 1) Read drive state first; target selection depends on pose ---
     var driveState = RobotContainer.driveSubsystem.getState();
     var poseField = driveState.Pose;
     //System.out.println("Pose to autoshoot: " + poseField.toString());
+    boolean manualTurretMode = RobotContainer.isHubTrackingDisabledByButtonBox();
+    boolean aimEnabled =
+        (Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || effectiveShootRequested)
+            && !manualTurretMode;
+    boolean shouldComputeAimTarget = aimEnabled || effectiveShootRequested;
 
-    currentAimTarget = selectAimTargetForPose(poseField);
-    //currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
-    Translation2d target2d = getAllianceAwareAimTarget(currentAimTarget);
+    Translation2d target2d = null;
+    if (shouldComputeAimTarget) {
+      currentAimTarget = selectAimTargetForPose(poseField);
+      target2d = getAllianceAwareAimTarget(currentAimTarget);
+    }
 
-    Translation3d target3d = new Translation3d(
-        target2d.getX(),
-        target2d.getY(),
-        Constants.OperatorConstants.FieldGeometry.HUB_OPENING_CENTER_Z_METERS);
-
-        // CTRE state.Speeds is robot-relative chassis speeds.
+    // CTRE state.Speeds is robot-relative chassis speeds.
     double omega = driveState.Speeds.omegaRadiansPerSecond;
-
-    // --- 3) Aim/solve ---
-        final boolean isStatic = isStaticShotMode(shotMode);
+    final boolean isStatic = isStaticShotMode(shotMode);
 
     // When not actively shooting, keep turret tracking cheap:
     // do geometric hub tracking only, and skip the full ballistic solver.
@@ -374,31 +368,31 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       lastSolution = TurretHelpers.makeInvalidSolution();
       hoodCompensationRad = 0.0;
 
-      rawDesiredTurretDeg =
-          TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d);
+      if (aimEnabled && target2d != null) {
+        rawDesiredTurretDeg =
+            TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d);
 
-      boolean turretZoneValid =
-          Double.isFinite(rawDesiredTurretDeg)
-              && isTurretWithinLegalShootZone(rawDesiredTurretDeg);
+        boolean turretZoneValid =
+            Double.isFinite(rawDesiredTurretDeg)
+                && isTurretWithinLegalShootZone(rawDesiredTurretDeg);
 
-      solutionValidity =
-          turretZoneValid
-              ? SolutionValidity.VALID
-              : SolutionValidity.TURRET_ONLY_INVALID;
+        solutionValidity =
+            turretZoneValid
+                ? SolutionValidity.VALID
+                : SolutionValidity.TURRET_ONLY_INVALID;
 
-      desiredTurretDeg =
-          Double.isFinite(rawDesiredTurretDeg)
-              ? chooseSoftLimitedEquivalent(rawDesiredTurretDeg, now)
-              : Double.NaN;
+        desiredTurretDeg =
+            Double.isFinite(rawDesiredTurretDeg)
+                ? chooseSoftLimitedEquivalent(rawDesiredTurretDeg, now)
+                : Double.NaN;
+      } else {
+        rawDesiredTurretDeg = Double.NaN;
+        desiredTurretDeg = Double.NaN;
+        solutionValidity = SolutionValidity.GLOBAL_INVALID;
+      }
 
     } else {
       // Actively shooting: run the existing full solution path.
-      double vxRobot = driveState.Speeds.vxMetersPerSecond;
-      double vyRobot = driveState.Speeds.vyMetersPerSecond;
-      Translation2d vField =
-          new Translation2d(vxRobot, vyRobot).rotateBy(poseField.getRotation());
-      Translation2d aField = estimateAccelerationField(now, vField);
-
       if (shotMode == ShotMode.MOVING_AUTO) {
         lastSolution = solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
       } else {
@@ -520,12 +514,6 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
               : Double.NaN;
     }
 
-    boolean manualTurretMode = RobotContainer.isHubTrackingDisabledByButtonBox();
-
-    boolean aimEnabled =
-        (Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || effectiveShootRequested)
-            && !manualTurretMode;
-
     if (aimEnabled && Double.isFinite(desiredTurretDeg)) {
       RobotContainer.turretSubsystem.goToAngleDeg(desiredTurretDeg);
     }
@@ -546,9 +534,12 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 lastBallAtThroat = ballAtThroat;
 
 
-    double dx = target2d.getX() - poseField.getX();
-    double dy = target2d.getY() - poseField.getY();
-    double yawFieldToUse = Math.atan2(dy, dx);  // Yaw to face the hub
+    double yawFieldToUse = Double.NaN;
+    if (target2d != null) {
+      double dx = target2d.getX() - poseField.getX();
+      double dy = target2d.getY() - poseField.getY();
+      yawFieldToUse = Math.atan2(dy, dx);  // Yaw to face the hub
+    }
 
     if (Constants.DebugTelemetrySubsystems.supervisor) {
       SmartDashboard.putString("AutoShoot/SolutionValidity", solutionValidity.toString());
@@ -568,8 +559,8 @@ lastBallAtThroat = ballAtThroat;
       SmartDashboard.putNumber("TurretTesting/vyRobot", driveState.Speeds.vyMetersPerSecond);
 
       // Log target position
-      SmartDashboard.putNumber("TurretTesting/TargetX", target2d.getX());
-      SmartDashboard.putNumber("TurretTesting/TargetY", target2d.getY());
+      SmartDashboard.putNumber("TurretTesting/TargetX", target2d != null ? target2d.getX() : Double.NaN);
+      SmartDashboard.putNumber("TurretTesting/TargetY", target2d != null ? target2d.getY() : Double.NaN);
 
       // Log yaw to face the hub (direct yaw calculation)
       SmartDashboard.putNumber("TurretTesting/TargetYawField", Math.toDegrees(yawFieldToUse));
@@ -583,16 +574,21 @@ lastBallAtThroat = ballAtThroat;
       SmartDashboard.putNumber("TurretTesting/RobotPoseY", RobotContainer.driveSubsystem.getState().Pose.getY());
       SmartDashboard.putNumber("TurretTesting/RobotRotation", RobotContainer.driveSubsystem.getState().Pose.getRotation().getDegrees());
 
-            SmartDashboard.putNumber("TurretTesting/StaticPivotAwareTurretDeg",
-          TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d));
+      SmartDashboard.putNumber(
+          "TurretTesting/StaticPivotAwareTurretDeg",
+          target2d != null
+              ? TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d)
+              : Double.NaN);
 
       SmartDashboard.putNumber("TurretTesting/StaticRobotCenterYawDeg",
-          computeDesiredTurretDeg(
-              poseField.getRotation().getRadians(),
-              0.0,
-              0.0,
-              Math.atan2(target2d.getY() - poseField.getY(), target2d.getX() - poseField.getX()),
-              Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG));
+          target2d != null
+              ? computeDesiredTurretDeg(
+                  poseField.getRotation().getRadians(),
+                  0.0,
+                  0.0,
+                  Math.atan2(target2d.getY() - poseField.getY(), target2d.getX() - poseField.getX()),
+                  Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG)
+              : Double.NaN);
 
       SmartDashboard.putNumber("TurretTesting/DesiredTurretDegFinal", desiredTurretDeg);
       SmartDashboard.putNumber("TurretTesting/TurretZeroOffsetDeg",
