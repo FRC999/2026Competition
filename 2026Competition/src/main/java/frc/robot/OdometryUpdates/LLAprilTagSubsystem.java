@@ -30,6 +30,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   private static final double ORIENTATION_UPDATE_MIN_INTERVAL_SEC = 0.05;
   private static final double ORIENTATION_UPDATE_YAW_DELTA_DEG = 0.5;
   private static final double ORIENTATION_UPDATE_YAW_RATE_DELTA_DEG_PER_SEC = 2.0;
+  private static final LLCamera[] APRILTAG_CAMERAS = LLCamera.values();
   public static AprilTagFieldLayout fieldLayout;
   
   private boolean imuModeSet = false;
@@ -72,18 +73,12 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   }
 
   public boolean isAprilTagVisibleAny() {
-    String[] cns = {"limelight-fl", "limelight-fr", "limelight-l"};
-    int counter = 0;
-    for(int i = 0; i<=2; i++){
-      if(isAprilTagVisible(cns[i])){
-        counter++;
+    for (LLCamera llcamera : APRILTAG_CAMERAS) {
+      if (isAprilTagVisible(llcamera.getCameraName())) {
+        return true;
       }
     }
-    if(counter>=1){
-      return true;
-    }
     return false;
-
   }
 
   public boolean isRedReefTagID(int tag) {
@@ -129,7 +124,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   }
 
   public LLCamera[] getListOfApriltagLLCameras() {
-    return LLCamera.values();
+    return APRILTAG_CAMERAS;
   }
 
   public void setLLOrientation(double yaw, double yawrate){
@@ -145,7 +140,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
       return;
     }
 
-    for (LLCamera llcamera : LLCamera.values()) {
+    for (LLCamera llcamera : APRILTAG_CAMERAS) {
       LimelightHelpers.SetRobotOrientation_NoFlush(llcamera.getCameraName(), yaw, yawrate, 0, 0, 0, 0);
     }
     lastOrientationYawDeg = yaw;
@@ -233,7 +228,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
         Comparator.comparingInt((LimelightHelpers.PoseEstimate poseEstimate) -> poseEstimate.tagCount)
             .thenComparingDouble(this::getPoseRankingScore);
 
-    for (LLCamera llcamera : LLCamera.values()) {
+    for (LLCamera llcamera : APRILTAG_CAMERAS) {
       String cn = llcamera.getCameraName();
       LimelightHelpers.PoseEstimate pe = getPoseEstimateFromLL(cn);
 
@@ -312,7 +307,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
 
     // One-time IMU mode set: 1 = mirror external yaw into LL IMU (keeps MT2/IMU consistent).
     if (!imuModeSet) {
-      for (LLCamera llcamera : LLCamera.values()) {
+      for (LLCamera llcamera : APRILTAG_CAMERAS) {
         LimelightHelpers.SetIMUMode(llcamera.getCameraName(),  LLAprilTagConstants.LLVisionConstants.LL_IMU_MODE);
       }
       imuModeSet = true;

@@ -294,10 +294,6 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       case CALIBRATED -> {
         if (bestPoseEstimate != null && bestCameraName != null) {
           fusePoseEstimate(bestPoseEstimate, bestCameraName, true);
-        } else {
-          for (var llcamera : RobotContainer.llAprilTagSubsystem.getListOfApriltagLLCameras()) {
-            VisionHelpers.clearLLTelemetry(llcamera.getCameraName());
-          }
         }
         handleDelayedMegaTag1Recalibration();
       }
