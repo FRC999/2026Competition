@@ -41,6 +41,7 @@ import frc.robot.lib.TurretHelpers;
  * CTRE acceleration signal needed).
  */
 public class AutoShootSupervisorSubsystem extends SubsystemBase {
+  private static final int PERF_PUBLISH_EVERY_LOOPS = 25;
 
     public enum VolleyState {
     IDLE,
@@ -93,6 +94,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private boolean lastBallAtThroat = false;
   private double shootRequestStartTs = -1.0;
   private static final double FEED_FORCE_START_AFTER_S = 1.0;
+  private long periodicRuntimeAccumNs = 0L;
+  private long periodicRuntimeMaxNs = 0L;
+  private int periodicRuntimeSamples = 0;
 
   public AutoShootSupervisorSubsystem() {
 
@@ -110,6 +114,26 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         .loadFromDeployCsv(Constants.OperatorConstants.ArtilleryTable.DEPLOY_CSV_PATH);
     shotCooldownTimer.stop();
     shotCooldownTimer.reset();
+  }
+
+  private void recordPeriodicRuntime(long elapsedNs) {
+    if (!Constants.DebugTelemetrySubsystems.perfLight) {
+      return;
+    }
+
+    periodicRuntimeAccumNs += elapsedNs;
+    periodicRuntimeMaxNs = Math.max(periodicRuntimeMaxNs, elapsedNs);
+    periodicRuntimeSamples++;
+
+    if (periodicRuntimeSamples >= PERF_PUBLISH_EVERY_LOOPS) {
+      SmartDashboard.putNumber(
+          "Perf/AutoShoot/PeriodicMsAvg",
+          periodicRuntimeAccumNs / 1_000_000.0 / periodicRuntimeSamples);
+      SmartDashboard.putNumber("Perf/AutoShoot/PeriodicMsMax", periodicRuntimeMaxNs / 1_000_000.0);
+      periodicRuntimeAccumNs = 0L;
+      periodicRuntimeMaxNs = 0L;
+      periodicRuntimeSamples = 0;
+    }
   }
 
   /**
@@ -287,6 +311,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
+    long startNs = Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() : 0L;
 
     if (!EnabledSubsystems.supervisor) {
       return;
@@ -299,6 +324,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       RobotContainer.spindexerSubsystem.stop();
       RobotContainer.shooterSubsystem.stop();
       publishTelemetry();
+      recordPeriodicRuntime(Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
       return;
     }
 
@@ -307,6 +333,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     if (isCalibrationActive()) {
       state = VolleyState.IDLE;
       publishTelemetry();
+      recordPeriodicRuntime(Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
       return;
     }
 
@@ -625,6 +652,7 @@ lastBallAtThroat = ballAtThroat;
       }
 
       publishTelemetry();
+      recordPeriodicRuntime(Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
       return;
     }
 
@@ -635,6 +663,7 @@ lastBallAtThroat = ballAtThroat;
       RobotContainer.spindexerSubsystem.stop();
       RobotContainer.shooterSubsystem.stop();
       publishTelemetry();
+      recordPeriodicRuntime(Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
       return;
     }
 
@@ -656,6 +685,7 @@ lastBallAtThroat = ballAtThroat;
     RobotContainer.transferSubsystem.stop();
     RobotContainer.spindexerSubsystem.stop();
     publishTelemetry();
+    recordPeriodicRuntime(Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
     return;
   }
 
@@ -697,6 +727,7 @@ lastBallAtThroat = ballAtThroat;
       RobotContainer.transferSubsystem.stop();
       RobotContainer.spindexerSubsystem.stop();
       publishTelemetry();
+      recordPeriodicRuntime(Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
       return;
     }
 
@@ -726,6 +757,7 @@ lastBallAtThroat = ballAtThroat;
 }
 
     publishTelemetry();
+    recordPeriodicRuntime(Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
   }
    
 

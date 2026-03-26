@@ -128,6 +128,7 @@ public final class Constants {
     public static final boolean chassis = true;
     public static final boolean ll = false;
     public static final boolean llLight = false;
+    public static final boolean perfLight = false;
     public static final boolean intake = false;
     public static final boolean shooter = false;
     public static final boolean turret = false; 

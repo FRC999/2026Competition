@@ -23,6 +23,7 @@ import frc.robot.lib.LimelightHelpers;
 import frc.robot.lib.VisionHelpers;
 
 public class OdometryUpdatesSubsystem extends SubsystemBase {
+  private static final int PERF_PUBLISH_EVERY_LOOPS = 25;
   /**
    * Limelight AprilTag pose estimation needs a good robot yaw to disambiguate tags,
    * especially when using MegaTag2. This subsystem assumes the drivetrain IMU
@@ -79,6 +80,9 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
   private final Timer delayedMegaTag1RecalTimer = new Timer();
   private boolean waitingForMegaTag1Recal = false;
+  private long periodicRuntimeAccumNs = 0L;
+  private long periodicRuntimeMaxNs = 0L;
+  private int periodicRuntimeSamples = 0;
 
   public OdometryUpdatesSubsystem() {
     if (!EnabledSubsystems.odometry) {
@@ -239,6 +243,26 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
   }
 
+  private void recordPeriodicRuntime(long elapsedNs) {
+    if (!DebugTelemetrySubsystems.perfLight) {
+      return;
+    }
+
+    periodicRuntimeAccumNs += elapsedNs;
+    periodicRuntimeMaxNs = Math.max(periodicRuntimeMaxNs, elapsedNs);
+    periodicRuntimeSamples++;
+
+    if (periodicRuntimeSamples >= PERF_PUBLISH_EVERY_LOOPS) {
+      SmartDashboard.putNumber(
+          "Perf/Odometry/PeriodicMsAvg",
+          periodicRuntimeAccumNs / 1_000_000.0 / periodicRuntimeSamples);
+      SmartDashboard.putNumber("Perf/Odometry/PeriodicMsMax", periodicRuntimeMaxNs / 1_000_000.0);
+      periodicRuntimeAccumNs = 0L;
+      periodicRuntimeMaxNs = 0L;
+      periodicRuntimeSamples = 0;
+    }
+  }
+
   private void cancelDelayedMegaTag1Recalibration() {
     delayedMegaTag1RecalTimer.stop();
     delayedMegaTag1RecalTimer.reset();
@@ -264,6 +288,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
+    long startNs = DebugTelemetrySubsystems.perfLight ? System.nanoTime() : 0L;
     if (!EnabledSubsystems.odometry || RobotBase.isSimulation()) {
       return;
     }
@@ -298,5 +323,6 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         handleDelayedMegaTag1Recalibration();
       }
     }
+    recordPeriodicRuntime(DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
   }
 }

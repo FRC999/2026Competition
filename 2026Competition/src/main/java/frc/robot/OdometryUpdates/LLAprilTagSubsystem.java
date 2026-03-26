@@ -30,6 +30,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   private static final double ORIENTATION_UPDATE_MIN_INTERVAL_SEC = 0.05;
   private static final double ORIENTATION_UPDATE_YAW_DELTA_DEG = 0.5;
   private static final double ORIENTATION_UPDATE_YAW_RATE_DELTA_DEG_PER_SEC = 2.0;
+  private static final int PERF_PUBLISH_EVERY_LOOPS = 25;
   private static final LLCamera[] APRILTAG_CAMERAS = LLCamera.values();
   public static AprilTagFieldLayout fieldLayout;
   
@@ -37,6 +38,9 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   private double lastOrientationYawDeg = Double.NaN;
   private double lastOrientationYawRateDegPerSec = Double.NaN;
   private double lastOrientationUpdateTs = Double.NEGATIVE_INFINITY;
+  private long bestPoseRuntimeAccumNs = 0L;
+  private long bestPoseRuntimeMaxNs = 0L;
+  private int bestPoseRuntimeSamples = 0;
 
   private double maxBestAmbiguity = 0.5; // Puts pretty high standard on AprilTag position determination
   private boolean lastPoseEstimateUsedMegaTag1 = false;
@@ -219,7 +223,28 @@ public class LLAprilTagSubsystem extends SubsystemBase {
         - latencyPenalty;
   }
 
+  private void recordBestPoseRuntime(long elapsedNs) {
+    if (!DebugTelemetrySubsystems.perfLight) {
+      return;
+    }
+
+    bestPoseRuntimeAccumNs += elapsedNs;
+    bestPoseRuntimeMaxNs = Math.max(bestPoseRuntimeMaxNs, elapsedNs);
+    bestPoseRuntimeSamples++;
+
+    if (bestPoseRuntimeSamples >= PERF_PUBLISH_EVERY_LOOPS) {
+      SmartDashboard.putNumber(
+          "Perf/LL/BestPoseMsAvg",
+          bestPoseRuntimeAccumNs / 1_000_000.0 / bestPoseRuntimeSamples);
+      SmartDashboard.putNumber("Perf/LL/BestPoseMsMax", bestPoseRuntimeMaxNs / 1_000_000.0);
+      bestPoseRuntimeAccumNs = 0L;
+      bestPoseRuntimeMaxNs = 0L;
+      bestPoseRuntimeSamples = 0;
+    }
+  }
+
   public LimelightHelpers.PoseEstimate getBestPoseEstimateFromAllLL() {
+    long startNs = DebugTelemetrySubsystems.perfLight ? System.nanoTime() : 0L;
     LimelightHelpers.PoseEstimate bestPose = null;
     double bestAmbiguity = 99;
     boolean bestPoseUsedMegaTag1 = false;
@@ -259,6 +284,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Vision/BestPose/LatencySec", 0.0);
         SmartDashboard.putBoolean("Vision/BestPose/UsedMegaTag1", false);
       }
+      recordBestPoseRuntime(DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
       return null;
     }
 
@@ -287,6 +313,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
       }
     }
 
+    recordBestPoseRuntime(DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
     return bestPose;
   }
 
