@@ -15,6 +15,7 @@ import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.lib.VisionHelpers;
 import frc.robot.lib.ElasticHelpers;
+import java.util.Comparator;
 import java.util.Map;
 
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveDriveState;
@@ -26,13 +27,25 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class LLAprilTagSubsystem extends SubsystemBase {
+  private static final double ORIENTATION_UPDATE_MIN_INTERVAL_SEC = 0.05;
+  private static final double ORIENTATION_UPDATE_YAW_DELTA_DEG = 0.5;
+  private static final double ORIENTATION_UPDATE_YAW_RATE_DELTA_DEG_PER_SEC = 2.0;
+  private static final int PERF_PUBLISH_EVERY_LOOPS = 25;
+  private static final LLCamera[] APRILTAG_CAMERAS = LLCamera.values();
   public static AprilTagFieldLayout fieldLayout;
   
   private boolean imuModeSet = false;
+  private double lastOrientationYawDeg = Double.NaN;
+  private double lastOrientationYawRateDegPerSec = Double.NaN;
+  private double lastOrientationUpdateTs = Double.NEGATIVE_INFINITY;
+  private long bestPoseRuntimeAccumNs = 0L;
+  private long bestPoseRuntimeMaxNs = 0L;
+  private int bestPoseRuntimeSamples = 0;
 
   private double maxBestAmbiguity = 0.5; // Puts pretty high standard on AprilTag position determination
-    private boolean lastPoseEstimateUsedMegaTag1 = false;
+  private boolean lastPoseEstimateUsedMegaTag1 = false;
   private boolean lastBestPoseUsedMegaTag1 = false;
+  private String lastBestPoseCameraName = null;
 
   Map<Pose2d, Integer> allianceTagPoses;
 
@@ -64,18 +77,12 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   }
 
   public boolean isAprilTagVisibleAny() {
-    String[] cns = {"limelight-fl", "limelight-fr", "limelight-l"};
-    int counter = 0;
-    for(int i = 0; i<=2; i++){
-      if(isAprilTagVisible(cns[i])){
-        counter++;
+    for (LLCamera llcamera : APRILTAG_CAMERAS) {
+      if (isAprilTagVisible(llcamera.getCameraName())) {
+        return true;
       }
     }
-    if(counter>=1){
-      return true;
-    }
     return false;
-
   }
 
   public boolean isRedReefTagID(int tag) {
@@ -121,13 +128,28 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   }
 
   public LLCamera[] getListOfApriltagLLCameras() {
-    return LLCamera.values();
+    return APRILTAG_CAMERAS;
   }
 
   public void setLLOrientation(double yaw, double yawrate){
-    for (LLCamera llcamera : LLCamera.values()) {
-      LimelightHelpers.SetRobotOrientation(llcamera.getCameraName(),  yaw, yawrate,0,0,0,0);
+    double now = edu.wpi.first.wpilibj.Timer.getFPGATimestamp();
+    boolean shouldUpdate =
+        !Double.isFinite(lastOrientationYawDeg)
+            || Math.abs(yaw - lastOrientationYawDeg) >= ORIENTATION_UPDATE_YAW_DELTA_DEG
+            || Math.abs(yawrate - lastOrientationYawRateDegPerSec)
+                >= ORIENTATION_UPDATE_YAW_RATE_DELTA_DEG_PER_SEC
+            || now - lastOrientationUpdateTs >= ORIENTATION_UPDATE_MIN_INTERVAL_SEC;
+
+    if (!shouldUpdate) {
+      return;
     }
+
+    for (LLCamera llcamera : APRILTAG_CAMERAS) {
+      LimelightHelpers.SetRobotOrientation_NoFlush(llcamera.getCameraName(), yaw, yawrate, 0, 0, 0, 0);
+    }
+    lastOrientationYawDeg = yaw;
+    lastOrientationYawRateDegPerSec = yawrate;
+    lastOrientationUpdateTs = now;
   }
 
   /**
@@ -135,7 +157,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
    * @param cn - camera name
    * @return
    */
-    public LimelightHelpers.PoseEstimate getPoseEstimateFromLL(String cn) {
+  public LimelightHelpers.PoseEstimate getPoseEstimateFromLL(String cn) {
     LimelightHelpers.PoseEstimate megaTag1 = LimelightHelpers.getBotPoseEstimate_wpiBlue(cn);
 
     LimelightHelpers.PoseEstimate megaTag2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cn);
@@ -165,37 +187,86 @@ public class LLAprilTagSubsystem extends SubsystemBase {
       imuYawDiffDeg = 360.0 - imuYawDiffDeg;
     }
 
-    SmartDashboard.putNumber("Vision/" + cn + "/MegaTagYawDiffDeg", imuYawDiffDeg);
+    if (DebugTelemetrySubsystems.ll) {
+      SmartDashboard.putNumber("Vision/" + cn + "/MegaTagYawDiffDeg", imuYawDiffDeg);
+    }
 
     if (imuYawDiffDeg > 90.0) {
-      SmartDashboard.putBoolean("Vision/" + cn + "/UsingMegaTag1YawFailsafe", true);
-      SmartDashboard.putString("LL MegaTag1: ", megaTag1.pose.toString());
+      if (DebugTelemetrySubsystems.ll) {
+        SmartDashboard.putBoolean("Vision/" + cn + "/UsingMegaTag1YawFailsafe", true);
+        SmartDashboard.putString("LL MegaTag1: ", megaTag1.pose.toString());
+      }
       lastPoseEstimateUsedMegaTag1 = true;
       return megaTag1;
     }
 
-    SmartDashboard.putBoolean("Vision/" + cn + "/UsingMegaTag1YawFailsafe", false);
-    SmartDashboard.putString("LL MegaTag2: ", megaTag2.pose.toString());
+    if (DebugTelemetrySubsystems.ll) {
+      SmartDashboard.putBoolean("Vision/" + cn + "/UsingMegaTag1YawFailsafe", false);
+      SmartDashboard.putString("LL MegaTag2: ", megaTag2.pose.toString());
+    }
     lastPoseEstimateUsedMegaTag1 = false;
     return megaTag2;
   }
 
-   public LimelightHelpers.PoseEstimate getBestPoseEstimateFromAllLL() {
+  private double getPoseRankingScore(LimelightHelpers.PoseEstimate pe) {
+    if (pe == null || pe.rawFiducials == null || pe.rawFiducials.length == 0) {
+      return Double.NEGATIVE_INFINITY;
+    }
+
+    double ambiguity = pe.rawFiducials[0].ambiguity;
+    double avgTagDistance = pe.avgTagDist;
+    double latencyPenalty = pe.latency;
+
+    return pe.tagCount * 1000.0
+        - ambiguity * 100.0
+        - avgTagDistance * 10.0
+        - latencyPenalty;
+  }
+
+  private void recordBestPoseRuntime(long elapsedNs) {
+    if (!DebugTelemetrySubsystems.perfLight) {
+      return;
+    }
+
+    bestPoseRuntimeAccumNs += elapsedNs;
+    bestPoseRuntimeMaxNs = Math.max(bestPoseRuntimeMaxNs, elapsedNs);
+    bestPoseRuntimeSamples++;
+
+    if (bestPoseRuntimeSamples >= PERF_PUBLISH_EVERY_LOOPS) {
+      SmartDashboard.putNumber(
+          "Perf/LL/BestPoseMsAvg",
+          bestPoseRuntimeAccumNs / 1_000_000.0 / bestPoseRuntimeSamples);
+      SmartDashboard.putNumber("Perf/LL/BestPoseMsMax", bestPoseRuntimeMaxNs / 1_000_000.0);
+      bestPoseRuntimeAccumNs = 0L;
+      bestPoseRuntimeMaxNs = 0L;
+      bestPoseRuntimeSamples = 0;
+    }
+  }
+
+  public LimelightHelpers.PoseEstimate getBestPoseEstimateFromAllLL() {
+    long startNs = DebugTelemetrySubsystems.perfLight ? System.nanoTime() : 0L;
     LimelightHelpers.PoseEstimate bestPose = null;
     double bestAmbiguity = 99;
     boolean bestPoseUsedMegaTag1 = false;
+    String bestCameraName = null;
+    Comparator<LimelightHelpers.PoseEstimate> poseComparator =
+        Comparator.comparingInt((LimelightHelpers.PoseEstimate poseEstimate) -> poseEstimate.tagCount)
+            .thenComparingDouble(this::getPoseRankingScore);
 
-    for (LLCamera llcamera : LLCamera.values()) {
+    for (LLCamera llcamera : APRILTAG_CAMERAS) {
       String cn = llcamera.getCameraName();
       LimelightHelpers.PoseEstimate pe = getPoseEstimateFromLL(cn);
 
       if (pe != null) {
         VisionHelpers.updateLLTelemetry(pe, cn);
 
-        if (pe.rawFiducials[0].ambiguity < bestAmbiguity) {
+        if (pe.rawFiducials != null
+            && pe.rawFiducials.length > 0
+            && (bestPose == null || poseComparator.compare(pe, bestPose) > 0)) {
           bestAmbiguity = pe.rawFiducials[0].ambiguity;
           bestPose = pe;
           bestPoseUsedMegaTag1 = lastPoseEstimateUsedMegaTag1;
+          bestCameraName = cn;
         }
       } else {
         VisionHelpers.clearLLTelemetry(cn);
@@ -204,11 +275,33 @@ public class LLAprilTagSubsystem extends SubsystemBase {
 
     if (bestAmbiguity > maxBestAmbiguity) {
       lastBestPoseUsedMegaTag1 = false;
+      lastBestPoseCameraName = null;
+      if (DebugTelemetrySubsystems.llLight) {
+        SmartDashboard.putString("Vision/BestPose/Camera", "");
+        SmartDashboard.putNumber("Vision/BestPose/TagCount", 0);
+        SmartDashboard.putNumber("Vision/BestPose/Ambiguity", 10.0);
+        SmartDashboard.putNumber("Vision/BestPose/AvgTagDist", 0.0);
+        SmartDashboard.putNumber("Vision/BestPose/LatencySec", 0.0);
+        SmartDashboard.putBoolean("Vision/BestPose/UsedMegaTag1", false);
+      }
+      recordBestPoseRuntime(DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
       return null;
     }
 
     lastBestPoseUsedMegaTag1 = bestPoseUsedMegaTag1;
-    SmartDashboard.putBoolean("Vision/BestPoseUsedMegaTag1", lastBestPoseUsedMegaTag1);
+    lastBestPoseCameraName = bestCameraName;
+    if (DebugTelemetrySubsystems.llLight) {
+      SmartDashboard.putString("Vision/BestPose/Camera", bestCameraName != null ? bestCameraName : "");
+      SmartDashboard.putNumber("Vision/BestPose/TagCount", bestPose != null ? bestPose.tagCount : 0);
+      SmartDashboard.putNumber(
+          "Vision/BestPose/Ambiguity",
+          bestPose != null && bestPose.rawFiducials != null && bestPose.rawFiducials.length > 0
+              ? bestPose.rawFiducials[0].ambiguity
+              : 10.0);
+      SmartDashboard.putNumber("Vision/BestPose/AvgTagDist", bestPose != null ? bestPose.avgTagDist : 0.0);
+      SmartDashboard.putNumber("Vision/BestPose/LatencySec", bestPose != null ? bestPose.latency : 0.0);
+      SmartDashboard.putBoolean("Vision/BestPose/UsedMegaTag1", lastBestPoseUsedMegaTag1);
+    }
 
     if (DebugTelemetrySubsystems.ll) {
       if (bestPose != null) {
@@ -220,26 +313,28 @@ public class LLAprilTagSubsystem extends SubsystemBase {
       }
     }
 
+    recordBestPoseRuntime(DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
     return bestPose;
   }
 
-    public boolean wasLastBestPoseMegaTag1() {
+  public boolean wasLastBestPoseMegaTag1() {
     return lastBestPoseUsedMegaTag1;
+  }
+
+  public String getLastBestPoseCameraName() {
+    return lastBestPoseCameraName;
   }
 
   @Override
   public void periodic() {
     
     if (!EnabledSubsystems.ll) {
-  return;
+      return;
     }
-
-    SwerveDriveState swerveDriveState = RobotContainer.driveSubsystem.getState();
-    ChassisSpeeds chassisSpeeds = swerveDriveState.Speeds;
 
     // One-time IMU mode set: 1 = mirror external yaw into LL IMU (keeps MT2/IMU consistent).
     if (!imuModeSet) {
-      for (LLCamera llcamera : LLCamera.values()) {
+      for (LLCamera llcamera : APRILTAG_CAMERAS) {
         LimelightHelpers.SetIMUMode(llcamera.getCameraName(),  LLAprilTagConstants.LLVisionConstants.LL_IMU_MODE);
       }
       imuModeSet = true;

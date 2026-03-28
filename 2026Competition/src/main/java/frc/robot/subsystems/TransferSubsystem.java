@@ -34,6 +34,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.RobotContainer;
 
 /**
  * TransferSubsystem
@@ -190,7 +191,8 @@ public class TransferSubsystem extends SubsystemBase {
 
   /** Run transfer at a raw duty cycle in [-1, +1]. */
   public void runDuty(double dutyCycle) {
-    if (!EnabledSubsystems.transfer) {
+    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -200,7 +202,8 @@ public class TransferSubsystem extends SubsystemBase {
 
   /** Run transfer at a target rotor speed in RPS (closed-loop). */
   public void runVelocityRps(double targetRps) {
-    if (!EnabledSubsystems.transfer) {
+    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -224,7 +227,8 @@ public class TransferSubsystem extends SubsystemBase {
    * if throat is already occupied.
    */
   public void runStage() {
-    if (!EnabledSubsystems.transfer) {
+    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -269,7 +273,8 @@ public class TransferSubsystem extends SubsystemBase {
    * the shooter.
    */
   public void runFeed() {
-    if (!EnabledSubsystems.transfer) {
+    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -278,7 +283,8 @@ public class TransferSubsystem extends SubsystemBase {
   }
 
   public void reverseTransfer() {
-    if (!EnabledSubsystems.transfer) {
+    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -287,7 +293,8 @@ public class TransferSubsystem extends SubsystemBase {
   }
 
   public void runThroat() {
-    if (!EnabledSubsystems.transfer) {
+    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -306,7 +313,8 @@ public class TransferSubsystem extends SubsystemBase {
    * FIRING state).
    */
   public void runFeedMetered() {
-    if (!EnabledSubsystems.transfer) {
+    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -485,21 +493,21 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer) {
       return;
     }
-        double rpm = getVelRps();
-
-
     BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
     posRot = positionSig.getValueAsDouble();
     velRps = velocitySig.getValueAsDouble();
+    double rpm = velRps;
 
     updateEntryToThroatTimingTelemetry();
 
     if (!DebugTelemetrySubsystems.transfer) {
       return;
     }
+    boolean ballAtEntry = hasBallAtEntry();
+    boolean ballAtThroat = hasBallAtThroat();
     SmartDashboard.putNumber("Transfer/MotorVoltage", motorVoltageSig.getValueAsDouble());
-    SmartDashboard.putBoolean("Transfer/BallAtEntry", hasBallAtEntry());
-    SmartDashboard.putBoolean("Transfer/BallAtThroat", hasBallAtThroat());
+    SmartDashboard.putBoolean("Transfer/BallAtEntry", ballAtEntry);
+    SmartDashboard.putBoolean("Transfer/BallAtThroat", ballAtThroat);
     SmartDashboard.putNumber("Transfer/RPS", rpm);
 
 

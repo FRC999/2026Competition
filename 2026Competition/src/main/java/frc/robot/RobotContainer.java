@@ -16,9 +16,7 @@ import com.pathplanner.lib.path.Waypoint;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -26,6 +24,7 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
@@ -41,7 +40,6 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
-import frc.robot.OdometryUpdates.QuestNavSubsystem;
 import frc.robot.commands.AutoMainOneLeft;
 import frc.robot.commands.AutoMainOneRight;
 import frc.robot.commands.AutoMainTwoDepotHubSide;
@@ -117,7 +115,6 @@ public class RobotContainer {
   public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
-  public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
   public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
   public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
   public static ClimbSubsystem climbSubsystem = new ClimbSubsystem();
@@ -231,7 +228,7 @@ public class RobotContainer {
 
     // driveSubsystem.registerTelemetry(logger::telemeterize);
 
-    // xboxDriveController.x().onTrue(new QuestNavTrajectoryTest())
+    // xboxDriveController.x().onTrue(new vision trajectory test)
     // .onFalse(stopRobotCommand());
     // testTurretShooter();
     // testAuto();
@@ -268,39 +265,82 @@ public class RobotContainer {
         < OIContants.BB_HUB_TRACKING_DISABLE_THRESHOLD;
   }
 
+  public static boolean isPanicStopActive() {
+    return bb.getRawAxis(OIContants.BB_PANIC_STOP_AXIS)
+        > OIContants.BB_PANIC_STOP_THRESHOLD;
+  }
+
+  private static void applyPanicStop() {
+    autoShootSupervisorSubsystem.setShootRequested(false);
+    shooterSubsystem.stop();
+    transferSubsystem.stop();
+    spindexerSubsystem.stop();
+    turretSubsystem.stop();
+    hoodSubsystem.stop();
+    intakeSubsystem.applyPanicStop();
+    climbSubsystem.stopMotors();
+  }
+
+  private static void cancelAllCommandsForPanicStop() {
+    CommandScheduler.getInstance().cancelAll();
+    applyPanicStop();
+  }
+
   private void competitionXBOXButtonBindings() {
+    Trigger panicStopTrigger = new Trigger(RobotContainer::isPanicStopActive);
+    Trigger panicInactiveTrigger = new Trigger(() -> !RobotContainer.isPanicStopActive());
+
+    panicStopTrigger
+        .onTrue(new InstantCommand(RobotContainer::cancelAllCommandsForPanicStop))
+        .whileTrue(new RunCommand(
+            RobotContainer::applyPanicStop,
+            autoShootSupervisorSubsystem,
+            shooterSubsystem,
+            transferSubsystem,
+            spindexerSubsystem,
+            turretSubsystem,
+            hoodSubsystem,
+            intakeSubsystem,
+            climbSubsystem));
 
     
    new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
         > OIContants.XBOX_TRIGGER_ACTIVE_THRESHOLD)
+        .and(panicInactiveTrigger)
         .onTrue(new InstantCommand(() -> intakeSubsystem.onDriverIntakeTriggerPressed(), intakeSubsystem))
         .onFalse(new InstantCommand(() -> intakeSubsystem.onDriverIntakeTriggerReleased(), intakeSubsystem));
 
     new JoystickButton(xboxDriveController, OIContants.XBOX_BUTTON_A)
+        .and(panicInactiveTrigger)
         .onTrue(new InstantCommand(() -> intakeSubsystem.selectDeployedMode(), intakeSubsystem));
 
     new JoystickButton(xboxDriveController, 4) // Y
+        .and(panicInactiveTrigger)
         .onTrue(new InstantCommand(() -> intakeSubsystem.selectRetractedMode(), intakeSubsystem));
 
     new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+        .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
             true));
 
     new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+        .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_3M,
             true));
 
     new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_4M)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+        .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_4M,
             true));
 
     new JoystickButton(bb, OIContants.BB_FORCE_FEED)
+        .and(panicInactiveTrigger)
         .whileTrue(
             new RunCommand(
                 () -> {
@@ -316,10 +356,12 @@ public class RobotContainer {
 
 
     new JoystickButton(xboxDriveController, 5) // LB
+        .and(panicInactiveTrigger)
         .onTrue(new ReverseIntake())
         .onFalse(new StopIntake());
 
     new JoystickButton(xboxDriveController, 6) // LB
+        .and(panicInactiveTrigger)
         .onTrue(new ReverseTransfer())
         .onFalse(new StopIntake());
 
@@ -336,12 +378,9 @@ public class RobotContainer {
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
             .andThen(new InstantCommand(() -> odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset())));
 
-    // new JoystickButton(xboxDriveController, 7)
-    //     .onTrue(new InstantCommand(() -> questNavSubsystem.customQuestPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))
-    //         .alongWith(new InstantCommand(() -> driveSubsystem.resetCTREPose(new Pose2d(4.440, 0.613, Rotation2d.kZero)))));
-
     // Trigger 3: MOVING shot while held (no drivetrain hold)
     new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3) // RT
+        .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO,
             false))
@@ -351,29 +390,35 @@ public class RobotContainer {
 
     // Button 3: STATIC HUB BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 3) // X
+        .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
             true));
 
     // Button B: STATIC TOWER BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 2) // B
+        .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
             true));
 
     new POVButton(xboxDriveController, 90)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+        .and(panicInactiveTrigger)
         .whileTrue(new TurretJogCommand(turretSubsystem, 0.18));
 
     new POVButton(xboxDriveController, 270)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+        .and(panicInactiveTrigger)
         .whileTrue(new TurretJogCommand(turretSubsystem, -0.18));
 
     new JoystickButton(bb, OIContants.BB_INTAKE_REZERO)
+      .and(panicInactiveTrigger)
       .onTrue(new IntakeRezeroFromRetractedHardStop());
 
     new JoystickButton(bb, OIContants.BB_TURRET_ZERO)
       .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+      .and(panicInactiveTrigger)
       .onTrue(new TurretGoToZeroCommand());
 
   }
@@ -418,11 +463,6 @@ public class RobotContainer {
   new JoystickButton(turretStick, 7)
       .onTrue(new InstantCommand(() -> supplyRpsSet[0] = Math.max(0.0, supplyRpsSet[0] - SUPPLY_STEP_RPS)));
 }
-
-  public static void resetQuestNav() {
-    new JoystickButton(xboxDriveController, 1)
-      .onTrue(new InstantCommand(() -> questNavSubsystem.resetQuestOdometry(new Pose3d())));
-  }
 
   private void betaTesting() {
 
@@ -590,14 +630,6 @@ public class RobotContainer {
           double nextDeg = 21; //the degree you're going to
           hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
         }));
-
-    new JoystickButton(xboxDriveController, 1)
-          .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
-          .onFalse(new StopRobot());
-
-    new JoystickButton(xboxDriveController, 2)
-          .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
-          .onFalse(new StopRobot());
 
     // new JoystickButton(turretStick, 2)
     // .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
@@ -771,8 +803,6 @@ private void configureIntakeCalibrationBindings() {
     new JoystickButton(xboxDriveController, 8)
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
             .andThen(new InstantCommand(() -> odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset())));
-    new JoystickButton(xboxDriveController, 7)
-        .onTrue(new InstantCommand(() -> questNavSubsystem.resetToZeroPose()));
   }
 
   // Driver preferred controls
@@ -825,15 +855,10 @@ private void configureIntakeCalibrationBindings() {
 
         return Commands.sequence(
             // new InstantCommand(
-            // () -> questNavSubsystem.resetQuestOdometry(new
-            // Pose3d(TrajectoryHelper.flipQuestPoseRed(startPose)))),
             AutoBuilder.resetOdom(startPose), new WaitCommand(0), AutoBuilder.followPath(path));
 
         // return Commands.sequence(AutoBuilder.resetOdom(startPose));
 
-        // return Commands.sequence(new InstantCommand(() ->
-        // questNavSubsystem.resetQuestOdometry(TrajectoryHelper.flipQuestPoseRed(startPose))),
-        // AutoBuilder.resetOdom(startPose));
       }
     } catch (Exception e) {
       DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
@@ -908,8 +933,12 @@ private void configureIntakeCalibrationBindings() {
 
   public static void testAuto() {
     new JoystickButton(xboxDriveController, 1)
-        .onTrue(new InstantCommand(() -> odometryUpdateSubsystem.updateQuestAndState(
-            new Pose2d(3.5, 4.0, new Rotation2d()))));
+        .onTrue(new InstantCommand(() -> {
+          Pose2d pose = new Pose2d(3.5, 4.0, new Rotation2d());
+          driveSubsystem.resetChassisIMUToAngle(pose.getRotation().getDegrees());
+          driveSubsystem.resetCTREPose(pose);
+          odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset();
+        }));
   }
 
   public static void testTurretShooter() {

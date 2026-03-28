@@ -39,6 +39,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.RobotContainer;
 
 /** Kraken X60 shooter prototype (TalonFX, Phoenix 6). */
 public class ShooterSubsystem extends SubsystemBase {
@@ -179,6 +180,11 @@ public class ShooterSubsystem extends SubsystemBase {
   /** Target shooter speed (RPM). Uses hardware velocity control. */
     /** Target shooter speed (RPM). Uses hardware velocity control. */
   public void setTargetRpm(double rpm) {
+    if (RobotContainer.isPanicStopActive()) {
+      stop();
+      return;
+    }
+
     double newTargetRpm = Math.max(0.0, rpm);
 
     // Do NOT reset readiness every 20 ms if the target did not materially change.
@@ -201,6 +207,11 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Open-loop duty-cycle (for quick tests). */
   public void setDutyCycle(double duty) {
+    if (RobotContainer.isPanicStopActive()) {
+      stop();
+      return;
+    }
+
     duty = MathUtil.clamp(
         duty,
         -Constants.OperatorConstants.Shooter.MAX_DUTY_CYCLE,

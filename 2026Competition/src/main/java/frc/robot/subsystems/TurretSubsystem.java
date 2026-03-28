@@ -47,6 +47,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.RobotContainer;
 import frc.robot.Constants.OperatorConstants.Turret;
 
 
@@ -478,6 +479,11 @@ private final double forwardDeg =
 
   /** Open-loop manual control with safety clamp. */
   public void setDutyCycle(double duty) {
+    if (RobotContainer.isPanicStopActive()) {
+      stop();
+      return;
+    }
+
     // Clamp duty to avoid commanding beyond your configured safe range.
     double maxDuty = isSim
       ? Constants.OperatorConstants.Turret.SIM_MAX_DUTY_CYCLE
@@ -493,6 +499,11 @@ private final double forwardDeg =
   }
 
   public void setVoltageVolts(double volts) {
+    if (RobotContainer.isPanicStopActive()) {
+      stop();
+      return;
+    }
+
     // Clamp request to something physically plausible.
     // In sim we’ll assume 12V supply; on real robot, you can clamp to battery if you want.
     double v = MathUtil.clamp(volts, -12.0, 12.0);
@@ -518,6 +529,11 @@ private final double forwardDeg =
   }
 
   public void goToAngleDeg(double desiredDeg) {
+    if (RobotContainer.isPanicStopActive()) {
+      stop();
+      return;
+    }
+
     // Clamp to physical bounds. With ±180 hardware, we do not allow ±360 equivalents.
     double target = MathUtil.clamp(
         desiredDeg,

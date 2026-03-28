@@ -626,10 +626,8 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             });
         }
 
-        SmartDashboard.putString("Drive/Pose", this.getState().Pose.toString());
-        //SmartDashboard.putData("Drive/RealPose", (Sendable) this.getState().Pose);
-
         if(DebugTelemetrySubsystems.chassis){
+            SmartDashboard.putString("Drive/Pose", this.getState().Pose.toString());
             SmartDashboard.putNumber("Drive/PoseYawDeg", this.getState().Pose.getRotation().getDegrees());
             SmartDashboard.putNumber("Drive/IMUYawDeg", this.getPigeon2().getYaw().getValueAsDouble());
             SmartDashboard.putNumber("Drive/vxRobot", this.getState().Speeds.vxMetersPerSecond);
@@ -637,7 +635,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
 
         
-        // update history of the chassis poses, needed for odometry updates using Quest or LL
+        // update history of the chassis poses for latency-compensated vision gating
         poseBuffer.addSample(Timer.getFPGATimestamp(), this.getPose());
     }
 

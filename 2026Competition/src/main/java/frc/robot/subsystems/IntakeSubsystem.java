@@ -45,6 +45,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.RobotContainer;
 import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.MotionMagicDutyCycleConstants;
@@ -512,6 +513,14 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
   intakeRollerMotor.setControl(rollerVelocityVoltage.withVelocity(0.0));
 }
 
+  public void applyPanicStop() {
+    driverIntakeTriggerActive = false;
+    pivotSeekingDeployed = false;
+    driverMode = IntakeDriverMode.DEPLOYED_IDLE;
+    stopIntake();
+    exitOpenLoopHold();
+  }
+
   public double getRollerTargetRps() {
     return rollerTargetRps;
   }
@@ -606,6 +615,11 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
   @Override
   public void periodic() {
     if (!EnabledSubsystems.intake) {
+      return;
+    }
+
+    if (RobotContainer.isPanicStopActive()) {
+      applyPanicStop();
       return;
     }
 

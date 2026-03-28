@@ -34,6 +34,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.RobotContainer;
 
 /**
  * SpindexerSubsystem
@@ -224,7 +225,8 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Raw open-loop duty command. Anti-jam is disabled in this mode. */
   public void runDuty(double dutyCycle) {
-    if (!EnabledSubsystems.spindexer) {
+    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -236,7 +238,8 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Manual closed-loop velocity command. Anti-jam is disabled in this mode. */
   public void runVelocityRps(double velocityRps) {
-    if (!EnabledSubsystems.spindexer) {
+    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -260,7 +263,8 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Convenience: run at the configured "base circulation" velocity. */
   public void runBase() {
-    if (!EnabledSubsystems.spindexer) {
+    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -270,7 +274,8 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Convenience: run at the configured "shooting supply" velocity. */
   public void runSupply() {
-    if (!EnabledSubsystems.spindexer) {
+    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -280,7 +285,8 @@ public class SpindexerSubsystem extends SubsystemBase {
   }
 
   public void runSlow() {
-    if (!EnabledSubsystems.spindexer) {
+    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -291,7 +297,8 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Calibration-only: run base using a live-tunable velocity setpoint. */
   public void runBaseCal(double baseRpsSet) {
-    if (!EnabledSubsystems.spindexer) {
+    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
@@ -302,7 +309,8 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Calibration-only: run supply using a live-tunable velocity setpoint. */
   public void runSupplyCal(double supplyRpsSet) {
-    if (!EnabledSubsystems.spindexer) {
+    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+      stop();
       return;
     }
 
