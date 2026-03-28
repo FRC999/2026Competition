@@ -58,7 +58,7 @@ public final class Constants {
     public static final class FieldTargets {
     public static final double HUB_BLUE_X = 4.611624; //4.611624
     public static final double HUB_BLUE_Y = 4.021328; //4.021328
-    public static final double HUB_RED_X = 11.90142; //11.90142 | 12.02842
+    public static final double HUB_RED_X = 11.901424; //11.90142 | 12.02842
     public static final double HUB_RED_Y = 4.021328; //4.021328
 
     public static final double NEUTRAL_LOW_BLUE_X = 2.216; // TODO set
