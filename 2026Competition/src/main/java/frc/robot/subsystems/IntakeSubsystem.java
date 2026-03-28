@@ -55,6 +55,7 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 
 public class IntakeSubsystem extends SubsystemBase {
   private TalonFX intakeRollerMotor;
+  private TalonFX intakeRollerFollowerMotor;
 
   private TalonFX intakePivotMotor; // leader
   private TalonFX intakePivotFollowerMotor; // follower
@@ -145,6 +146,7 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     intakeRollerMotor = new TalonFX(IntakeConstants.intakeRollerMotorId, IntakeConstants.CANBUS_NAME);
+    intakeRollerFollowerMotor = new TalonFX(IntakeConstants.intakeRollerFollowerMotorId, IntakeConstants.CANBUS_NAME);
 
     intakePivotMotor = new TalonFX(IntakeConstants.intakePivotMotorId, IntakeConstants.CANBUS_NAME);
     intakePivotFollowerMotor = new TalonFX(IntakeConstants.intakePivotFollowerMotorId, IntakeConstants.CANBUS_NAME);
@@ -163,7 +165,7 @@ public class IntakeSubsystem extends SubsystemBase {
     rollerVelSig = intakeRollerMotor.getVelocity();
     rollerVoltageSig = intakeRollerMotor.getMotorVoltage();
 
-        pivotPosSig = intakePivotMotor.getPosition();
+    pivotPosSig = intakePivotMotor.getPosition();
     pivotVelSig = intakePivotMotor.getVelocity();
     pivotVoltageSig = intakePivotMotor.getMotorVoltage();
     pivotLeaderStatorCurrentSig = intakePivotMotor.getStatorCurrent();
@@ -179,6 +181,7 @@ public class IntakeSubsystem extends SubsystemBase {
     pivotFollowerStatorCurrentSig.setUpdateFrequency(50.0);
 
     intakeRollerMotor.optimizeBusUtilization();
+    intakeRollerFollowerMotor.optimizeBusUtilization();
     intakePivotMotor.optimizeBusUtilization();
     intakePivotFollowerMotor.optimizeBusUtilization();
   }
@@ -214,8 +217,7 @@ public class IntakeSubsystem extends SubsystemBase {
     //     + ", " + cfg.Slot0.kS );
 
     intakeRollerMotor.getConfigurator().apply(cfg);
-    intakeRollerMotor.getConfigurator().apply(cfg);
-    intakeRollerMotor.getConfigurator().apply(cfg);
+    intakeRollerFollowerMotor.getConfigurator().apply(cfg);
 
     // alex test
 
@@ -264,7 +266,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
 
     StatusCode statusRoller = StatusCode.StatusCodeNotInitialized;
     for (int i = 0; i < 5; ++i) {
-      statusRoller = talonFXRollerConfigurator.apply(pidRollerConfig);
+      statusRoller = intakeRollerMotor.getConfigurator().apply(pidRollerConfig);
       if (statusRoller.isOK()) {
         break;
       }
@@ -274,7 +276,16 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
     }
 
     intakeRollerMotor.getConfigurator().apply(pidRollerConfig);
+    intakeRollerFollowerMotor.getConfigurator().apply(pidRollerConfig);
     intakeRollerMotor.setSafetyEnabled(false);
+    intakeRollerFollowerMotor.setSafetyEnabled(false);
+
+    final MotorAlignmentValue rollerAlignment = IntakeConstants.intakeRollerFollowerOpposeLeader
+        ? MotorAlignmentValue.Opposed
+        : MotorAlignmentValue.Aligned;
+
+    intakeRollerFollowerMotor.setControl(
+    new Follower(IntakeConstants.intakeRollerMotorId, rollerAlignment));
 
     final MotorAlignmentValue alignment = IntakeConstants.intakePivotFollowerOpposeLeader
         ? MotorAlignmentValue.Opposed

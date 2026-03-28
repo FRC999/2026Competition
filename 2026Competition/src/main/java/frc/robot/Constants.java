@@ -1182,6 +1182,7 @@ public final class Constants {
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       public static final int intakeRollerMotorId = 55;
+      public static final int intakeRollerFollowerMotorId = 54;
       public static final boolean IntakeRollerInverted = true;
 
       public static final int intakePivotMotorId = 56;
@@ -1190,6 +1191,7 @@ public final class Constants {
       // (follower)
 
       public static final boolean intakePivotFollowerOpposeLeader = true;
+      public static final boolean intakeRollerFollowerOpposeLeader = false;
       // TODO: PLACEHOLDER - verify on hardware by jogging. If the motors fight, flip
       // this.
 
