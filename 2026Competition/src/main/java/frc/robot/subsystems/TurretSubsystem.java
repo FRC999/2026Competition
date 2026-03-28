@@ -68,6 +68,10 @@ import frc.robot.Constants.OperatorConstants.Turret;
  * </ul>
  */
 public class TurretSubsystem extends SubsystemBase {
+  private static final double ABS_SEED_SAMPLE_PERIOD_SEC = 0.01;
+  private static final double ABS_SEED_TIMEOUT_SEC = 0.25;
+  private static final double ABS_SEED_STABLE_TOLERANCE_DEG = 1.0;
+  private static final int ABS_SEED_REQUIRED_STABLE_SAMPLES = 3;
 
   // Turret motor controller on the specified CAN bus.
   private TalonFX turret;
@@ -318,7 +322,7 @@ private final double forwardDeg =
    * Read absolute angle (deg) in [0, 360).
    * If signal is stale, returns last known value.					   
    */
-    private double getAbsDegWrapped(boolean refreshSignal) {
+  private double getAbsDegWrapped(boolean refreshSignal) {
     if (refreshSignal) {
       absPosSig.refresh();
     }
@@ -336,15 +340,50 @@ private final double forwardDeg =
     return wrapTo0To360(deg);
   }
 
+  private double shortestAbsDeltaDeg(double aDeg, double bDeg) {
+    return Math.abs(wrapToPlusMinus180(aDeg - bDeg));
+  }
+
+  private double sampleAbsoluteForSeed() {
+    double startTs = Timer.getFPGATimestamp();
+    double lastValidAbsDeg = lastAbsDegWrapped;
+    double lastSampleAbsDeg = Double.NaN;
+    int stableSamples = 0;
+    boolean sawValidSample = false;
+
+    while (Timer.getFPGATimestamp() - startTs < ABS_SEED_TIMEOUT_SEC) {
+      absPosSig.refresh();
+
+      if (absPosSig.getStatus() == StatusCode.OK) {
+        double absDeg = getAbsDegWrapped(false);
+        lastValidAbsDeg = absDeg;
+        sawValidSample = true;
+
+        if (!Double.isFinite(lastSampleAbsDeg)
+            || shortestAbsDeltaDeg(absDeg, lastSampleAbsDeg) <= ABS_SEED_STABLE_TOLERANCE_DEG) {
+          stableSamples++;
+        } else {
+          stableSamples = 1;
+        }
+
+        lastSampleAbsDeg = absDeg;
+
+        if (stableSamples >= ABS_SEED_REQUIRED_STABLE_SAMPLES) {
+          return absDeg;
+        }
+      }
+
+      Timer.delay(ABS_SEED_SAMPLE_PERIOD_SEC);
+    }
+
+    return sawValidSample ? lastValidAbsDeg : lastAbsDegWrapped;
+  }
+
   /**
    * Seed software continuous angle at boot, assuming within +/-180 of forward.
    */
   private void seedFromAbsoluteAtBoot() {
-    // Small delay to let CAN signals become valid right after startup.
-    Timer.delay(0.05);
-
-    // Get current absolute angle (wrapped [0,360)).
-  double absDeg = getAbsDegWrapped(true);
+    double absDeg = sampleAbsoluteForSeed();
 
     // Initialize last wrapped state for future delta calculations.
     lastAbsDegWrapped = absDeg;	
@@ -360,6 +399,7 @@ private final double forwardDeg =
 
     // Initialize continuous turret position in your forward-relative frame.
     continuousDeg = deltaDeg;
+    continuousDegUnclamped = deltaDeg;
 
     // Seed the TalonFX integrated position so closed-loop uses relative sensor from
     // this point.
