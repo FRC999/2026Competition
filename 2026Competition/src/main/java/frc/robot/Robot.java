@@ -132,7 +132,7 @@ public class Robot extends LoggedRobot {
     // Sum current draw from subsystems that simulate loads.
     // (Each subsystem returns 0 if disabled or not sim.)
     totalCurrentAmps += RobotContainer.turretSubsystem.getSimCurrentDrawAmps();
-    totalCurrentAmps += RobotContainer.m_kraken.getSimCurrentDrawAmps();
+    //totalCurrentAmps += RobotContainer.m_kraken.getSimCurrentDrawAmps();
     totalCurrentAmps += RobotContainer.shooterSubsystem.getSimCurrentDrawAmps();
     totalCurrentAmps += RobotContainer.intakeSubsystem.getSimCurrentDrawAmps();
     totalCurrentAmps += RobotContainer.transferSubsystem.getSimCurrentDrawAmps();

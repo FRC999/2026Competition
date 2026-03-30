@@ -18,6 +18,7 @@ import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.PositionDutyCycle;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -61,8 +62,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private TalonFX intakePivotFollowerMotor; // follower
 
   private final MotionMagicVoltage motionMagicVoltage = new MotionMagicVoltage(0).withEnableFOC(false);
-  private final VelocityVoltage rollerVelocityVoltage =
-    new VelocityVoltage(0).withSlot(0);
+  private final VelocityVoltage rollerVelocityVoltage = new VelocityVoltage(0).withSlot(0);
 
   private double intakePivotEncoderZero = 0;
   private double targetPivotDeg = 0.0;
@@ -70,9 +70,9 @@ public class IntakeSubsystem extends SubsystemBase {
   private boolean pivotZeroed = false;
 
   private enum RollerDesiredMode {
-  OFF,
-  VELOCITY
-}
+    OFF,
+    VELOCITY
+  }
 
   private RollerDesiredMode rollerDesiredMode = RollerDesiredMode.OFF;
   private boolean rollerVelocityClosedLoopEnabled = false;
@@ -87,7 +87,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private boolean driverIntakeTriggerActive = false;
   private boolean pivotSeekingDeployed = false;
 
-    // Status signals (telemetry + SysId logs)
+  // Status signals (telemetry + SysId logs)
   private StatusSignal<AngularVelocity> rollerVelSig;
   private StatusSignal<Voltage> rollerVoltageSig;
 
@@ -154,14 +154,14 @@ public class IntakeSubsystem extends SubsystemBase {
     // on hardware
 
     configureMotors();
-    //configureHardware();
+    // configureHardware();
     configureStatusSignals();
 
     // Seed pivot zero at boot (you guarantee intake starts fully retracted)
     seedZeroFromRetractedHardStop();
   }
 
-    private void configureStatusSignals() {
+  private void configureStatusSignals() {
     rollerVelSig = intakeRollerMotor.getVelocity();
     rollerVoltageSig = intakeRollerMotor.getMotorVoltage();
 
@@ -186,8 +186,6 @@ public class IntakeSubsystem extends SubsystemBase {
     intakePivotFollowerMotor.optimizeBusUtilization();
   }
 
-  
-
   private void configureHardware() {
     final var rollerCurrentLimits = new CurrentLimitsConfigs();
     rollerCurrentLimits.SupplyCurrentLimitEnable = true;
@@ -199,22 +197,23 @@ public class IntakeSubsystem extends SubsystemBase {
     rollerCurrentLimits.StatorCurrentLimit = IntakeConstants.ROLLER_STATOR_CURRENT_LIMIT_A;
 
     final var slot0 = new Slot0Configs();
-    slot0.kS =  RollerVelocityVoltageConstants.intake_kS;;
-    slot0.kV = RollerVelocityVoltageConstants.intake_kV;;
-    slot0.kP =  RollerVelocityVoltageConstants.intake_kP;
-    slot0.kI =  RollerVelocityVoltageConstants.intake_kI;
+    slot0.kS = RollerVelocityVoltageConstants.intake_kS;
+    ;
+    slot0.kV = RollerVelocityVoltageConstants.intake_kV;
+    ;
+    slot0.kP = RollerVelocityVoltageConstants.intake_kP;
+    slot0.kI = RollerVelocityVoltageConstants.intake_kI;
     slot0.kD = RollerVelocityVoltageConstants.intake_kD;
 
     final var cfg = new TalonFXConfiguration();
     cfg.CurrentLimits = rollerCurrentLimits;
     cfg.Slot0 = slot0;
 
-
     // //alex test
     // System.out.println("*** S0: " + cfg.Slot0.kP
-    //     + ", " + cfg.Slot0.kI
-    //     + ", " + cfg.Slot0.kD
-    //     + ", " + cfg.Slot0.kS );
+    // + ", " + cfg.Slot0.kI
+    // + ", " + cfg.Slot0.kD
+    // + ", " + cfg.Slot0.kS );
 
     intakeRollerMotor.getConfigurator().apply(cfg);
     intakeRollerFollowerMotor.getConfigurator().apply(cfg);
@@ -222,17 +221,19 @@ public class IntakeSubsystem extends SubsystemBase {
     // alex test
 
     final var slot0Readback = new Slot0Configs();
-var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
-// System.out.println("slot0 refresh status = " + refreshStatus.getName() + " : " + refreshStatus.getDescription());
-// System.out.println("READBACK Slot0:"
-//     + " kP=" + slot0Readback.kP
-//     + " kI=" + slot0Readback.kI
-//     + " kD=" + slot0Readback.kD
-//     + " kS=" + slot0Readback.kS
-//     + " kV=" + slot0Readback.kV);
+    var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
+    // System.out.println("slot0 refresh status = " + refreshStatus.getName() + " :
+    // " + refreshStatus.getDescription());
+    // System.out.println("READBACK Slot0:"
+    // + " kP=" + slot0Readback.kP
+    // + " kI=" + slot0Readback.kI
+    // + " kD=" + slot0Readback.kD
+    // + " kS=" + slot0Readback.kS
+    // + " kV=" + slot0Readback.kV);
 
-//     System.out.println("**** Configured intake roller motor.");
+    // System.out.println("**** Configured intake roller motor.");
   }
+
   private void configureMotors() {
 
     var motorRollerConfig = new MotorOutputConfigs();
@@ -272,7 +273,8 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
       }
     }
     if (!statusRoller.isOK()) {
-      //System.out.println("Could not apply configs, error code: " + statusRoller.toString());
+      // System.out.println("Could not apply configs, error code: " +
+      // statusRoller.toString());
     }
 
     intakeRollerMotor.getConfigurator().apply(pidRollerConfig);
@@ -285,7 +287,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
         : MotorAlignmentValue.Aligned;
 
     intakeRollerFollowerMotor.setControl(
-    new Follower(IntakeConstants.intakeRollerMotorId, rollerAlignment));
+        new Follower(IntakeConstants.intakeRollerMotorId, rollerAlignment));
 
     final MotorAlignmentValue alignment = IntakeConstants.intakePivotFollowerOpposeLeader
         ? MotorAlignmentValue.Opposed
@@ -294,7 +296,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
     intakePivotFollowerMotor.setControl(new Follower(IntakeConstants.intakePivotMotorId, alignment));
 
     var motorPivotConfig = new MotorOutputConfigs();
-    motorPivotConfig.NeutralMode = NeutralModeValue.Coast;
+    motorPivotConfig.NeutralMode = NeutralModeValue.Brake;
     motorPivotConfig.Inverted = (IntakeConstants.intakePivotMotorInverted
         ? InvertedValue.CounterClockwise_Positive
         : InvertedValue.Clockwise_Positive);
@@ -317,7 +319,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
 
     final TalonFXConfiguration pivotFollowerConfig = new TalonFXConfiguration();
     pivotFollowerConfig.CurrentLimits = pivotCurrentLimits;
-    pivotFollowerConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+    pivotFollowerConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
     StatusCode statusPivotFollower = StatusCode.StatusCodeNotInitialized;
     for (int i = 0; i < 5; ++i) {
@@ -327,7 +329,8 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
       }
     }
     if (!statusPivotFollower.isOK()) {
-      //System.out.println("Could not apply follower current limits, error code: " + statusPivotFollower.toString());
+      // System.out.println("Could not apply follower current limits, error code: " +
+      // statusPivotFollower.toString());
     }
 
     final double fwdSoftLimitRot = IntakeConstants.PIVOT_MAX_DEG * IntakeConstants.PIVOT_MOTOR_TO_ARM_GEAR_RATIO
@@ -343,7 +346,8 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
       }
     }
     if (!statusPivot.isOK()) {
-      //System.out.println("Could not apply configs, error code: " + statusPivot.toString());
+      // System.out.println("Could not apply configs, error code: " +
+      // statusPivot.toString());
     }
   }
 
@@ -361,17 +365,17 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
   }
 
   private void commandRollerVelocityInternal(double rollerRps) {
-  rollerVelocityClosedLoopEnabled = true;
-  rollerTargetRps = rollerRps;
-  rollerCommandedMotorRps = motorRpsFromRollerRps(rollerRps);
+    rollerVelocityClosedLoopEnabled = true;
+    rollerTargetRps = rollerRps;
+    rollerCommandedMotorRps = motorRpsFromRollerRps(rollerRps);
 
-  // alex test
-  //System.out.println("Commanding roller velocity. Roller RPS: " + rollerRps + ", Commanded motor RPS: " + rollerCommandedMotorRps);
+    // alex test
+    // System.out.println("Commanding roller velocity. Roller RPS: " + rollerRps +
+    // ", Commanded motor RPS: " + rollerCommandedMotorRps);
 
-  intakeRollerMotor.setControl(
-      rollerVelocityVoltage.withVelocity(rollerCommandedMotorRps));
-}
-
+    intakeRollerMotor.setControl(
+        rollerVelocityVoltage.withVelocity(rollerCommandedMotorRps));
+  }
 
   private void configureMotionMagicDutyCycle(TalonFXConfiguration config) {
     // PID on Position
@@ -399,7 +403,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
   }
 
   private static double motorRpsFromRollerRps(double rollerRps) {
-    //System.out.println("Converting roller RPS " + rollerRps + " to motor RPS");
+    // System.out.println("Converting roller RPS " + rollerRps + " to motor RPS");
     return rollerRps * IntakeConstants.ROLLER_MOTOR_TO_ROLLER_GEAR_RATIO;
   }
 
@@ -431,10 +435,7 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
 
   public void onDriverIntakeTriggerPressed() {
     driverIntakeTriggerActive = true;
-
-    if (driverMode == IntakeDriverMode.RETRACTED_IDLE) {
-      pivotSeekingDeployed = true;
-    }
+    pivotSeekingDeployed = true;
   }
 
   public void onDriverIntakeTriggerReleased() {
@@ -453,18 +454,19 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
   }
 
   public void setTargetPivotDeg(double armDeg) {
-    double clampedDeg =
-        MathUtil.clamp(armDeg, IntakeConstants.PIVOT_MIN_DEG, IntakeConstants.PIVOT_MAX_DEG);
-    targetPivotDeg = clampedDeg;
+  double clampedDeg = MathUtil.clamp(armDeg, IntakeConstants.PIVOT_MIN_DEG,
+  IntakeConstants.PIVOT_MAX_DEG);
+  targetPivotDeg = clampedDeg;
 
-    double targetRot = intakePivotEncoderZero + motorRotFromArmDeg(clampedDeg);
-    intakePivotMotor.setControl(motionMagicVoltage.withPosition(targetRot));
+  double targetRot = intakePivotEncoderZero + motorRotFromArmDeg(clampedDeg);
+  intakePivotMotor.setControl(motionMagicVoltage.withPosition(targetRot));
   }
+
+  
 
   public void seedZeroFromRetractedHardStop() {
     // Because you guarantee intake starts fully retracted.
     intakePivotEncoderZero = 0.0;
-    
 
     // IMPORTANT: this sets the motor sensor position to 0
     intakePivotMotor.setPosition(0.0);
@@ -488,7 +490,8 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
   }
 
   public void exitOpenLoopHold() {
-    intakePivotMotor.setControl(new DutyCycleOut(0.0));
+    //intakePivotMotor.setControl(new DutyCycleOut(0.0));
+    setTargetPivotDeg(targetPivotDeg);
   }
 
   /**
@@ -508,28 +511,37 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
     commandRollerVelocityInternal(rollerRps);
   }
 
+  public void runIntakeNoPid(double duty){
+    System.out.println("RUNNING INTAKE ROLLER");
+    intakeRollerMotor.setControl(new DutyCycleOut(MathUtil.clamp(duty, -1.0, 1.0)));
+  }
+
   public void runIntakeReverse() {
     rollerDesiredMode = RollerDesiredMode.VELOCITY;
     rollerTargetRps = IntakeConstants.ROLLER_REVERSE_RPS;
     commandRollerVelocityInternal(IntakeConstants.ROLLER_REVERSE_RPS);
   }
 
+  public void runIntakeReverseNoPid(double duty) {
+    intakeRollerMotor.setControl(new DutyCycleOut(MathUtil.clamp(duty, -1.0, 1.0)));
+  }
+
   /** Stop rotating the intake roller. */
   public void stopIntake() {
-  rollerDesiredMode = RollerDesiredMode.OFF;
-  rollerVelocityClosedLoopEnabled = false;
-  rollerTargetRps = 0.0;
-  rollerCommandedMotorRps = 0.0;
+    rollerDesiredMode = RollerDesiredMode.OFF;
+    rollerVelocityClosedLoopEnabled = false;
+    rollerTargetRps = 0.0;
+    rollerCommandedMotorRps = 0.0;
 
-  intakeRollerMotor.setControl(rollerVelocityVoltage.withVelocity(0.0));
-}
+    intakeRollerMotor.setControl(rollerVelocityVoltage.withVelocity(0.0));
+  }
 
   public void applyPanicStop() {
     driverIntakeTriggerActive = false;
     pivotSeekingDeployed = false;
     driverMode = IntakeDriverMode.DEPLOYED_IDLE;
     stopIntake();
-    exitOpenLoopHold();
+    intakePivotMotor.setControl(new DutyCycleOut(0.0));
   }
 
   public double getRollerTargetRps() {
@@ -637,35 +649,43 @@ var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
     BaseStatusSignal.refreshAll(rollerVelSig, rollerVoltageSig, pivotPosSig, pivotVelSig, pivotVoltageSig);
 
     if (driverMode == IntakeDriverMode.DEPLOYED_IDLE) {
-      if (pivotSeekingDeployed) {
+      if (driverIntakeTriggerActive) {
         if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
           setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
+          stopIntake();
         } else {
-          exitOpenLoopHold();
+           exitOpenLoopHold();
           pivotSeekingDeployed = false;
+          runIntakeNoPid(IntakeConstants.INTAKE_ROLLER_DUTY);
         }
       } else {
-        exitOpenLoopHold();
-      }
-      if (driverIntakeTriggerActive) {
-        runIntake(IntakeConstants.ROLLER_INTAKE_RPS);
-      } else {
+        if (pivotSeekingDeployed) {
+          if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
+            setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
+          } else {
+            exitOpenLoopHold();
+            pivotSeekingDeployed = false;
+          }
+        } else {
+           exitOpenLoopHold();
+        }
         stopIntake();
       }
     } else {
       if (driverIntakeTriggerActive) {
         if (pivotSeekingDeployed) {
+          System.out.println("SHOULD DEPLOY AND RUN ROLLER");
           if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
             setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
             stopIntake();
           } else {
-            exitOpenLoopHold();
+             exitOpenLoopHold();
             pivotSeekingDeployed = false;
-            runIntake(IntakeConstants.ROLLER_INTAKE_RPS);
+            runIntakeNoPid(IntakeConstants.INTAKE_ROLLER_DUTY);
           }
         } else {
-          exitOpenLoopHold();
-          runIntake(IntakeConstants.ROLLER_INTAKE_RPS);
+           exitOpenLoopHold();
+          runIntakeNoPid(IntakeConstants.INTAKE_ROLLER_DUTY);
         }
       } else {
         stopIntake();

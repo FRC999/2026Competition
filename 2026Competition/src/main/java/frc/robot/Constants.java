@@ -55,11 +55,11 @@ public final class Constants {
    * You indicated you'll provide these experimentally (HUB_BLUE_X/Y,
    * HUB_RED_X/Y).
    */
-    public static final class FieldTargets {
-    public static final double HUB_BLUE_X = 4.611624; //4.611624
-    public static final double HUB_BLUE_Y = 4.021328; //4.021328
-    public static final double HUB_RED_X = 11.901424; //11.90142 | 12.02842
-    public static final double HUB_RED_Y = 4.021328; //4.021328
+  public static final class FieldTargets {
+    public static final double HUB_BLUE_X = 4.611624; // 4.611624
+    public static final double HUB_BLUE_Y = 4.021328; // 4.021328
+    public static final double HUB_RED_X = 11.901424; // 11.90142 | 12.02842
+    public static final double HUB_RED_Y = 4.021328; // 4.021328
 
     public static final double NEUTRAL_LOW_BLUE_X = 2.216; // TODO set
     public static final double NEUTRAL_LOW_BLUE_Y = 1.691; // TODO set
@@ -107,18 +107,18 @@ public final class Constants {
 
   public static final class EnabledSubsystems {
 
-    public static final boolean chasis = true;
-    public static final boolean odometry = true;
-    public static final boolean ll = true;
+    public static final boolean chasis = false;
+    public static final boolean odometry = false;
+    public static final boolean ll = false;
     public static final boolean intake = true;
-    public static final boolean shooter = true;
-    public static final boolean turret = true;
-    public static final boolean hood = true;
+    public static final boolean shooter = false;
+    public static final boolean turret = false;
+    public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
-    public static final boolean supervisor = true;
+    public static final boolean supervisor = false;
     public static boolean calibration = false;
   }
 
@@ -129,9 +129,9 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean llLight = false;
     public static final boolean perfLight = false;
-    public static final boolean intake = false;
+    public static final boolean intake = true;
     public static final boolean shooter = false;
-    public static final boolean turret = false; 
+    public static final boolean turret = false;
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
@@ -142,7 +142,7 @@ public final class Constants {
     public static final boolean smartDashboard = false;
 
     // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
-    public static final boolean calibration = false; // PLACEHOLDER set true only while calibrating
+    public static final boolean calibration = true; // PLACEHOLDER set true only while calibrating
   }
 
   public static final class AutoConstants {
@@ -200,12 +200,13 @@ public final class Constants {
           false,
           false);
 
-            public static final int BUTTON_BOX = 4;
+      public static final int BUTTON_BOX = 4;
 
       // Button Box Inputs
       // TODO: Verify on the real button box that the panic toggle is on axis 0,
       // reads near +1.0 when ON and near 0.0 or -1.0 when OFF, and does not chatter.
-      // Test on-robot that turning it ON immediately stops shooter/intake/turret/transfer/
+      // Test on-robot that turning it ON immediately stops
+      // shooter/intake/turret/transfer/
       // spindexer/climb actions while drivetrain and odometry continue to run.
       public static final int BB_PANIC_STOP_AXIS = 0;
       public static final double BB_PANIC_STOP_THRESHOLD = 0.3;
@@ -214,7 +215,7 @@ public final class Constants {
 
       public static final int BB_TURRET_ZERO = 1;
       public static final int BB_UNUSED_2 = 2;
-      public static final int BB_FORCE_FEED = 3;      
+      public static final int BB_FORCE_FEED = 3;
       public static final int BB_UNUSED_4 = 4;
       public static final int BB_INTAKE_REZERO = 5;
       public static final int BB_UNUSED_6 = 6;
@@ -261,7 +262,7 @@ public final class Constants {
                   // Swerve azimuth does not require much torque output, so we can set a
                   // relatively low
                   // stator current limit to help avoid brownouts without impacting performance.
-                  .withStatorCurrentLimit(Amps.of(40)) //60
+                  .withStatorCurrentLimit(Amps.of(40)) // 60
                   .withStatorCurrentLimitEnable(true));
       public static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration();
       public static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();
@@ -279,7 +280,7 @@ public final class Constants {
       public static final int kPigeonId = 40; // 2025
       // public static final int kPigeonId = 15; // 2024
 
-      public static final Current kSlipCurrent = Amps.of(80.0); //120
+      public static final Current kSlipCurrent = Amps.of(80.0); // 120
       public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.85);
       public static final ClosedLoopOutputType kSteerClosedLoopOutput = ClosedLoopOutputType.Voltage;
       public static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.FusedCANcoder;
@@ -448,7 +449,7 @@ public final class Constants {
       /** Turret is NOT drivetrain; it lives on the roboRIO CAN bus. */
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
-            /** CANcoder magnet offset in rotations. Matches Phoenix Tuner. */
+      /** CANcoder magnet offset in rotations. Matches Phoenix Tuner. */
       public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521;
 
       /** After applying magnet offset, turret-zero should read 0.0 rotations. */
@@ -496,7 +497,7 @@ public final class Constants {
        * left,
        * then this constant is +90.
        */
-      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 180.0; //180.0
+      public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 180.0; // 180.0
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
@@ -817,7 +818,7 @@ public final class Constants {
       public static final double STATIC_TOWER_BASE_RPM = 2150.0;
       public static final double STATIC_TOWER_BASE_HOOD_DEG = 5.0;
 
-            // ---------------------------------------------------------------------
+      // ---------------------------------------------------------------------
       // MANUAL FIXED SHOT (turret-stick button 11)
       // ---------------------------------------------------------------------
       /** Fixed hood angle for the manual fixed shot. */
@@ -857,7 +858,7 @@ public final class Constants {
        */
       public static final double STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG = 10.0;
 
-            /**
+      /**
        * Fixed robot angular speed for the stationary illegal-shot auto-turn assist.
        * Units are actual robot angular speed in rad/s.
        */
@@ -867,23 +868,23 @@ public final class Constants {
        * Driver omega deadband for allowing the stationary illegal-shot auto-turn
        * assist to take over.
        */
-      public static final double IDLE_SHOOTER_RPM = 2000.0; //2200
+      public static final double IDLE_SHOOTER_RPM = 2000.0; // 2200
       public static final double STATIONARY_ASSIST_OMEGA_DEADBAND = 0.30;
       /** Shooter enters recovery if actual RPM <= targetRPM * this fraction. */
-  public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;
+      public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;
 
-  /**
-   * Hood compensation model:
-   * hoodCompDeg = (1 - rpmFraction) * HOOD_COMP_DEG_PER_UNIT_RPM_DROP,
-   * clamped to HOOD_COMP_MAX_DEG.
-   */
-  public static final double HOOD_COMP_DEG_PER_UNIT_RPM_DROP = 6.0; // TODO tune
-  public static final double HOOD_COMP_MAX_DEG = 4.0; // TODO tune
+      /**
+       * Hood compensation model:
+       * hoodCompDeg = (1 - rpmFraction) * HOOD_COMP_DEG_PER_UNIT_RPM_DROP,
+       * clamped to HOOD_COMP_MAX_DEG.
+       */
+      public static final double HOOD_COMP_DEG_PER_UNIT_RPM_DROP = 6.0; // TODO tune
+      public static final double HOOD_COMP_MAX_DEG = 4.0; // TODO tune
 
-  /** Rumble strengths for shoot-while-held invalid states. */
-  public static final double TURRET_ONLY_INVALID_LEFT_RUMBLE = 0.25;
-  public static final double GLOBAL_INVALID_RIGHT_RUMBLE = 0.80;
-  public static final double GLOBAL_INVALID_PULSE_PERIOD_S = 0.30;
+      /** Rumble strengths for shoot-while-held invalid states. */
+      public static final double TURRET_ONLY_INVALID_LEFT_RUMBLE = 0.25;
+      public static final double GLOBAL_INVALID_RIGHT_RUMBLE = 0.80;
+      public static final double GLOBAL_INVALID_PULSE_PERIOD_S = 0.30;
     }
 
     /** Spindexer motor + tuning. */
@@ -1052,7 +1053,8 @@ public final class Constants {
       /** Example: "artillery/rebuilt_shots.csv" */
       public static final String DEPLOY_CSV_PATH = "artillery/rebuilt_shots.csv";
     }
-        /** Where the moving-auto shot CSV lives under src/main/deploy. */
+
+    /** Where the moving-auto shot CSV lives under src/main/deploy. */
     public static final class MovingAutoShotTable {
       /** Example: "artillery/moving_auto_shots.csv" */
       public static final String DEPLOY_CSV_PATH = "artillery/moving_auto_shots.csv";
@@ -1105,12 +1107,12 @@ public final class Constants {
        * IMPORTANT: You MUST set these numbers; leaving them at 0 will make the zone
        * detection wrong.
        */
-      public static final double BLUE_TRENCH_ZONE1_MIN_X_METERS = 4.060; 
-      public static final double BLUE_TRENCH_ZONE1_MAX_X_METERS = 5.200; 
-      public static final double BLUE_TRENCH_ZONE1_MIN_Y_METERS = 7.270; 
-      public static final double BLUE_TRENCH_ZONE1_MAX_Y_METERS = 7.585; 
+      public static final double BLUE_TRENCH_ZONE1_MIN_X_METERS = 4.060;
+      public static final double BLUE_TRENCH_ZONE1_MAX_X_METERS = 5.200;
+      public static final double BLUE_TRENCH_ZONE1_MIN_Y_METERS = 7.270;
+      public static final double BLUE_TRENCH_ZONE1_MAX_Y_METERS = 7.585;
 
-      public static final double BLUE_TRENCH_ZONE2_MIN_X_METERS = 4.060; 
+      public static final double BLUE_TRENCH_ZONE2_MIN_X_METERS = 4.060;
       public static final double BLUE_TRENCH_ZONE2_MAX_X_METERS = 5.200;
       public static final double BLUE_TRENCH_ZONE2_MIN_Y_METERS = 0.500;
       public static final double BLUE_TRENCH_ZONE2_MAX_Y_METERS = 0.785;
@@ -1122,7 +1124,7 @@ public final class Constants {
        * Turret pivot position relative to robot origin, in the ROBOT frame (meters).
        */
       public static final Translation2d TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS = new Translation2d(
-          -0.15, -0.06); //-0.1778, -0.07
+          -0.15, -0.06); // -0.1778, -0.07
 
       /** Ball release height above field when leaving shooter, meters. TODO set. */
       public static final double BALL_RELEASE_HEIGHT_METERS = 0.4318;
@@ -1198,7 +1200,7 @@ public final class Constants {
       public static final boolean intakePivotMotorInverted = true;
 
       // Intake roller setpoints are in RPS at the ROLLER, not motor RPS.
-      public static final double ROLLER_INTAKE_RPS = 75.0; //50
+      public static final double ROLLER_INTAKE_RPS = 75.0; // 50
       public static final double ROLLER_REVERSE_RPS = -20.0;
 
       public static final double INTAKE_PIVOT_REZERO_RETRACT_DUTY = 0.20;
@@ -1239,11 +1241,12 @@ public final class Constants {
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
       public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.20;
+      public static final double INTAKE_ROLLER_DUTY = 0.7;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         // IntakeStowedDeg(37.0),
-        IntakeRetracted(0.0),
-        IntakeDeployedDeg(51.0);
+        IntakeRetracted(3.0),
+        IntakeDeployedDeg(20.0);
 
         private double armDeg;
 
@@ -1266,12 +1269,14 @@ public final class Constants {
 
         public static class MotionMagicDutyCycleConstants {
           public static final int slot = 0;
-          public static final double intake_kP = 10; // 0.64
+          public static final double intake_kP = 1.8;
           public static final double intake_kI = 0.0;
-          public static final double intake_kD = 0.0;
-          public static final double MotionMagicCruiseVelocity = 50.0; // 75.0
-          public static final double motionMagicAcceleration = 100.0; // 150.0
-          public static final double motionMagicJerk = 1000.0; // 1500.0
+          public static final double intake_kD = 0.30;
+          //public static final double intake_kG = 0.25;
+          public static final double pivotHorizontalDeg = 30.0; // replace with measured value 
+          public static final double MotionMagicCruiseVelocity = 5.0;  // 20
+          public static final double motionMagicAcceleration = 10.0; // 80
+          public static final double motionMagicJerk = 100.0; // 800
         }
 
         public static class RollerVelocityVoltageConstants {
@@ -1285,7 +1290,7 @@ public final class Constants {
           public static final double intake_kD = 0.0;
         }
 
-        public static final double PIVOT_POSITION_TOLERANCE_PERCENT = 0.10; // 10% of full retract-to-deploy travel
+        public static final double PIVOT_POSITION_TOLERANCE_PERCENT = 0.40; // 10% of full retract-to-deploy travel
       }
 
       /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */

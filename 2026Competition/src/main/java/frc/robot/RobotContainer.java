@@ -112,7 +112,7 @@ public class RobotContainer {
   private static final Joystick turretStick = new Joystick(0);
   public static final Joystick bb = new Joystick(OIContants.BUTTON_BOX);
 
-  public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
+  //public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
   public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
@@ -240,7 +240,7 @@ public class RobotContainer {
     if (Constants.DebugTelemetrySubsystems.calibration) {
       //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
-      //configureIntakeCalibrationBindings();
+      configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
