@@ -110,6 +110,7 @@ public class RobotContainer {
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
   private static final Joystick turretStick = new Joystick(0);
+  private static final Joystick turretStick2 = new Joystick(1);
   public static final Joystick bb = new Joystick(OIContants.BUTTON_BOX);
 
   //public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
@@ -259,6 +260,9 @@ public class RobotContainer {
 
  public static Joystick getTurretStick() {
     return turretStick;
+  }
+  public static Joystick getTurretStick2() {
+    return turretStick2;
   }
   public static boolean isHubTrackingDisabledByButtonBox() {
     return bb.getRawAxis(OIContants.BB_HUB_TRACKING_DISABLE_AXIS)
@@ -486,6 +490,46 @@ public class RobotContainer {
 
     new JoystickButton(turretStick, 5)
     .onTrue(new PrintTurretShotDiagnosticsCommand());
+
+    //  new JoystickButton(turretStick, 7)
+    //     .onTrue(new InstantCommand(() -> {
+    //       // Toggle by checking current target
+    //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
+    //       double nextDeg = 0.0;
+    //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
+    //     }));
+
+    //      new JoystickButton(turretStick, 8)
+    //     .onTrue(new InstantCommand(() -> {
+    //       // Toggle by checking current target
+    //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
+    //       double nextDeg = 3.0;
+    //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
+    //     }));
+
+    //      new JoystickButton(turretStick, 9)
+    //     .onTrue(new InstantCommand(() -> {
+    //       // Toggle by checking current target
+    //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
+    //       double nextDeg = 6.0;
+    //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
+    //     }));
+
+    //      new JoystickButton(turretStick, 10)
+    //     .onTrue(new InstantCommand(() -> {
+    //       // Toggle by checking current target
+    //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
+    //       double nextDeg = 9.0;
+    //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
+    //     }));
+
+    //      new JoystickButton(turretStick, 12)
+    //     .onTrue(new InstantCommand(() -> {
+    //       // Toggle by checking current target
+    //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
+    //       double nextDeg = 12.0;
+    //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
+    //     }));
 
         new JoystickButton(turretStick, 11)
         .whileTrue(new ShootWhileHeld(

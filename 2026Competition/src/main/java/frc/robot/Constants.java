@@ -823,6 +823,7 @@ public final class Constants {
       // ---------------------------------------------------------------------
       /** Fixed hood angle for the manual fixed shot. */
       public static final double MANUAL_FIXED_SHOT_HOOD_DEG = 0.0; // TODO: tune
+      public static final double HOOD_ANGLE_SHUTTLE = 13.0;
 
       /** Base shooter RPM for the manual fixed shot. */
       public static final double MANUAL_FIXED_SHOT_BASE_RPM = 2200.0; // TODO: tune

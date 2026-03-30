@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.Constants.EnabledSubsystems;
+import frc.robot.Constants.OperatorConstants.AutoShoot;
 import frc.robot.RobotContainer;
 import frc.robot.lib.TurretHelpers;
 
@@ -233,11 +234,14 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       } else if (shotMode == ShotMode.MANUAL_FIXED) {
         double throttle =
             MathUtil.clamp(RobotContainer.getTurretStick().getThrottle(), -1.0, 1.0);
+        double throttle2 =
+            MathUtil.clamp(RobotContainer.getTurretStick2().getThrottle(), -1.0, 1.0);
         shooterRpm =
             Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
                 + throttle * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
-        hoodAngleRad =
-            Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
+        // hoodAngleRad =
+        //     Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
+        hoodAngleRad = Math.toRadians(throttle2*100.0);
 
         solution =
             new TurretHelpers.Solution(
@@ -460,11 +464,13 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
         } else if (shotMode == ShotMode.MANUAL_FIXED) {
           double twist = MathUtil.clamp(RobotContainer.getTurretStick().getThrottle(), -1.0, 1.0);
+          double twist2 = MathUtil.clamp(RobotContainer.getTurretStick2().getThrottle(), -1.0, 1.0);
           shooterRpm =
               Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
                   + twist * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
-          hoodAngleRad =
-              Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
+          // hoodAngleRad =
+          //     Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
+          hoodAngleRad = Math.toRadians(twist2*100.0);
 
           lastSolution =
               new TurretHelpers.Solution(
@@ -872,17 +878,38 @@ lastBallAtThroat = ballAtThroat;
             target2d.getY() - turretCenterField.getY(),
             target2d.getX() - turretCenterField.getX());
 
-    return new TurretHelpers.Solution(
-        true,
-        0.0,
-        yawFieldRad,
-        Double.NaN,
-        Double.NaN,
-        new Translation3d(),
-        shot.shooterRpmCommand,
-        shot.hoodCommandAngleRad,
-        Double.NaN,
-        Double.NaN);
+    // shuttle code edit
+
+    double commandedHoodRad = shot.hoodCommandAngleRad;
+
+if (currentAimTarget == Constants.FieldTargets.AimTarget.NEUTRAL_LOW
+    || currentAimTarget == Constants.FieldTargets.AimTarget.NEUTRAL_HIGH) {
+  commandedHoodRad = Math.toRadians(AutoShoot.HOOD_ANGLE_SHUTTLE);
+}
+
+return new TurretHelpers.Solution(
+    true,
+    0.0,
+    yawFieldRad,
+    Double.NaN,
+    Double.NaN,
+    new Translation3d(),
+    shot.shooterRpmCommand,
+    commandedHoodRad,
+    Double.NaN,
+    Double.NaN);
+
+    // return new TurretHelpers.Solution(
+    //     true,
+    //     0.0,
+    //     yawFieldRad,
+    //     Double.NaN,
+    //     Double.NaN,
+    //     new Translation3d(),
+    //     shot.shooterRpmCommand,
+    //     shot.hoodCommandAngleRad,
+    //     Double.NaN,
+    //     Double.NaN);
   }
 
   private static double computeTurretCenterToTargetDistanceMeters(
