@@ -206,7 +206,7 @@ public class SpindexerSubsystem extends SubsystemBase {
     motor.setControl(velocityRequest.withVelocity(velocityRps));
   }
 
-  private void commandDutyInternal(double dutyCycle) {
+  public void commandDutyInternal(double dutyCycle) {
     velocityClosedLoopEnabled = false;
     targetRps = 0.0;
     commandedDuty = dutyCycle;
