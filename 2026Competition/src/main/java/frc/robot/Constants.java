@@ -1269,14 +1269,24 @@ public final class Constants {
 
         public static class MotionMagicDutyCycleConstants {
           public static final int slot = 0;
-          public static final double intake_kP = 1.8;
+          public static final double intake_kP = 12.0;
           public static final double intake_kI = 0.0;
-          public static final double intake_kD = 0.30;
-          //public static final double intake_kG = 0.25;
-          public static final double pivotHorizontalDeg = 30.0; // replace with measured value 
-          public static final double MotionMagicCruiseVelocity = 5.0;  // 20
-          public static final double motionMagicAcceleration = 10.0; // 80
-          public static final double motionMagicJerk = 100.0; // 800
+          public static final double intake_kD = 0.8;
+          public static final double intake_kS = 0.0;
+          public static final double intake_kV = 0.0;
+          public static final double intake_kA = 0.0;
+          public static final double intake_kG = 0.20;
+
+          // This is the physical intake arm angle where the pivot is horizontal.
+          // Zero is still the retracted hard stop, so the Talon arm gravity offset
+          // must account for that.
+          public static final double pivotHorizontalDeg = 30.0; // TODO measure on robot
+          public static final double gravityArmPositionOffsetRot = -pivotHorizontalDeg / 360.0;
+
+          // Motion Magic in MECHANISM rotations because SensorToMechanismRatio is applied.
+          public static final double MotionMagicCruiseVelocity = 0.20;
+          public static final double motionMagicAcceleration = 0.50;
+          public static final double motionMagicJerk = 0.0;
         }
 
         public static class RollerVelocityVoltageConstants {
@@ -1290,7 +1300,7 @@ public final class Constants {
           public static final double intake_kD = 0.0;
         }
 
-        public static final double PIVOT_POSITION_TOLERANCE_PERCENT = 0.40; // 10% of full retract-to-deploy travel
+        public static final double PIVOT_AT_TARGET_TOLERANCE_DEG = 1.5;
       }
 
       /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */

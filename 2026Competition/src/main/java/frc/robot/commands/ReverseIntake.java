@@ -25,7 +25,6 @@ public class ReverseIntake extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    RobotContainer.intakeSubsystem.runIntakeReverseNoPid(-IntakeConstants.INTAKE_ROLLER_DUTY);
   }
 
   // Called once the command ends or is interrupted.
