@@ -110,13 +110,13 @@ public final class Constants {
     public static final boolean chasis = false;
     public static final boolean odometry = false;
     public static final boolean ll = false;
-    public static final boolean intake = true;
-    public static final boolean shooter = false;
-    public static final boolean turret = false;
-    public static final boolean hood = false;
+    public static final boolean intake = false;
+    public static final boolean shooter = true;
+    public static final boolean turret = true;
+    public static final boolean hood = true;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean spindexer = true;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     public static boolean calibration = false;
@@ -129,13 +129,13 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean llLight = false;
     public static final boolean perfLight = false;
-    public static final boolean intake = true;
-    public static final boolean shooter = false;
-    public static final boolean turret = false;
-    public static final boolean hood = false;
+    public static final boolean intake = false;
+    public static final boolean shooter = true;
+    public static final boolean turret = true;
+    public static final boolean hood = true;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean spindexer = true;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
@@ -696,8 +696,8 @@ public final class Constants {
 
       /** Velocity control gains (placeholders). */
       public static final double kP = 0.2; // 0.165
-      public static final double kI = 0.0;
-      public static final double kD = 0.001; // 0.0008
+      public static final double kI = 0.04;
+      public static final double kD = 0.00; // 0.0008
       public static final double kS = 0.18; // 0.18
       public static final double kV = 0.121;
       public static final double kA = 0.015; // 0.001

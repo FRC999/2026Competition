@@ -141,8 +141,8 @@ public class RobotContainer {
             () -> getDriverXAxis(),
             () -> getDriverYAxis(),
             () -> getDriverOmegaAxis(),
-            //() -> xboxDriveController.getRawAxis(3) > 0.3));
-            () -> false));
+            () -> xboxDriveController.getRawAxis(3) > 0.3));
+            //() -> false));
     CommandScheduler.getInstance().schedule(FollowPathCommand.warmupCommand());
 
     AutonomousConfigure();
@@ -238,15 +238,15 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      //configureShooterCalibrationBindings(); 
+      configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
-      configureIntakeCalibrationBindings();
+      //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
     }
-    competitionXBOXButtonBindings();
-    //betaTesting();
+    //competitionXBOXButtonBindings();
+    betaTesting();
     //setYaws();
 
     new JoystickButton(xboxDriveController, 8) // Left of X
@@ -580,7 +580,7 @@ public class RobotContainer {
     final int BTN_SHOOTER_SYSID_DYN_REV = 12;
 
     // TODO: PLACEHOLDER - choose two practical calibration RPMs
-    final double RPM_A = 1800.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
+    final double RPM_A = 2000.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
     final double RPM_B = 4500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM B
 
     // Set RPM A (press)
@@ -617,11 +617,11 @@ public class RobotContainer {
         .onFalse(new InstantCommand(() -> shooterSubsystem.stop()));
 
     new JoystickButton(turretStick, 2)
-        .whileTrue(new RunCommand(() -> transferSubsystem.runDuty(-0.5), transferSubsystem))
+        .whileTrue(new RunCommand(() -> transferSubsystem.runDuty(-0.9), transferSubsystem))
         .onFalse(new InstantCommand(() -> transferSubsystem.stop()));
 
     new JoystickButton(turretStick, 3)
-        .whileTrue(new RunCommand(() -> spindexerSubsystem.commandDutyInternal(0.5), spindexerSubsystem))
+        .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupply(), spindexerSubsystem))
         .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal()));
 
     // new JoystickButton(turretStick, 6)
