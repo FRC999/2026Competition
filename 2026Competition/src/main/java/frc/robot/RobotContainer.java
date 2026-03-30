@@ -246,7 +246,7 @@ public class RobotContainer {
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
     }
-    //competitionXBOXButtonBindings();
+    competitionXBOXButtonBindings();
     betaTesting();
     //setYaws();
 
