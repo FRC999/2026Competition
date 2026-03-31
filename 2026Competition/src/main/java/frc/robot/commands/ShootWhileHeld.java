@@ -34,6 +34,7 @@ public class ShootWhileHeld extends Command {
   private final PIDController headingPid;
   private double headingSetpointDeg = 0.0;
 
+
   public ShootWhileHeld(
       AutoShootSupervisorSubsystem.ShotMode mode,
       boolean holdDriveHeading) {
@@ -84,6 +85,7 @@ public class ShootWhileHeld extends Command {
 
   @Override
   public void initialize() {
+    System.out.println("Shoot while held called");
     RobotContainer.autoShootSupervisorSubsystem.setShotMode(mode);
     RobotContainer.autoShootSupervisorSubsystem.setShootRequested(true);
 
