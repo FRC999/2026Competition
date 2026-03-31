@@ -26,9 +26,11 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorPhaseValue;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
@@ -96,6 +98,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   // Integrated (relative) position from the TalonFX (multi-turn, does not wrap).
   private StatusSignal<Angle> motorPosSig;
+  private StatusSignal<AngularVelocity> motorVelSig;
 
   // Used to guard sim-only code paths.
   private final boolean isSim = RobotBase.isSimulation();
@@ -124,6 +127,8 @@ public class TurretSubsystem extends SubsystemBase {
   private double lastContinuousDeg = 0.0;
   private double lastUpdateTs = Timer.getFPGATimestamp();
   private double estVelDegPerSec = 0.0;
+  private double rawVelDegPerSec = 0.0;
+  private final LinearFilter velocityFilter = LinearFilter.singlePoleIIR(0.05, 0.02);
 
   /** continuous target angle (deg) in [-340, +340] */
   private double targetDeg = 0.0;
@@ -188,6 +193,7 @@ private final double forwardDeg =
     motorVoltageSig = turret.getMotorVoltage();
 
     motorPosSig = turret.getPosition();
+    motorVelSig = turret.getVelocity();
 
     // Hardware config: motor output + current limits + gains.
     configureHardware();
@@ -220,6 +226,9 @@ private final double forwardDeg =
 
     // Integrated motor position (used for continuous angle tracking once seeded).
     motorPosSig.setUpdateFrequency(100.0);
+
+    // Use the Talon's own velocity estimate instead of differentiating position in Java.
+    motorVelSig.setUpdateFrequency(100.0);
 
     // Motor voltage can be slower; mostly for telemetry and SysId.
     motorVoltageSig.setUpdateFrequency(50.0);
@@ -432,16 +441,11 @@ private final double forwardDeg =
 																	   
    */
   private void updateContinuousAngle() {
-    // Capture time and dt for velocity estimation.
     double now = Timer.getFPGATimestamp();
-    double dt = Math.max(1e-3, now - lastUpdateTs);
 
-    // Force Phoenix to update the cached CAN/sim signals before we read them.
-    // This is the missing step that makes motorPosSig change in simulation.
-    BaseStatusSignal.refreshAll(motorPosSig);
+    BaseStatusSignal.refreshAll(motorPosSig, motorVelSig);
 
-    // Optional: if position is not OK, don't update the mechanism/angle this loop.
-    if (motorPosSig.getStatus() != StatusCode.OK) {
+    if (motorPosSig.getStatus() != StatusCode.OK || motorVelSig.getStatus() != StatusCode.OK) {
       //SmartDashboard.putString("Turret/MotorPosStatus", motorPosSig.getStatus().toString());
       lastUpdateTs = now;
       return;
@@ -462,9 +466,9 @@ private final double forwardDeg =
         Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
         Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
 
-    // Velocity estimate (deg/s) based on UNCLAMPED motion (smooth across limits)
-    double prevUnclamped = continuousDegUnclamped;
-    estVelDegPerSec = (nextUnclamped - prevUnclamped) / dt;
+    double motorVelRps = motorVelSig.getValueAsDouble() / ANGLE_SIGN;
+    rawVelDegPerSec = turretDegFromMotorRot(motorVelRps);
+    estVelDegPerSec = velocityFilter.calculate(rawVelDegPerSec);
 
     // Commit state.
     lastContinuousDeg = continuousDeg;          // keep last clamped value for any debugging
@@ -895,6 +899,7 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     // Telemetry block: expose key state for debugging and tuning.
       SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
       SmartDashboard.putNumber("Turret/VelDegPerSec", getVelocityDegPerSec());
+      SmartDashboard.putNumber("Turret/VelDegPerSecRaw", rawVelDegPerSec);
       SmartDashboard.putNumber("Turret/AngleDeg_Unclamped", continuousDegUnclamped);
       SmartDashboard.putNumber("Turret/AngleDeg_Wrapped0to360", wrapTo0To360(continuousDegUnclamped));
       SmartDashboard.putNumber("Turret/AppliedVolts", getAppliedVolts());
