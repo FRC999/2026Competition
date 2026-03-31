@@ -110,7 +110,7 @@ public final class Constants {
     public static final boolean chasis = false;
     public static final boolean odometry = false;
     public static final boolean ll = false;
-    public static final boolean intake = false;
+    public static final boolean intake = true;
     public static final boolean shooter = false;
     public static final boolean turret = true;
     public static final boolean hood = true;
@@ -118,7 +118,7 @@ public final class Constants {
     public static final boolean spindexer = true;
     public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = true;
+    public static final boolean supervisor = false;
     public static boolean calibration = false;
   }
 
@@ -127,8 +127,8 @@ public final class Constants {
     public static final boolean imu = false;
     public static final boolean chassis = false;
     public static final boolean ll = false;
-    public static final boolean llLight = false; // why llLight when ll liek ?????????????????????????????????????????????????? (intentional btw)
-    public static final boolean perfLight = false; //???
+    public static final boolean llLight = false;
+    public static final boolean perfLight = false;
     public static final boolean intake = true;
     public static final boolean shooter = false;
     public static final boolean turret = true;
@@ -137,7 +137,7 @@ public final class Constants {
     public static final boolean spindexer = false;
     public static final boolean transfer = false;
     public static final boolean climber = false;
-    public static final boolean supervisor = true;
+    public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = false;
 
@@ -1196,7 +1196,7 @@ public final class Constants {
       // (follower)
 
       public static final boolean intakePivotFollowerOpposeLeader = true;
-      public static final boolean intakeRollerFollowerOpposeLeader = false;
+      public static final boolean intakeRollerFollowerOpposeLeader = true;
       // TODO: PLACEHOLDER - verify on hardware by jogging. If the motors fight, flip
       // this.
 
@@ -1272,14 +1272,15 @@ public final class Constants {
 
         public static class MotionMagicDutyCycleConstants {
           public static final int slot = 0;
-          public static final double intake_kP = 16.0;
-          public static final double intake_kI = 0.02;
+          public static final double intake_kP_Deployed = 16.0;
+           public static final double intake_kP_Retracted = 20.0;
+          public static final double intake_kI = 0.03;
           public static final double intake_kD = 1.2;
           public static final double intake_kS = 0.0;
           public static final double intake_kV = 0.0;
           public static final double intake_kA = 0.0;
-          public static final double intake_kG_deployed = -0.56;
-          public static final double intake_kG_retracted = 0.0;
+          public static final double intake_kG_Deployed = -0.56;
+          public static final double intake_kG_Retracted = 0.25;
 
           // This is the physical intake arm angle where the pivot is horizontal.
           // Zero is still the retracted hard stop, so the Talon arm gravity offset
@@ -1288,9 +1289,9 @@ public final class Constants {
           public static final double gravityArmPositionOffsetRot = -pivotHorizontalDeg / 360.0;
 
           // Motion Magic in MECHANISM rotations because SensorToMechanismRatio is applied.
-          public static final double MotionMagicCruiseVelocity = 20; //0.20
-          public static final double motionMagicAcceleration = 60; //0.50
-          public static final double motionMagicJerk = 600; //0.0
+          public static final double MotionMagicCruiseVelocity = 30; //0.20
+          public static final double motionMagicAcceleration = 120; //0.50
+          public static final double motionMagicJerk = 1000; //0.0
         }
 
         public static class RollerVelocityVoltageConstants {
@@ -1304,7 +1305,7 @@ public final class Constants {
           public static final double intake_kD = 0.0;
         }
 
-        public static final double PIVOT_AT_TARGET_TOLERANCE_DEG = 1.5;
+        public static final double PIVOT_AT_TARGET_TOLERANCE_DEG = 4.0;
       }
 
       /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */
