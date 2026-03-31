@@ -112,7 +112,7 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean intake = true;
     public static final boolean shooter = false;
-    public static final boolean turret = false;
+    public static final boolean turret = true;
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
@@ -131,7 +131,7 @@ public final class Constants {
     public static final boolean perfLight = false;
     public static final boolean intake = true;
     public static final boolean shooter = false;
-    public static final boolean turret = false;
+    public static final boolean turret = true;
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
@@ -1249,7 +1249,7 @@ public final class Constants {
       public static enum IntakePositions { // arm degrees (not motor rotations)
         // IntakeStowedDeg(37.0),
         IntakeRetracted(3.0),
-        IntakeDeployedDeg(20.0);
+        IntakeDeployedDeg(28.0);
 
         private double armDeg;
 
@@ -1273,12 +1273,12 @@ public final class Constants {
         public static class MotionMagicDutyCycleConstants {
           public static final int slot = 0;
           public static final double intake_kP = 16.0;
-          public static final double intake_kI = 0.0;
+          public static final double intake_kI = 0.02;
           public static final double intake_kD = 1.2;
           public static final double intake_kS = 0.0;
           public static final double intake_kV = 0.0;
           public static final double intake_kA = 0.0;
-          public static final double intake_kG = -0.4;
+          public static final double intake_kG = -0.56;
 
           // This is the physical intake arm angle where the pivot is horizontal.
           // Zero is still the retracted hard stop, so the Talon arm gravity offset
@@ -1287,9 +1287,9 @@ public final class Constants {
           public static final double gravityArmPositionOffsetRot = -pivotHorizontalDeg / 360.0;
 
           // Motion Magic in MECHANISM rotations because SensorToMechanismRatio is applied.
-          public static final double MotionMagicCruiseVelocity = 0.20;
-          public static final double motionMagicAcceleration = 0.50;
-          public static final double motionMagicJerk = 0.0;
+          public static final double MotionMagicCruiseVelocity = 20; //0.20
+          public static final double motionMagicAcceleration = 60; //0.50
+          public static final double motionMagicJerk = 600; //0.0
         }
 
         public static class RollerVelocityVoltageConstants {

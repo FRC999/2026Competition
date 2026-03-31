@@ -239,10 +239,10 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      configureShooterCalibrationBindings(); 
+      //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
       //configureIntakeCalibrationBindings();
-      //configureTurretCalibrationBindings();
+      configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
     }
@@ -1125,7 +1125,7 @@ private void configureIntakeCalibrationBindings() {
     new JoystickButton(turretStick, 6)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
-              50),
+              30),
             RobotContainer.turretSubsystem))
         .onFalse(new InstantCommand(
             () -> RobotContainer.turretSubsystem.stop()));
