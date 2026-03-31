@@ -394,7 +394,7 @@ public class IntakeSubsystem extends SubsystemBase {
     config.Feedback.SensorToMechanismRatio = IntakeConstants.PIVOT_MOTOR_TO_ARM_GEAR_RATIO;
 
     // Tune this as an arm in mechanism rotations, not a generic motor axis.
-    config.Slot0.kP = MotionMagicDutyCycleConstants.intake_kP;
+    config.Slot0.kP = MotionMagicDutyCycleConstants.intake_kP_Deployed;
     config.Slot0.kI = MotionMagicDutyCycleConstants.intake_kI;
     config.Slot0.kD = MotionMagicDutyCycleConstants.intake_kD;
     config.Slot0.kS = MotionMagicDutyCycleConstants.intake_kS;
@@ -703,6 +703,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     if (driverMode == IntakeDriverMode.DEPLOYED_IDLE) {
       pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kG_Deployed;
+      pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kP_Deployed;
       if (driverIntakeTriggerActive) {
         if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
           setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
@@ -727,6 +728,7 @@ public class IntakeSubsystem extends SubsystemBase {
       }
     } else {
       pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kG_Retracted;
+      pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kP_Retracted;
       if (driverIntakeTriggerActive) {
         if (pivotSeekingDeployed) {
           // alex text

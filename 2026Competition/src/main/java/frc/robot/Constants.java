@@ -1196,7 +1196,7 @@ public final class Constants {
       // (follower)
 
       public static final boolean intakePivotFollowerOpposeLeader = true;
-      public static final boolean intakeRollerFollowerOpposeLeader = false;
+      public static final boolean intakeRollerFollowerOpposeLeader = true;
       // TODO: PLACEHOLDER - verify on hardware by jogging. If the motors fight, flip
       // this.
 
@@ -1272,14 +1272,15 @@ public final class Constants {
 
         public static class MotionMagicDutyCycleConstants {
           public static final int slot = 0;
-          public static final double intake_kP = 16.0;
-          public static final double intake_kI = 0.0;
+          public static final double intake_kP_Deployed = 16.0;
+           public static final double intake_kP_Retracted = 20.0;
+          public static final double intake_kI = 0.03;
           public static final double intake_kD = 1.2;
           public static final double intake_kS = 0.0;
           public static final double intake_kV = 0.0;
           public static final double intake_kA = 0.0;
           public static final double intake_kG_Deployed = -0.56;
-          public static final double intake_kG_Retracted = 0.1;
+          public static final double intake_kG_Retracted = 0.25;
 
           // This is the physical intake arm angle where the pivot is horizontal.
           // Zero is still the retracted hard stop, so the Talon arm gravity offset
@@ -1288,9 +1289,9 @@ public final class Constants {
           public static final double gravityArmPositionOffsetRot = -pivotHorizontalDeg / 360.0;
 
           // Motion Magic in MECHANISM rotations because SensorToMechanismRatio is applied.
-          public static final double MotionMagicCruiseVelocity = 20; //0.20
-          public static final double motionMagicAcceleration = 80; //0.50
-          public static final double motionMagicJerk = 800; //0.0
+          public static final double MotionMagicCruiseVelocity = 30; //0.20
+          public static final double motionMagicAcceleration = 120; //0.50
+          public static final double motionMagicJerk = 1000; //0.0
         }
 
         public static class RollerVelocityVoltageConstants {
@@ -1304,7 +1305,7 @@ public final class Constants {
           public static final double intake_kD = 0.0;
         }
 
-        public static final double PIVOT_AT_TARGET_TOLERANCE_DEG = 1.5;
+        public static final double PIVOT_AT_TARGET_TOLERANCE_DEG = 4.0;
       }
 
       /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */
