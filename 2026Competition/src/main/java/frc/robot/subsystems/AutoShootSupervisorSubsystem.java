@@ -244,9 +244,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         shooterRpm =
             Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
                 + throttle * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
-        // hoodAngleRad =
-        //     Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
-        hoodAngleRad = Math.toRadians(throttle2*100.0);
+        hoodAngleRad =
+            Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
+        // hoodAngleRad = Math.toRadians(throttle2*100.0);
 
         solution =
             new TurretHelpers.Solution(
@@ -502,9 +502,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
           shooterRpm =
               Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
                   + twist * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
-          // hoodAngleRad =
-          //     Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
-          hoodAngleRad = Math.toRadians(twist2*100.0);
+          hoodAngleRad =
+              Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
+          // hoodAngleRad = Math.toRadians(twist2*100.0);
 
           lastSolution =
               new TurretHelpers.Solution(

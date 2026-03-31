@@ -239,10 +239,10 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      //configureShooterCalibrationBindings(); 
+      configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
       //configureIntakeCalibrationBindings();
-      configureTurretCalibrationBindings();
+      //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
     }
@@ -481,9 +481,9 @@ public class RobotContainer {
             AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
             true));
     
-    new JoystickButton(xboxDriveController, 3)
-        .whileTrue(new InstantCommand(() -> spindexerSubsystem.runBase()))
-        .whileFalse(new InstantCommand(() -> spindexerSubsystem.stop()));
+    // new JoystickButton(xboxDriveController, 3)
+    //     .whileTrue(new InstantCommand(() -> spindexerSubsystem.runBase()))
+    //     .whileFalse(new InstantCommand(() -> spindexerSubsystem.stop()));
 
     new JoystickButton(turretStick, 1)
         .onTrue(new TestTurretAngleCommand());

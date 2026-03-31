@@ -90,6 +90,10 @@ public class ShootWhileHeld extends Command {
     RobotContainer.autoShootSupervisorSubsystem.setShootRequested(true);
 
     // Print diagnostics once when manual fixed shot begins
+    //  SmartDashboard.putString("Shoot While Held Parameters",
+    //       "Distance to Hub: " + String.format("%.3f", "") + " Manual Fixed Shot Hood Deg: "
+    //           + String.format("%.2f", "") + " Manual Fixed Shot Shooter RPM: " + String.format("%.1f", "")
+    //           + "Turret Angle: " + String.format("%.2f", RobotContainer.turretSubsystem.getAngleDeg()));
     if (mode == AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED) {
 
       var driveState = RobotContainer.driveSubsystem.getState();
@@ -111,16 +115,17 @@ public class ShootWhileHeld extends Command {
 
       double hood = Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG;
 
-      // System.out.println("========================================");
-      // System.out.println("MANUAL FIXED SHOT");
-      // System.out.printf("Distance turret->hub: %.3f m%n", distance);
-      // System.out.printf("Hood angle: %.2f deg%n", hood);
-      // System.out.printf("Shooter RPM: %.1f%n", rpm);
-      // System.out.println("========================================");
-      SmartDashboard.putString("Shoot While Held Parameters",
-          "Distance to Hub: " + String.format("%.3f", distance) + " Manual Fixed Shot Hood Deg: "
-              + String.format("%.2f", hood) + " Manual Fixed Shot Shooter RPM: " + String.format("%.1f", rpm)
-              + "Turret Angle: " + String.format("%.2f", RobotContainer.turretSubsystem.getAngleDeg()));
+      System.out.println("========================================");
+      System.out.println("MANUAL FIXED SHOT");
+      System.out.printf("Distance turret->hub: %.3f m%n", distance);
+      System.out.printf("Hood angle: %.2f deg%n", hood);
+      System.out.printf("Shooter RPM: %.1f%n", rpm);
+      System.out.printf("Turret Angle: %.1f%n", RobotContainer.turretSubsystem.getAngleDeg());
+      System.out.println("========================================");
+      // SmartDashboard.putString("Shoot While Held Parameters",
+      //     "Distance to Hub: " + String.format("%.3f", distance) + " Manual Fixed Shot Hood Deg: "
+      //         + String.format("%.2f", hood) + " Manual Fixed Shot Shooter RPM: " + String.format("%.1f", rpm)
+      //         + "Turret Angle: " + String.format("%.2f", RobotContainer.turretSubsystem.getAngleDeg()));
     }
   }
 

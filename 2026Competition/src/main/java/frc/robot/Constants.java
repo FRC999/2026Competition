@@ -119,7 +119,7 @@ public final class Constants {
     public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = true;
-    public static boolean calibration = true;
+    public static boolean calibration = false;
   }
 
   public static final class DebugTelemetrySubsystems {
@@ -137,12 +137,12 @@ public final class Constants {
     public static final boolean spindexer = false;
     public static final boolean transfer = false;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
+    public static final boolean supervisor = true;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = false;
 
     // Calibration-only telemetry gate (NetworkTables/SmartDashboard).
-    public static final boolean calibration = true; // PLACEHOLDER set true only while calibrating
+    public static final boolean calibration = false; // PLACEHOLDER set true only while calibrating
   }
 
   public static final class AutoConstants {
@@ -824,7 +824,7 @@ public final class Constants {
       // MANUAL FIXED SHOT (turret-stick button 11)
       // ---------------------------------------------------------------------
       /** Fixed hood angle for the manual fixed shot. */
-      public static final double MANUAL_FIXED_SHOT_HOOD_DEG = 0.0; // TODO: tune
+      public static final double MANUAL_FIXED_SHOT_HOOD_DEG = 6.0; // TODO: tune
       public static final double HOOD_ANGLE_SHUTTLE = 13.0;
 
       /** Base shooter RPM for the manual fixed shot. */
