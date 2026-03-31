@@ -16,6 +16,7 @@ import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.PositionDutyCycle;
+import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -50,6 +51,7 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.MotionMagicDutyCycleConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.PositionDutyCycleConstants;
+import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.RollerVelocityVoltageConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 
 public class IntakeSubsystem extends SubsystemBase {
@@ -60,6 +62,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private TalonFX intakePivotFollowerMotor; // follower
 
   private final MotionMagicVoltage motionMagicVoltage = new MotionMagicVoltage(0).withEnableFOC(false);
+  private final VelocityVoltage rollerVelocityVoltage = new VelocityVoltage(0).withSlot(0);
 
   private double intakePivotEncoderZero = 0;
   private double targetPivotDeg = 0.0;
@@ -68,16 +71,16 @@ public class IntakeSubsystem extends SubsystemBase {
 
   private enum RollerDesiredMode {
     OFF,
-    DUTY_CYCLE
+    VELOCITY
   }
 
   private RollerDesiredMode rollerDesiredMode = RollerDesiredMode.OFF;
   private boolean rollerVelocityClosedLoopEnabled = false;
-  private double rollerCommandedDuty = 0.0;
+  private double rollerCommandedMotorRps = 0.0;
   private double lastRollerDutyCommand = Double.NaN;
+  private double lastRollerVelocityCommandMotorRps = Double.NaN;
   private double lastPivotTargetRot = Double.NaN;
   private double lastPivotDutyCommand = Double.NaN;
-  private double activePivotKg = MotionMagicDutyCycleConstants.intake_kG_retracted;
 
   private enum IntakeDriverMode {
     DEPLOYED_IDLE,
@@ -139,6 +142,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
   private double simRollerPosRot = 0.0;
   private double simPivotPosRot = 0.0;
+  TalonFXConfiguration pidPivotConfigOg = new TalonFXConfiguration();
 
   /** Creates a new IntakeSubsystem. */
   public IntakeSubsystem() {
@@ -196,11 +200,43 @@ public class IntakeSubsystem extends SubsystemBase {
 
     rollerCurrentLimits.StatorCurrentLimitEnable = true;
     rollerCurrentLimits.StatorCurrentLimit = IntakeConstants.ROLLER_STATOR_CURRENT_LIMIT_A;
+
+    final var slot0 = new Slot0Configs();
+    slot0.kS = RollerVelocityVoltageConstants.intake_kS;
+    ;
+    slot0.kV = RollerVelocityVoltageConstants.intake_kV;
+    ;
+    slot0.kP = RollerVelocityVoltageConstants.intake_kP;
+    slot0.kI = RollerVelocityVoltageConstants.intake_kI;
+    slot0.kD = RollerVelocityVoltageConstants.intake_kD;
+
     final var cfg = new TalonFXConfiguration();
     cfg.CurrentLimits = rollerCurrentLimits;
+    cfg.Slot0 = slot0;
+
+    // //alex test
+    // System.out.println("*** S0: " + cfg.Slot0.kP
+    // + ", " + cfg.Slot0.kI
+    // + ", " + cfg.Slot0.kD
+    // + ", " + cfg.Slot0.kS );
 
     intakeRollerMotor.getConfigurator().apply(cfg);
     intakeRollerFollowerMotor.getConfigurator().apply(cfg);
+
+    // alex test
+
+    final var slot0Readback = new Slot0Configs();
+    var refreshStatus = intakeRollerMotor.getConfigurator().refresh(slot0Readback);
+    // System.out.println("slot0 refresh status = " + refreshStatus.getName() + " :
+    // " + refreshStatus.getDescription());
+    // System.out.println("READBACK Slot0:"
+    // + " kP=" + slot0Readback.kP
+    // + " kI=" + slot0Readback.kI
+    // + " kD=" + slot0Readback.kD
+    // + " kS=" + slot0Readback.kS
+    // + " kV=" + slot0Readback.kV);
+
+    // System.out.println("**** Configured intake roller motor.");
   }
 
   private void configureMotors() {
@@ -226,6 +262,13 @@ public class IntakeSubsystem extends SubsystemBase {
     rollerCurrentLimits.StatorCurrentLimit = IntakeConstants.ROLLER_STATOR_CURRENT_LIMIT_A;
 
     pidRollerConfig.CurrentLimits = rollerCurrentLimits;
+
+    // ---------------- VelocityVoltage gains (roller) ----------------
+    pidRollerConfig.Slot0.kS = RollerVelocityVoltageConstants.intake_kS;
+    pidRollerConfig.Slot0.kV = RollerVelocityVoltageConstants.intake_kV;
+    pidRollerConfig.Slot0.kP = RollerVelocityVoltageConstants.intake_kP;
+    pidRollerConfig.Slot0.kI = RollerVelocityVoltageConstants.intake_kI;
+    pidRollerConfig.Slot0.kD = RollerVelocityVoltageConstants.intake_kD;
 
     StatusCode statusRoller = StatusCode.StatusCodeNotInitialized;
     for (int i = 0; i < 5; ++i) {
@@ -265,7 +308,8 @@ public class IntakeSubsystem extends SubsystemBase {
 
     var talonFXPivotConfigurator = intakePivotMotor.getConfigurator();
 
-    TalonFXConfiguration pidPivotConfig = new TalonFXConfiguration().withMotorOutput(motorPivotConfig);
+    
+    pidPivotConfigOg.withMotorOutput(motorPivotConfig);
 
     // ---------------- Current limits (pivot leader + follower) ----------------
     final var pivotCurrentLimits = new CurrentLimitsConfigs();
@@ -277,7 +321,7 @@ public class IntakeSubsystem extends SubsystemBase {
     pivotCurrentLimits.StatorCurrentLimitEnable = true;
     pivotCurrentLimits.StatorCurrentLimit = IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A;
 
-    pidPivotConfig.CurrentLimits = pivotCurrentLimits;
+    pidPivotConfigOg.CurrentLimits = pivotCurrentLimits;
 
     final TalonFXConfiguration pivotFollowerConfig = new TalonFXConfiguration();
     pivotFollowerConfig.CurrentLimits = pivotCurrentLimits;
@@ -298,11 +342,11 @@ public class IntakeSubsystem extends SubsystemBase {
     final double fwdSoftLimitRot = IntakeConstants.PIVOT_MAX_DEG * IntakeConstants.PIVOT_MOTOR_TO_ARM_GEAR_RATIO
         / 360.0;
 
-    configureMotionMagicDutyCycle(pidPivotConfig);
+    configureMotionMagicDutyCycle(pidPivotConfigOg);
 
     StatusCode statusPivot = StatusCode.StatusCodeNotInitialized;
     for (int i = 0; i < 5; ++i) {
-      statusPivot = talonFXPivotConfigurator.apply(pidPivotConfig);
+      statusPivot = talonFXPivotConfigurator.apply(pidPivotConfigOg);
       if (statusPivot.isOK()) {
         break;
       }
@@ -326,17 +370,24 @@ public class IntakeSubsystem extends SubsystemBase {
     intakePivotMotor.setControl(new PositionDutyCycle(position));
   }
 
-  private void commandRollerDutyInternal(double duty) {
-    rollerVelocityClosedLoopEnabled = false;
-    double clampedDuty = MathUtil.clamp(duty, -1.0, 1.0);
-    rollerCommandedDuty = clampedDuty;
+  private void commandRollerVelocityInternal(double rollerRps) {
+    rollerVelocityClosedLoopEnabled = true;
+    rollerTargetRps = rollerRps;
+    rollerCommandedMotorRps = motorRpsFromRollerRps(rollerRps);
 
-    if (Double.isFinite(lastRollerDutyCommand) && Math.abs(lastRollerDutyCommand - clampedDuty) < 1e-6) {
+    if (Double.isFinite(lastRollerVelocityCommandMotorRps)
+        && Math.abs(lastRollerVelocityCommandMotorRps - rollerCommandedMotorRps) < 1e-6) {
       return;
     }
 
-    intakeRollerMotor.setControl(new DutyCycleOut(clampedDuty));
-    lastRollerDutyCommand = clampedDuty;
+    // alex test
+    // System.out.println("Commanding roller velocity. Roller RPS: " + rollerRps +
+    // ", Commanded motor RPS: " + rollerCommandedMotorRps);
+
+    intakeRollerMotor.setControl(
+        rollerVelocityVoltage.withVelocity(rollerCommandedMotorRps));
+    lastRollerVelocityCommandMotorRps = rollerCommandedMotorRps;
+    lastRollerDutyCommand = Double.NaN;
   }
 
   private void configureMotionMagicDutyCycle(TalonFXConfiguration config) {
@@ -349,7 +400,7 @@ public class IntakeSubsystem extends SubsystemBase {
     config.Slot0.kS = MotionMagicDutyCycleConstants.intake_kS;
     config.Slot0.kV = MotionMagicDutyCycleConstants.intake_kV;
     config.Slot0.kA = MotionMagicDutyCycleConstants.intake_kA;
-    config.Slot0.kG = MotionMagicDutyCycleConstants.intake_kG_retracted;
+    config.Slot0.kG = MotionMagicDutyCycleConstants.intake_kG_Deployed;
     config.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
     config.Slot0.GravityArmPositionOffset = MotionMagicDutyCycleConstants.gravityArmPositionOffsetRot;
 
@@ -362,34 +413,6 @@ public class IntakeSubsystem extends SubsystemBase {
     intakePivotMotor.getConfigurator().apply(config);
     intakePivotFollowerMotor.getConfigurator().apply(config);
 
-  }
-
-  private void setPivotGravityCompensation(double kG) {
-    if (Math.abs(activePivotKg - kG) < 1e-6) {
-      return;
-    }
-
-    Slot0Configs slot0Configs = new Slot0Configs();
-    intakePivotMotor.getConfigurator().refresh(slot0Configs);
-    slot0Configs.kG = kG;
-
-    intakePivotMotor.getConfigurator().apply(slot0Configs);
-    intakePivotFollowerMotor.getConfigurator().apply(slot0Configs);
-    activePivotKg = kG;
-  }
-
-  private double getPivotGravityCompensationForTarget(double targetDeg) {
-    double currentDeg = getPivotDeg();
-
-    if (targetDeg > currentDeg + 1e-3) {
-      return MotionMagicDutyCycleConstants.intake_kG_deployed;
-    }
-
-    if (targetDeg < currentDeg - 1e-3) {
-      return MotionMagicDutyCycleConstants.intake_kG_retracted;
-    }
-
-    return activePivotKg;
   }
 
   private static double mechanismRotFromArmDeg(double armDeg) {
@@ -455,7 +478,6 @@ public class IntakeSubsystem extends SubsystemBase {
     double clampedDeg = MathUtil.clamp(armDeg, IntakeConstants.PIVOT_MIN_DEG,
         IntakeConstants.PIVOT_MAX_DEG);
     targetPivotDeg = clampedDeg;
-    setPivotGravityCompensation(getPivotGravityCompensationForTarget(clampedDeg));
 
     double targetRot = intakePivotEncoderZero + mechanismRotFromArmDeg(clampedDeg);
     if (Double.isFinite(lastPivotTargetRot) && Math.abs(lastPivotTargetRot - targetRot) < 1e-6) {
@@ -518,31 +540,37 @@ public class IntakeSubsystem extends SubsystemBase {
    */
 
   public void runIntake(double rollerRps) {
-    rollerDesiredMode = RollerDesiredMode.DUTY_CYCLE;
+    rollerDesiredMode = RollerDesiredMode.VELOCITY;
     rollerTargetRps = rollerRps;
-    double duty = 0.0;
-    if (Math.abs(IntakeConstants.ROLLER_INTAKE_RPS) > 1e-6) {
-      duty = (rollerRps / IntakeConstants.ROLLER_INTAKE_RPS) * IntakeConstants.INTAKE_ROLLER_DUTY;
-    }
-    commandRollerDutyInternal(duty);
+    commandRollerVelocityInternal(rollerRps);
   }
 
   public void runIntakeNoPid(double duty){
-    rollerDesiredMode = RollerDesiredMode.DUTY_CYCLE;
-    rollerTargetRps = 0.0;
-    commandRollerDutyInternal(duty);
+    // alex text
+    // System.out.println("RUNNING INTAKE ROLLER");
+    double clampedDuty = MathUtil.clamp(duty, -1.0, 1.0);
+    if (Double.isFinite(lastRollerDutyCommand) && Math.abs(lastRollerDutyCommand - clampedDuty) < 1e-6) {
+      return;
+    }
+    intakeRollerMotor.setControl(new DutyCycleOut(clampedDuty));
+    lastRollerDutyCommand = clampedDuty;
+    lastRollerVelocityCommandMotorRps = Double.NaN;
   }
 
   public void runIntakeReverse() {
-    rollerDesiredMode = RollerDesiredMode.DUTY_CYCLE;
+    rollerDesiredMode = RollerDesiredMode.VELOCITY;
     rollerTargetRps = IntakeConstants.ROLLER_REVERSE_RPS;
-    commandRollerDutyInternal(-IntakeConstants.INTAKE_ROLLER_DUTY);
+    commandRollerVelocityInternal(IntakeConstants.ROLLER_REVERSE_RPS);
   }
 
   public void runIntakeReverseNoPid(double duty) {
-    rollerDesiredMode = RollerDesiredMode.DUTY_CYCLE;
-    rollerTargetRps = 0.0;
-    commandRollerDutyInternal(duty);
+    double clampedDuty = MathUtil.clamp(duty, -1.0, 1.0);
+    if (Double.isFinite(lastRollerDutyCommand) && Math.abs(lastRollerDutyCommand - clampedDuty) < 1e-6) {
+      return;
+    }
+    intakeRollerMotor.setControl(new DutyCycleOut(clampedDuty));
+    lastRollerDutyCommand = clampedDuty;
+    lastRollerVelocityCommandMotorRps = Double.NaN;
   }
 
   /** Stop rotating the intake roller. */
@@ -550,8 +578,14 @@ public class IntakeSubsystem extends SubsystemBase {
     rollerDesiredMode = RollerDesiredMode.OFF;
     rollerVelocityClosedLoopEnabled = false;
     rollerTargetRps = 0.0;
-    rollerCommandedDuty = 0.0;
-    commandRollerDutyInternal(0.0);
+    rollerCommandedMotorRps = 0.0;
+
+    if (Double.isFinite(lastRollerVelocityCommandMotorRps) && Math.abs(lastRollerVelocityCommandMotorRps) < 1e-6) {
+      return;
+    }
+    intakeRollerMotor.setControl(rollerVelocityVoltage.withVelocity(0.0));
+    lastRollerVelocityCommandMotorRps = 0.0;
+    lastRollerDutyCommand = Double.NaN;
   }
 
   public void applyPanicStop() {
@@ -668,6 +702,7 @@ public class IntakeSubsystem extends SubsystemBase {
     BaseStatusSignal.refreshAll(rollerVelSig, rollerVoltageSig, pivotPosSig, pivotVelSig, pivotVoltageSig);
 
     if (driverMode == IntakeDriverMode.DEPLOYED_IDLE) {
+      pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kG_Deployed;
       if (driverIntakeTriggerActive) {
         if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
           setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
@@ -691,6 +726,7 @@ public class IntakeSubsystem extends SubsystemBase {
         stopIntake();
       }
     } else {
+      pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kG_Retracted;
       if (driverIntakeTriggerActive) {
         if (pivotSeekingDeployed) {
           // alex text
@@ -721,7 +757,7 @@ public class IntakeSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("Intake/RollerMotorVoltage", rollerVoltageSig.getValueAsDouble());
       SmartDashboard.putBoolean("Intake/RollerVelocityClosedLoopEnabled", rollerVelocityClosedLoopEnabled);
       SmartDashboard.putString("Intake/RollerDesiredMode", rollerDesiredMode.name());
-      SmartDashboard.putNumber("Intake/RollerCommandedDuty", rollerCommandedDuty);
+      SmartDashboard.putNumber("Intake/RollerCommandedMotorRps", rollerCommandedMotorRps);
 
       SmartDashboard.putNumber("Intake/PivotPosRot", pivotPosSig.getValueAsDouble());
       SmartDashboard.putNumber("Intake/PivotVelRps", pivotVelSig.getValueAsDouble());
@@ -730,7 +766,6 @@ public class IntakeSubsystem extends SubsystemBase {
       SmartDashboard.putNumber(
           "Intake/PivotGravityOffsetRot",
           MotionMagicDutyCycleConstants.gravityArmPositionOffsetRot);
-      SmartDashboard.putNumber("Intake/PivotActiveKg", activePivotKg);
 
       SmartDashboard.putNumber("Intake/PivotPosDeg", getPivotDeg());
       SmartDashboard.putNumber("Intake/PivotTargetDeg", getTargetPivotDeg());
