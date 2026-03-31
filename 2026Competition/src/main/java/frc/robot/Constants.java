@@ -110,15 +110,15 @@ public final class Constants {
     public static final boolean chasis = false;
     public static final boolean odometry = false;
     public static final boolean ll = false;
-    public static final boolean intake = true;
+    public static final boolean intake = false;
     public static final boolean shooter = false;
-    public static final boolean turret = false;
+    public static final boolean turret = true;
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
     public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
+    public static final boolean supervisor = true;
     public static boolean calibration = false;
   }
 
@@ -127,17 +127,17 @@ public final class Constants {
     public static final boolean imu = false;
     public static final boolean chassis = false;
     public static final boolean ll = false;
-    public static final boolean llLight = false;
-    public static final boolean perfLight = false;
+    public static final boolean llLight = false; // why llLight when ll liek ?????????????????????????????????????????????????? (intentional btw)
+    public static final boolean perfLight = false; //???
     public static final boolean intake = true;
     public static final boolean shooter = false;
-    public static final boolean turret = false;
+    public static final boolean turret = true;
     public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
     public static final boolean transfer = false;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
+    public static final boolean supervisor = true;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = false;
 
@@ -1278,7 +1278,8 @@ public final class Constants {
           public static final double intake_kS = 0.0;
           public static final double intake_kV = 0.0;
           public static final double intake_kA = 0.0;
-          public static final double intake_kG = -0.4;
+          public static final double intake_kG_deployed = -0.56;
+          public static final double intake_kG_retracted = 0.0;
 
           // This is the physical intake arm angle where the pivot is horizontal.
           // Zero is still the retracted hard stop, so the Talon arm gravity offset
