@@ -534,6 +534,8 @@ public final class Constants {
       public static final double kA = 0.0;
 
       public static final double TURRET_POSITION_TOLERANCE_DEG = 1.0; // Tolerance in degrees for turret position
+      public static final double TRACKING_SETPOINT_DEADBAND_DEG = 0.25;
+      public static final double TRACKING_SETPOINT_RATE_LIMIT_DEG_PER_SEC = 360.0;
 
       /** MotionMagic placeholders (rotations-based). */
       public static final double MM_CRUISE_VEL_RPS = 1.0 / 60.0;

@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -78,6 +79,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
   // Cached desired turret command each loop (deg in turret-forward frame)
   private double desiredTurretDeg = Double.NaN;
+  private double filteredDesiredTurretDeg = Double.NaN;
+  private final SlewRateLimiter turretSetpointLimiter =
+      new SlewRateLimiter(Constants.OperatorConstants.Turret.TRACKING_SETPOINT_RATE_LIMIT_DEG_PER_SEC);
 
   // Cached solver output
   private TurretHelpers.Solution lastSolution = TurretHelpers.makeInvalidSolution();
@@ -150,6 +154,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     if (!shootRequested) {
       shootRequestStartTs = -1.0;
+      resetTurretSetpointFilter();
       RobotContainer.transferSubsystem.runThroat();
       RobotContainer.spindexerSubsystem.stop();
       RobotContainer.shooterSubsystem.stopFeederRelatedOutputs();
@@ -305,15 +310,42 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     return Constants.EnabledSubsystems.calibration;
   }
 
+  private void resetTurretSetpointFilter() {
+    filteredDesiredTurretDeg = Double.NaN;
+  }
+
+  private double smoothTurretSetpoint(double requestedDeg) {
+    if (!Double.isFinite(requestedDeg)) {
+      resetTurretSetpointFilter();
+      return Double.NaN;
+    }
+
+    if (!Double.isFinite(filteredDesiredTurretDeg)) {
+      turretSetpointLimiter.reset(requestedDeg);
+      filteredDesiredTurretDeg = requestedDeg;
+      return requestedDeg;
+    }
+
+    if (Math.abs(requestedDeg - filteredDesiredTurretDeg)
+        <= Constants.OperatorConstants.Turret.TRACKING_SETPOINT_DEADBAND_DEG) {
+      return filteredDesiredTurretDeg;
+    }
+
+    filteredDesiredTurretDeg = turretSetpointLimiter.calculate(requestedDeg);
+    return filteredDesiredTurretDeg;
+  }
+
   @Override
   public void periodic() {
     long startNs = Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() : 0L;
 
     if (!EnabledSubsystems.supervisor) {
+      resetTurretSetpointFilter();
       return;
     }
 
     if (RobotContainer.isPanicStopActive()) {
+      resetTurretSetpointFilter();
       shootRequested = false;
       state = VolleyState.IDLE;
       RobotContainer.transferSubsystem.stop();
@@ -327,6 +359,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     final double now = Timer.getFPGATimestamp();
     if (isCalibrationActive()) {
+      resetTurretSetpointFilter();
       state = VolleyState.IDLE;
       publishTelemetry();
       recordPeriodicRuntime(Constants.DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
@@ -411,6 +444,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       } else {
         rawDesiredTurretDeg = Double.NaN;
         desiredTurretDeg = Double.NaN;
+        resetTurretSetpointFilter();
         solutionValidity = SolutionValidity.GLOBAL_INVALID;
       }
 
@@ -539,8 +573,12 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
               : Double.NaN;
     }
 
+    desiredTurretDeg = smoothTurretSetpoint(desiredTurretDeg);
+
     if (aimEnabled && Double.isFinite(desiredTurretDeg)) {
       RobotContainer.turretSubsystem.goToAngleDeg(desiredTurretDeg);
+    } else {
+      resetTurretSetpointFilter();
     }
 
     // --- 4) Decide state machine ---
@@ -1182,6 +1220,12 @@ return new TurretHelpers.Solution(
     SmartDashboard.putBoolean("AutoShoot/ShootRequested", shootRequested);
     SmartDashboard.putNumber("AutoShoot/RawDesiredTurretDeg", rawDesiredTurretDeg);
     SmartDashboard.putNumber("AutoShoot/DesiredTurretDeg", desiredTurretDeg);
+    SmartDashboard.putNumber("AutoShoot/FilteredDesiredTurretDeg", filteredDesiredTurretDeg);
+    SmartDashboard.putNumber(
+        "AutoShoot/TurretTrackingErrorDeg",
+        Double.isFinite(desiredTurretDeg)
+            ? desiredTurretDeg - RobotContainer.turretSubsystem.getContinuousAngleDeg()
+            : Double.NaN);
     SmartDashboard.putNumber("AutoShoot/HoodCompDeg", Math.toDegrees(hoodCompensationRad));
     SmartDashboard.putBoolean("AutoShoot/AvoidingEdge", avoidingEdge);
     SmartDashboard.putNumber("AutoShoot/SuppressUntilTs", suppressShootUntilTs);

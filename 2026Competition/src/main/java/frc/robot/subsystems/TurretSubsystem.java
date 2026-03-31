@@ -582,10 +582,10 @@ private final double forwardDeg =
 
     targetDeg = target;
 
-    // **Tolerance check here** - prevent further movement if within tolerance
+    // Keep the closed-loop target active even when the error gets small.
+    // Dropping to open-loop zero near the setpoint makes the turret chatter as the
+    // error repeatedly crosses the tolerance boundary.
     if (Math.abs(targetDeg - continuousDeg) <= Constants.OperatorConstants.Turret.TURRET_POSITION_TOLERANCE_DEG) {
-      // Disable PID control (or stop applying motor control) as we are within the tolerance
-      turret.set(0);  // Neutral output when within tolerance
       return;
     }
 
