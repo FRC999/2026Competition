@@ -1248,7 +1248,7 @@ public final class Constants {
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         // IntakeStowedDeg(37.0),
-        IntakeRetracted(3.0),
+        IntakeRetracted(0.0),
         IntakeDeployedDeg(28.0);
 
         private double armDeg;
@@ -1273,14 +1273,15 @@ public final class Constants {
         public static class MotionMagicDutyCycleConstants {
           public static final int slot = 0;
           public static final double intake_kP_Deployed = 16.0;
-           public static final double intake_kP_Retracted = 20.0;
-          public static final double intake_kI = 0.03;
-          public static final double intake_kD = 1.2;
+           public static final double intake_kP_Retracted = 24.0;
+          public static final double intake_kI = 0.0;
+          public static final double intake_kD_Deployed = 1.2;
+          public static final double intake_kD_Retracted = 1.2;
           public static final double intake_kS = 0.0;
           public static final double intake_kV = 0.0;
           public static final double intake_kA = 0.0;
           public static final double intake_kG_Deployed = -0.56;
-          public static final double intake_kG_Retracted = 0.25;
+          public static final double intake_kG_Retracted = -0.56;
 
           // This is the physical intake arm angle where the pivot is horizontal.
           // Zero is still the retracted hard stop, so the Talon arm gravity offset

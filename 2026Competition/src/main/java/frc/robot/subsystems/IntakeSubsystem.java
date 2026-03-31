@@ -63,6 +63,8 @@ public class IntakeSubsystem extends SubsystemBase {
 
   private final MotionMagicVoltage motionMagicVoltage = new MotionMagicVoltage(0).withEnableFOC(false);
   private final VelocityVoltage rollerVelocityVoltage = new VelocityVoltage(0).withSlot(0);
+  private static final int PIVOT_DEPLOYED_SLOT = MotionMagicDutyCycleConstants.slot;
+  private static final int PIVOT_RETRACTED_SLOT = 1;
 
   private double intakePivotEncoderZero = 0;
   private double targetPivotDeg = 0.0;
@@ -81,6 +83,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private double lastRollerVelocityCommandMotorRps = Double.NaN;
   private double lastPivotTargetRot = Double.NaN;
   private double lastPivotDutyCommand = Double.NaN;
+  private int activePivotClosedLoopSlot = PIVOT_DEPLOYED_SLOT;
 
   private enum IntakeDriverMode {
     DEPLOYED_IDLE,
@@ -393,10 +396,10 @@ public class IntakeSubsystem extends SubsystemBase {
   private void configureMotionMagicDutyCycle(TalonFXConfiguration config) {
     config.Feedback.SensorToMechanismRatio = IntakeConstants.PIVOT_MOTOR_TO_ARM_GEAR_RATIO;
 
-    // Tune this as an arm in mechanism rotations, not a generic motor axis.
+    // Slot 0 keeps the existing deployed tuning unchanged.
     config.Slot0.kP = MotionMagicDutyCycleConstants.intake_kP_Deployed;
     config.Slot0.kI = MotionMagicDutyCycleConstants.intake_kI;
-    config.Slot0.kD = MotionMagicDutyCycleConstants.intake_kD;
+    config.Slot0.kD = MotionMagicDutyCycleConstants.intake_kD_Deployed;
     config.Slot0.kS = MotionMagicDutyCycleConstants.intake_kS;
     config.Slot0.kV = MotionMagicDutyCycleConstants.intake_kV;
     config.Slot0.kA = MotionMagicDutyCycleConstants.intake_kA;
@@ -404,15 +407,38 @@ public class IntakeSubsystem extends SubsystemBase {
     config.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
     config.Slot0.GravityArmPositionOffset = MotionMagicDutyCycleConstants.gravityArmPositionOffsetRot;
 
+    // Slot 1 is dedicated to retract tuning.
+    config.Slot1.kP = MotionMagicDutyCycleConstants.intake_kP_Retracted;
+    config.Slot1.kI = MotionMagicDutyCycleConstants.intake_kI;
+    config.Slot1.kD = MotionMagicDutyCycleConstants.intake_kD_Retracted;
+    config.Slot1.kS = MotionMagicDutyCycleConstants.intake_kS;
+    config.Slot1.kV = MotionMagicDutyCycleConstants.intake_kV;
+    config.Slot1.kA = MotionMagicDutyCycleConstants.intake_kA;
+    config.Slot1.kG = MotionMagicDutyCycleConstants.intake_kG_Retracted;
+    config.Slot1.GravityType = GravityTypeValue.Arm_Cosine;
+    config.Slot1.GravityArmPositionOffset = MotionMagicDutyCycleConstants.gravityArmPositionOffsetRot;
+
     config.MotionMagic.MotionMagicCruiseVelocity = MotionMagicDutyCycleConstants.MotionMagicCruiseVelocity;
     config.MotionMagic.MotionMagicAcceleration = MotionMagicDutyCycleConstants.motionMagicAcceleration;
     config.MotionMagic.MotionMagicJerk = MotionMagicDutyCycleConstants.motionMagicJerk;
 
-    motionMagicVoltage.Slot = MotionMagicDutyCycleConstants.slot;
+    motionMagicVoltage.Slot = PIVOT_DEPLOYED_SLOT;
 
     intakePivotMotor.getConfigurator().apply(config);
     intakePivotFollowerMotor.getConfigurator().apply(config);
 
+  }
+
+  private int choosePivotClosedLoopSlot(double targetDeg) {
+    double currentDeg = getPivotDeg();
+    double deltaDeg = targetDeg - currentDeg;
+    if (deltaDeg > 1e-3) {
+      return PIVOT_DEPLOYED_SLOT;
+    }
+    if (deltaDeg < -1e-3) {
+      return PIVOT_RETRACTED_SLOT;
+    }
+    return activePivotClosedLoopSlot;
   }
 
   private static double mechanismRotFromArmDeg(double armDeg) {
@@ -480,10 +506,12 @@ public class IntakeSubsystem extends SubsystemBase {
     targetPivotDeg = clampedDeg;
 
     double targetRot = intakePivotEncoderZero + mechanismRotFromArmDeg(clampedDeg);
+    int desiredSlot = choosePivotClosedLoopSlot(clampedDeg);
     if (Double.isFinite(lastPivotTargetRot) && Math.abs(lastPivotTargetRot - targetRot) < 1e-6) {
       return;
     }
-    intakePivotMotor.setControl(motionMagicVoltage.withPosition(targetRot));
+    intakePivotMotor.setControl(motionMagicVoltage.withSlot(desiredSlot).withPosition(targetRot));
+    activePivotClosedLoopSlot = desiredSlot;
     lastPivotTargetRot = targetRot;
     lastPivotDutyCommand = Double.NaN;
   }
@@ -500,6 +528,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     targetPivotDeg = 0.0;
     pivotZeroed = true;
+    activePivotClosedLoopSlot = PIVOT_RETRACTED_SLOT;
     lastPivotTargetRot = 0.0;
     lastPivotDutyCommand = Double.NaN;
   }
@@ -548,7 +577,7 @@ public class IntakeSubsystem extends SubsystemBase {
   public void runIntakeNoPid(double duty){
     // alex text
     // System.out.println("RUNNING INTAKE ROLLER");
-    double clampedDuty = MathUtil.clamp(duty, -1.0, 1.0);
+    double clampedDuty = MathUtil.clamp(-duty, -1.0, 1.0);
     if (Double.isFinite(lastRollerDutyCommand) && Math.abs(lastRollerDutyCommand - clampedDuty) < 1e-6) {
       return;
     }
@@ -564,7 +593,7 @@ public class IntakeSubsystem extends SubsystemBase {
   }
 
   public void runIntakeReverseNoPid(double duty) {
-    double clampedDuty = MathUtil.clamp(duty, -1.0, 1.0);
+    double clampedDuty = MathUtil.clamp(-duty, -1.0, 1.0);
     if (Double.isFinite(lastRollerDutyCommand) && Math.abs(lastRollerDutyCommand - clampedDuty) < 1e-6) {
       return;
     }
@@ -702,8 +731,6 @@ public class IntakeSubsystem extends SubsystemBase {
     BaseStatusSignal.refreshAll(rollerVelSig, rollerVoltageSig, pivotPosSig, pivotVelSig, pivotVoltageSig);
 
     if (driverMode == IntakeDriverMode.DEPLOYED_IDLE) {
-      pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kG_Deployed;
-      pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kP_Deployed;
       if (driverIntakeTriggerActive) {
         if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
           setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
@@ -727,8 +754,6 @@ public class IntakeSubsystem extends SubsystemBase {
         stopIntake();
       }
     } else {
-      pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kG_Retracted;
-      pidPivotConfigOg.Slot0.kG = MotionMagicDutyCycleConstants.intake_kP_Retracted;
       if (driverIntakeTriggerActive) {
         if (pivotSeekingDeployed) {
           // alex text
@@ -778,6 +803,7 @@ public class IntakeSubsystem extends SubsystemBase {
       SmartDashboard.putBoolean("Intake/DriverTriggerActive", driverIntakeTriggerActive);
       SmartDashboard.putNumber("Intake/PivotToleranceDeg", getPivotPositionToleranceDeg());
       SmartDashboard.putBoolean("Intake/PivotSeekingDeployed", pivotSeekingDeployed);
+      SmartDashboard.putNumber("Intake/PivotActiveClosedLoopSlot", activePivotClosedLoopSlot);
     }
   }
 
