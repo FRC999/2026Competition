@@ -1249,7 +1249,7 @@ public final class Constants {
       public static enum IntakePositions { // arm degrees (not motor rotations)
         // IntakeStowedDeg(37.0),
         IntakeRetracted(3.0),
-        IntakeDeployedDeg(20.0);
+        IntakeDeployedDeg(28.0);
 
         private double armDeg;
 
@@ -1273,7 +1273,7 @@ public final class Constants {
         public static class MotionMagicDutyCycleConstants {
           public static final int slot = 0;
           public static final double intake_kP = 16.0;
-          public static final double intake_kI = 0.0;
+          public static final double intake_kI = 0.02;
           public static final double intake_kD = 1.2;
           public static final double intake_kS = 0.0;
           public static final double intake_kV = 0.0;
@@ -1288,9 +1288,9 @@ public final class Constants {
           public static final double gravityArmPositionOffsetRot = -pivotHorizontalDeg / 360.0;
 
           // Motion Magic in MECHANISM rotations because SensorToMechanismRatio is applied.
-          public static final double MotionMagicCruiseVelocity = 0.20;
-          public static final double motionMagicAcceleration = 0.50;
-          public static final double motionMagicJerk = 0.0;
+          public static final double MotionMagicCruiseVelocity = 20; //0.20
+          public static final double motionMagicAcceleration = 60; //0.50
+          public static final double motionMagicJerk = 600; //0.0
         }
 
         public static class RollerVelocityVoltageConstants {
