@@ -148,12 +148,22 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       solutionValidity = SolutionValidity.GLOBAL_INVALID;
       hoodCompensationRad = 0.0;
       shootRequestStartTs = Timer.getFPGATimestamp();
+      state = VolleyState.ARMING;
+      shotCooldownActive = false;
+      shotCooldownTimer.stop();
+      shotCooldownTimer.reset();
+      lastBallAtThroat = RobotContainer.transferSubsystem.hasBallAtThroat();
     }
 
     shootRequested = requested;
 
     if (!shootRequested) {
       shootRequestStartTs = -1.0;
+      state = VolleyState.IDLE;
+      shotCooldownActive = false;
+      shotCooldownTimer.stop();
+      shotCooldownTimer.reset();
+      lastBallAtThroat = RobotContainer.transferSubsystem.hasBallAtThroat();
       resetTurretSetpointFilter();
       RobotContainer.transferSubsystem.runThroat();
       RobotContainer.spindexerSubsystem.stop();

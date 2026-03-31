@@ -387,10 +387,7 @@ public class RobotContainer {
         .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO,
-            false))
-        .onFalse(new InstantCommand(() -> shooterSubsystem.stop())
-            .alongWith(new InstantCommand(() -> transferSubsystem.stop()))
-            .alongWith(new InstantCommand(() -> spindexerSubsystem.stop())));
+            false));
 
     // Button 3: STATIC HUB BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 3) // X
@@ -534,10 +531,7 @@ public class RobotContainer {
         new JoystickButton(turretStick, 11)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED,
-            false))
-        .onFalse(new InstantCommand(() -> shooterSubsystem.stop())
-            .alongWith(new RunCommand(() -> transferSubsystem.stop()))
-            .alongWith(new InstantCommand(() -> spindexerSubsystem.stop())));
+            false));
 
     new JoystickButton(turretStick, 12)
         .onTrue(new InstantCommand(() -> transferSubsystem.runFeed()))
