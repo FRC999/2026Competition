@@ -21,6 +21,10 @@ public class LLAprilTagConstants {
 				"limelight-middle"
 			),
 
+			LLLEFT(
+				"limelight-left"
+			),
+
 			LLRIGHT(
 				"limelight-right"
 			);
