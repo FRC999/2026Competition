@@ -450,7 +450,7 @@ public final class Constants {
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       /** CANcoder magnet offset in rotations. Matches Phoenix Tuner. */
-      public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521;
+      public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521 - 0.023926;
 
       /** After applying magnet offset, turret-zero should read 0.0 rotations. */
       public static final double ABS_ZERO_ROTATIONS = 0.0;

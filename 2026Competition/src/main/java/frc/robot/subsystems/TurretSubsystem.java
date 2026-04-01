@@ -416,7 +416,7 @@ private final double forwardDeg =
     // Seed TalonFX integrated position in *motor* rotations, not turret rotations.
     double motorRot = motorRotFromTurretDeg(continuousDeg);
     // alex test
-    //turret.setPosition(ANGLE_SIGN * motorRot);
+    turret.setPosition(ANGLE_SIGN * motorRot);
 
     // Initialize velocity bookkeeping.
     lastContinuousDeg = continuousDeg;
@@ -600,7 +600,7 @@ private final double forwardDeg =
     double motorRotTarget = ANGLE_SIGN * motorRotFromTurretDeg(target);
 
     // alex test
-    //turret.setControl(mmRequest.withPosition(motorRotTarget));
+    turret.setControl(mmRequest.withPosition(motorRotTarget));
 
     if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
       SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
