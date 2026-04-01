@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -94,6 +95,12 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private long periodicRuntimeAccumNs = 0L;
   private long periodicRuntimeMaxNs = 0L;
   private int periodicRuntimeSamples = 0;
+
+  // Angular acceleration estimation for improved heading prediction under snap turns
+  private double lastOmega = 0.0;
+  private double lastOmegaTs = 0.0;
+  private double filteredAlphaRadPerSec2 = 0.0;
+  private static final double ALPHA_FILTER_COEFF = 0.2; // ~100ms time constant at 50Hz
 
   public AutoShootSupervisorSubsystem() {
 
@@ -197,11 +204,19 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     final boolean isStatic = isStaticShotMode(shotMode);
 
     double omega = driveState.Speeds.omegaRadiansPerSecond;
+    double diagHeadingRad = poseField.getRotation().getRadians();
+    double diagCosH = Math.cos(diagHeadingRad);
+    double diagSinH = Math.sin(diagHeadingRad);
+    double diagVxField = diagCosH * driveState.Speeds.vxMetersPerSecond
+        - diagSinH * driveState.Speeds.vyMetersPerSecond;
+    double diagVyField = diagSinH * driveState.Speeds.vxMetersPerSecond
+        + diagCosH * driveState.Speeds.vyMetersPerSecond;
 
     TurretHelpers.Solution solution;
 
         if (!isStatic) {
-          solution = solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
+          solution = solveDistanceInterpolatedMovingAutoShot(
+              poseField, target2d, diagVxField, diagVyField, omega, filteredAlphaRadPerSec2);
         } else {
       final double dx = target2d.getX() - poseField.getX();
       final double dy = target2d.getY() - poseField.getY();
@@ -428,6 +443,34 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     double omega = driveState.Speeds.omegaRadiansPerSecond;
     final boolean isStatic = isStaticShotMode(shotMode);
 
+    // Rotate robot-relative velocity into field frame for position prediction.
+    double robotHeadingRad = poseField.getRotation().getRadians();
+    double cosH = Math.cos(robotHeadingRad);
+    double sinH = Math.sin(robotHeadingRad);
+    double vxRobot = driveState.Speeds.vxMetersPerSecond;
+    double vyRobot = driveState.Speeds.vyMetersPerSecond;
+    double vxField = cosH * vxRobot - sinH * vyRobot;
+    double vyField = sinH * vxRobot + cosH * vyRobot;
+
+    // Estimate angular acceleration (alpha) for second-order heading prediction.
+    // Use clamped raw alpha for turret/position prediction — fast response to snap turns.
+    // Also maintain a filtered version for telemetry/smoothness reference.
+    // The clamp to hardware max (±37.7 rad/s²) kills sensor noise spikes, which are
+    // physically impossible, without adding any time lag that a filter would.
+    double dtLoop = now - lastOmegaTs;
+    double clampedRawAlpha = 0.0;
+    if (dtLoop > 0.005 && dtLoop < 0.05) {
+      double rawAlpha = (omega - lastOmega) / dtLoop;
+      clampedRawAlpha = MathUtil.clamp(
+          rawAlpha,
+          -Constants.OperatorConstants.SwerveConstants.maxAngularAcceleration,
+          +Constants.OperatorConstants.SwerveConstants.maxAngularAcceleration);
+      filteredAlphaRadPerSec2 = (1.0 - ALPHA_FILTER_COEFF) * filteredAlphaRadPerSec2
+          + ALPHA_FILTER_COEFF * clampedRawAlpha;
+    }
+    lastOmega = omega;
+    lastOmegaTs = now;
+
     // When not actively shooting, keep turret tracking cheap:
     // do geometric hub tracking only, and skip the full ballistic solver.
     if (!effectiveShootRequested) {
@@ -461,7 +504,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     } else {
       // Actively shooting: run the existing full solution path.
       if (shotMode == ShotMode.MOVING_AUTO) {
-        lastSolution = solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
+        lastSolution = solveDistanceInterpolatedMovingAutoShot(
+            poseField, target2d, vxField, vyField, omega, clampedRawAlpha);
       } else {
         final double dx = target2d.getX() - poseField.getX();
         final double dy = target2d.getY() - poseField.getY();
@@ -554,13 +598,19 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
           rawDesiredTurretDeg =
               TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d);
         } else {
-          rawDesiredTurretDeg =
-              computeDesiredTurretDeg(
-                  poseField.getRotation().getRadians(),
-                  omegaForPredict,
-                  Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
-                  lastSolution.yawFieldRad,
-                  Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG);
+          // For MOVING_AUTO, the solver already baked in the predicted heading/position
+          // when it computed yawFieldRad. We only need to convert that field yaw into
+          // turret-frame degrees using the same predicted heading the solver used.
+          double dt = Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC;
+          double predictedHeadingRad = robotHeadingRad
+              + omega * dt
+              + 0.5 * clampedRawAlpha * dt * dt;
+          double robotRelative = MathUtil.angleModulus(
+              lastSolution.yawFieldRad - predictedHeadingRad);
+          robotRelative = MathUtil.angleModulus(
+              robotRelative - Math.toRadians(
+                  Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG));
+          rawDesiredTurretDeg = Math.toDegrees(robotRelative);
         }
       } else {
         rawDesiredTurretDeg = Double.NaN;
@@ -893,13 +943,33 @@ lastBallAtThroat = ballAtThroat;
 
     private TurretHelpers.Solution solveDistanceInterpolatedMovingAutoShot(
       Pose2d poseField,
-      Translation2d target2d) {
+      Translation2d target2d,
+      double vxField,
+      double vyField,
+      double omegaRadPerSec,
+      double alphaRadPerSec2) {
 
     if (movingAutoShotTable == null || !movingAutoShotTable.hasAnyData()) {
       return TurretHelpers.makeInvalidSolution();
     }
 
-    double distanceMeters = computeTurretCenterToTargetDistanceMeters(poseField, target2d);
+    // Predict robot pose at ball release time using velocity + angular acceleration.
+    double dt = Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC;
+    double predictedX = poseField.getX() + vxField * dt;
+    double predictedY = poseField.getY() + vyField * dt;
+    double predictedHeadingRad = poseField.getRotation().getRadians()
+        + omegaRadPerSec * dt
+        + 0.5 * alphaRadPerSec2 * dt * dt;
+    Pose2d predictedPose = new Pose2d(predictedX, predictedY, new Rotation2d(predictedHeadingRad));
+
+    // Compute predicted turret pivot position in field frame at release time.
+    Translation2d predictedTurretCenter = predictedPose.getTranslation().plus(
+        Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+            .rotateBy(predictedPose.getRotation()));
+
+    // Distance and yaw both use the predicted position so table lookup and
+    // turret command are consistent with where the robot will actually be.
+    double distanceMeters = predictedTurretCenter.getDistance(target2d);
     double currentTurretAngleDeg = RobotContainer.turretSubsystem.getAngleDeg();
 
         double preferredShooterRpm = RobotContainer.shooterSubsystem.getTargetRpm();
@@ -916,15 +986,10 @@ lastBallAtThroat = ballAtThroat;
       return TurretHelpers.makeInvalidSolution();
     }
 
-    Translation2d turretCenterField =
-        poseField.getTranslation().plus(
-            Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
-                .rotateBy(poseField.getRotation()));
-
     double yawFieldRad =
         Math.atan2(
-            target2d.getY() - turretCenterField.getY(),
-            target2d.getX() - turretCenterField.getX());
+            target2d.getY() - predictedTurretCenter.getY(),
+            target2d.getX() - predictedTurretCenter.getX());
 
     // shuttle code edit
 
