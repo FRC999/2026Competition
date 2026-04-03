@@ -23,11 +23,8 @@ public class LLAprilTagConstants {
 
 			LLLEFT(
 				"limelight-left"
-			),
-
-			LLRIGHT(
-				"limelight-right"
 			);
+			
 			private String cameraname;
 			private boolean prevCleared; // Set to true if nothing was seen last time
 			public boolean isPrevCleared() {
