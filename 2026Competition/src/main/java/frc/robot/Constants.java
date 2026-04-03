@@ -1280,7 +1280,7 @@ public final class Constants {
 
         public static class MotionMagicDutyCycleConstants {
           public static final int slot = 0;
-          public static final double intake_kP_Deployed = 16.0;
+          public static final double intake_kP_Deployed = 18.0;
            public static final double intake_kP_Retracted = 24.0;
           public static final double intake_kI = 0.0;
           public static final double intake_kD_Deployed = 1.2;
@@ -1288,7 +1288,7 @@ public final class Constants {
           public static final double intake_kS = 0.0;
           public static final double intake_kV = 0.0;
           public static final double intake_kA = 0.0;
-          public static final double intake_kG_Deployed = -0.56;
+          public static final double intake_kG_Deployed = 0.0; //0.56
           public static final double intake_kG_Retracted = -0.56;
 
           // This is the physical intake arm angle where the pivot is horizontal.

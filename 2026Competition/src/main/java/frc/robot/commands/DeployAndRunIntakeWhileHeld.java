@@ -6,6 +6,8 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.RobotContainer;
 
 public class DeployAndRunIntakeWhileHeld extends Command {
+  private boolean waitingForDeployRelease = false;
+
   public DeployAndRunIntakeWhileHeld() {
     addRequirements(RobotContainer.intakeSubsystem);
   }
@@ -13,11 +15,22 @@ public class DeployAndRunIntakeWhileHeld extends Command {
   @Override
   public void initialize() {
     RobotContainer.intakeSubsystem.runIntakeNoPid(IntakeConstants.INTAKE_ROLLER_DUTY);
-    RobotContainer.intakeSubsystem.setIntakePositionWithAngle(IntakePositions.IntakeDeployedDeg);
+    waitingForDeployRelease = !RobotContainer.intakeSubsystem.isAtPosition(IntakePositions.IntakeDeployedDeg);
+    if (waitingForDeployRelease) {
+      RobotContainer.intakeSubsystem.setIntakePositionWithAngle(IntakePositions.IntakeDeployedDeg);
+      return;
+    }
+
+    RobotContainer.intakeSubsystem.releaseDeployHoldToCoast();
   }
 
   @Override
   public void execute() {
+    if (waitingForDeployRelease
+        && RobotContainer.intakeSubsystem.isAtPosition(IntakePositions.IntakeDeployedDeg)) {
+      RobotContainer.intakeSubsystem.releaseDeployHoldToCoast();
+      waitingForDeployRelease = false;
+    }
   }
 
   @Override
