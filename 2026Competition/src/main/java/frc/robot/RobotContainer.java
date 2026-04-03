@@ -6,6 +6,7 @@ package frc.robot;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
@@ -312,16 +313,26 @@ public class RobotContainer {
    new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
         > OIContants.XBOX_TRIGGER_ACTIVE_THRESHOLD)
         .and(panicInactiveTrigger)
-        .whileTrue(new DeployIntakeSequence().andThen(new StartIntake()))
-        .onFalse(new RetractIntakeSequence());
+        .whileTrue(Commands.defer(
+            () -> new DeployIntakeSequence().andThen(new StartIntake()),
+            Set.of(intakeSubsystem)))
+        .onFalse(Commands.defer(
+            () -> intakeSubsystem.shouldStayDeployedAfterTriggerRelease()
+                ? new StopIntake()
+                : new RetractIntakeSequence(),
+            Set.of(intakeSubsystem)));
 
     new JoystickButton(xboxDriveController, OIContants.XBOX_BUTTON_A)
         .and(panicInactiveTrigger)
-        .onTrue(new DeployIntakeSequence());
+        .onTrue(new InstantCommand(
+            () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(true),
+            intakeSubsystem).andThen(new DeployIntakeSequence()));
 
     new JoystickButton(xboxDriveController, 4) // Y
         .and(panicInactiveTrigger)
-        .onTrue(new RetractIntakeSequence());
+        .onTrue(new InstantCommand(
+            () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(false),
+            intakeSubsystem).andThen(new RetractIntakeSequence()));
 
     new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))

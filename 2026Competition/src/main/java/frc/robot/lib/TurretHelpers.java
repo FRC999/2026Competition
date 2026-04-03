@@ -48,6 +48,7 @@ import frc.robot.lib.TurretHelpers.Solution;
  * - This file intentionally does not use certain mechanical terms.
  */
 public final class TurretHelpers {
+    private static final double LOWEST_HOOD_DISTANCE_THRESHOLD_METERS = 3.5;
 
     // ---------------------------------------------------------------------------
     // Artillery table (what you MEASURE) indexed by (RPM, HoodAngle)
@@ -387,7 +388,6 @@ public final class TurretHelpers {
                                 out.ballOutputAngleRad,
                                 out.ballExitSpeedMps);
                     } else if (Math.abs(error - bestError) <= 1e-12 && best != null) {
-                        // Tie-break: prefer lower RPM
                         if (rpm < best.shooterRpmCommand - 1e-9) {
                             best = new ShooterCommandsAndMeasuredOutcome(
                                     rpm,
@@ -477,7 +477,6 @@ public final class TurretHelpers {
                                 out.ballOutputAngleRad,
                                 out.ballExitSpeedMps);
                     } else if (Math.abs(error - bestError) <= 1e-12) {
-                        // Tie-break: prefer lower RPM
                         if (rpm < best.shooterRpmCommand - 1e-9) {
                             best = new ShooterCommandsAndMeasuredOutcome(
                                     rpm,
@@ -648,19 +647,22 @@ public final class TurretHelpers {
             return interpolateAcrossTurretAngleForSingleDistance(
                     table.get(distanceLow),
                     turretAngleDeg,
-                    preferredShooterRpm);
+                    preferredShooterRpm,
+                    distanceMeters);
         }
 
         MovingAutoShotCommand low =
                 interpolateAcrossTurretAngleForSingleDistance(
                         table.get(distanceLow),
                         turretAngleDeg,
-                        preferredShooterRpm);
+                        preferredShooterRpm,
+                        distanceMeters);
         MovingAutoShotCommand high =
                 interpolateAcrossTurretAngleForSingleDistance(
                         table.get(distanceHigh),
                         turretAngleDeg,
-                        preferredShooterRpm);
+                        preferredShooterRpm,
+                        distanceMeters);
 
         if (!isFiniteMovingAutoShotCommand(low) || !isFiniteMovingAutoShotCommand(high)) {
             return makeInvalidMovingAutoShotCommand();
@@ -678,7 +680,8 @@ public final class TurretHelpers {
     private static MovingAutoShotCommand interpolateAcrossTurretAngleForSingleDistance(
             TreeMap<Double, ArrayList<MovingAutoShotSample>> angleMap,
             double turretAngleDeg,
-            double preferredShooterRpm) {
+            double preferredShooterRpm,
+            double distanceMeters) {
         if (angleMap == null || angleMap.isEmpty()) {
             return makeInvalidMovingAutoShotCommand();
         }
@@ -688,7 +691,7 @@ public final class TurretHelpers {
 
         if (nearlyEqual(angleLow, angleHigh)) {
             MovingAutoShotSample s =
-                    chooseClosestRpmSample(angleMap.get(angleLow), preferredShooterRpm);
+                    chooseClosestRpmSample(angleMap.get(angleLow), preferredShooterRpm, distanceMeters);
             if (s == null) {
                 return makeInvalidMovingAutoShotCommand();
             }
@@ -700,9 +703,9 @@ public final class TurretHelpers {
         }
 
         MovingAutoShotSample a =
-                chooseClosestRpmSample(angleMap.get(angleLow), preferredShooterRpm);
+                chooseClosestRpmSample(angleMap.get(angleLow), preferredShooterRpm, distanceMeters);
         MovingAutoShotSample b =
-                chooseClosestRpmSample(angleMap.get(angleHigh), preferredShooterRpm);
+                chooseClosestRpmSample(angleMap.get(angleHigh), preferredShooterRpm, distanceMeters);
 
         if (a == null || b == null) {
             return makeInvalidMovingAutoShotCommand();
@@ -719,13 +722,15 @@ public final class TurretHelpers {
 
     private static MovingAutoShotSample chooseClosestRpmSample(
             List<MovingAutoShotSample> candidates,
-            double preferredShooterRpm) {
+            double preferredShooterRpm,
+            double distanceMeters) {
         if (candidates == null || candidates.isEmpty()) {
             return null;
         }
 
         MovingAutoShotSample best = null;
         double bestDelta = Double.POSITIVE_INFINITY;
+        boolean preferLowestHood = shouldPreferLowestHoodForDistance(distanceMeters);
 
         for (MovingAutoShotSample s : candidates) {
             if (s == null || !Double.isFinite(s.shooterRpmCommand)) {
@@ -734,13 +739,14 @@ public final class TurretHelpers {
 
             double delta = Math.abs(s.shooterRpmCommand - preferredShooterRpm);
 
-            if (delta < bestDelta - 1e-12) {
+            if (best == null || isMovingAutoShotSamplePreferred(
+                    s,
+                    delta,
+                    best,
+                    bestDelta,
+                    preferLowestHood)) {
                 bestDelta = delta;
                 best = s;
-            } else if (Math.abs(delta - bestDelta) <= 1e-12 && best != null) {
-                if (s.shooterRpmCommand < best.shooterRpmCommand) {
-                    best = s;
-                }
             }
         }
 
@@ -1088,6 +1094,9 @@ public final class TurretHelpers {
                 turretPivotPositionFieldMeters.getY(), ballReleaseHeightMeters);
         Translation3d robotVelocityFieldAtReleaseMps = new Translation3d(predicted.predictedVxFieldMps,
                 predicted.predictedVyFieldMps, 0.0);
+        double shotDistanceMeters = turretPivotPositionFieldMeters.getDistance(
+                new Translation2d(hubTargetPositionFieldMeters.getX(), hubTargetPositionFieldMeters.getY()));
+        boolean preferLowestHood = shouldPreferLowestHoodForDistance(shotDistanceMeters);
         Solution best = null;
         double bestCost = Double.POSITIVE_INFINITY;
         for (double T = timeOfFlightSearchMinSec; T <= timeOfFlightSearchMaxSec
@@ -1119,19 +1128,25 @@ public final class TurretHelpers {
             double cost = angleWeight * chosenAngleErr + speedWeight * chosenSpeedErr;
             // Small bias toward lower speed (optional stability)
             cost += 0.02 * computedYawPitchSpeed.ballExitSpeedMps;
-            if (cost < bestCost) {
+            Solution candidate = new Solution(
+                    true,
+                    T,
+                    computedYawPitchSpeed.yawFieldRad,
+                    computedYawPitchSpeed.ballOutputAngleRad,
+                    computedYawPitchSpeed.ballExitSpeedMps,
+                    requiredBallExitVelocityRelativeToRobotFieldCoords,
+                    commandsFromTable.shooterRpmCommand,
+                    commandsFromTable.hoodCommandAngleRad,
+                    commandsFromTable.measuredBallOutputAngleRad,
+                    commandsFromTable.measuredBallExitSpeedMps);
+            if (best == null || isSolutionCandidatePreferred(
+                    candidate,
+                    cost,
+                    best,
+                    bestCost,
+                    preferLowestHood)) {
                 bestCost = cost;
-                best = new Solution(
-                        true,
-                        T,
-                        computedYawPitchSpeed.yawFieldRad,
-                        computedYawPitchSpeed.ballOutputAngleRad,
-                        computedYawPitchSpeed.ballExitSpeedMps,
-                        requiredBallExitVelocityRelativeToRobotFieldCoords,
-                        commandsFromTable.shooterRpmCommand,
-                        commandsFromTable.hoodCommandAngleRad,
-                        commandsFromTable.measuredBallOutputAngleRad,
-                        commandsFromTable.measuredBallExitSpeedMps);
+                best = candidate;
             }
         }
         return (best != null) ? best : makeInvalidSolution();
@@ -1268,6 +1283,75 @@ public final class TurretHelpers {
                 && Double.isFinite(c.hoodCommandAngleRad)
                 && Double.isFinite(c.measuredBallOutputAngleRad)
                 && Double.isFinite(c.measuredBallExitSpeedMps);
+    }
+
+    private static boolean shouldPreferLowestHoodForDistance(double distanceMeters) {
+        return Double.isFinite(distanceMeters)
+                && distanceMeters < LOWEST_HOOD_DISTANCE_THRESHOLD_METERS;
+    }
+
+    private static boolean isMovingAutoShotSamplePreferred(
+            MovingAutoShotSample candidate,
+            double candidateRpmDelta,
+            MovingAutoShotSample currentBest,
+            double currentBestRpmDelta,
+            boolean preferLowestHood) {
+        if (preferLowestHood) {
+            if (candidate.hoodCommandAngleRad < currentBest.hoodCommandAngleRad - 1e-12) {
+                return true;
+            }
+            if (candidate.hoodCommandAngleRad > currentBest.hoodCommandAngleRad + 1e-12) {
+                return false;
+            }
+        }
+
+        if (candidateRpmDelta < currentBestRpmDelta - 1e-12) {
+            return true;
+        }
+        if (candidateRpmDelta > currentBestRpmDelta + 1e-12) {
+            return false;
+        }
+
+        if (candidate.shooterRpmCommand < currentBest.shooterRpmCommand - 1e-9) {
+            return true;
+        }
+        if (candidate.shooterRpmCommand > currentBest.shooterRpmCommand + 1e-9) {
+            return false;
+        }
+
+        return candidate.hoodCommandAngleRad < currentBest.hoodCommandAngleRad - 1e-12;
+    }
+
+    private static boolean isSolutionCandidatePreferred(
+            Solution candidate,
+            double candidateCost,
+            Solution currentBest,
+            double currentBestCost,
+            boolean preferLowestHood) {
+        if (preferLowestHood) {
+            if (candidate.hoodCommandAngleRad < currentBest.hoodCommandAngleRad - 1e-12) {
+                return true;
+            }
+            if (candidate.hoodCommandAngleRad > currentBest.hoodCommandAngleRad + 1e-12) {
+                return false;
+            }
+        }
+
+        if (candidateCost < currentBestCost - 1e-12) {
+            return true;
+        }
+        if (candidateCost > currentBestCost + 1e-12) {
+            return false;
+        }
+
+        if (candidate.shooterRpmCommand < currentBest.shooterRpmCommand - 1e-9) {
+            return true;
+        }
+        if (candidate.shooterRpmCommand > currentBest.shooterRpmCommand + 1e-9) {
+            return false;
+        }
+
+        return candidate.hoodCommandAngleRad < currentBest.hoodCommandAngleRad - 1e-12;
     }
 
     private static ShooterCommandsAndMeasuredOutcome makeNotARealCommandsAndOutcome() {

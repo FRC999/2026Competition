@@ -85,6 +85,8 @@ public class IntakeSubsystem extends SubsystemBase {
   private double lastPivotDutyCommand = Double.NaN;
   private int activePivotClosedLoopSlot = PIVOT_DEPLOYED_SLOT;
   private NeutralModeValue pivotNeutralMode = NeutralModeValue.Brake;
+  private boolean stayDeployedAfterTriggerRelease =
+      Constants.OperatorConstants.OIContants.INTAKE_STAY_OUT_AFTER_TRIGGER_RELEASE_DEFAULT;
 
   private enum IntakeDriverMode {
     DEPLOYED_IDLE,
@@ -472,6 +474,14 @@ public class IntakeSubsystem extends SubsystemBase {
     return pivotZeroed;
   }
 
+  public void setStayDeployedAfterTriggerRelease(boolean stayDeployed) {
+    stayDeployedAfterTriggerRelease = stayDeployed;
+  }
+
+  public boolean shouldStayDeployedAfterTriggerRelease() {
+    return stayDeployedAfterTriggerRelease;
+  }
+
   public void selectDeployedMode() {
     setPivotNeutralMode(NeutralModeValue.Brake);
     driverMode = IntakeDriverMode.DEPLOYED_IDLE;
@@ -646,6 +656,16 @@ public class IntakeSubsystem extends SubsystemBase {
     intakeRollerMotor.setControl(rollerVelocityVoltage.withVelocity(0.0));
     lastRollerVelocityCommandMotorRps = 0.0;
     lastRollerDutyCommand = Double.NaN;
+  }
+
+  public void stopIntakeNoPid(){
+    double clampedDuty = MathUtil.clamp(0, -1.0, 1.0);
+    if (Double.isFinite(lastRollerDutyCommand) && Math.abs(lastRollerDutyCommand - clampedDuty) < 1e-6) {
+      return;
+    }
+    intakeRollerMotor.setControl(new DutyCycleOut(clampedDuty));
+    lastRollerDutyCommand = clampedDuty;
+    lastRollerVelocityCommandMotorRps = Double.NaN;
   }
 
   public void applyPanicStop() {

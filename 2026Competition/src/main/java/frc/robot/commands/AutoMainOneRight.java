@@ -9,6 +9,7 @@ import java.util.Set;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
@@ -38,7 +39,10 @@ public class AutoMainOneRight extends SequentialCommandGroup {
           Set.of(RobotContainer.driveSubsystem)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralRight", false, false)
           //new PrintCommand("Past hub right"),
-            .alongWith(new DeployIntakeSequence()),
+            .alongWith(new InstantCommand(
+            () -> RobotContainer.intakeSubsystem.setStayDeployedAfterTriggerRelease(true),
+            RobotContainer.intakeSubsystem).andThen(new DeployIntakeSequence())),
+            // .alongWith(new DeployIntakeSequence()),
           //   .raceWith(new WaitCommand(0.2)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueNeutralRightMiddle", false, false),
           // new RetractIntakeSequence()

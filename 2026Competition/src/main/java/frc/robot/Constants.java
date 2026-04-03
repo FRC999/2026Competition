@@ -118,7 +118,7 @@ public final class Constants {
     public static final boolean spindexer = true;
     public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
+    public static final boolean supervisor = true;
     public static boolean calibration = false;
   }
 
@@ -450,7 +450,7 @@ public final class Constants {
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       /** CANcoder magnet offset in rotations. Matches Phoenix Tuner. */
-      public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521 - 0.023926 - 0.002197 - 0.0003;
+      public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521 - 0.023926 - 0.002197 - 0.0003 + 0.018;
 
       /** After applying magnet offset, turret-zero should read 0.0 rotations. */
       public static final double ABS_ZERO_ROTATIONS = 0.0;
@@ -1127,7 +1127,7 @@ public final class Constants {
        * Turret pivot position relative to robot origin, in the ROBOT frame (meters).
        */
       public static final Translation2d TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS = new Translation2d(
-          -0.15, -0.06); // -0.1778, -0.07
+          -0.18, -0.06); // -0.1778, -0.07 //-0.15, -0.06
 
       /** Ball release height above field when leaving shooter, meters. TODO set. */
       public static final double BALL_RELEASE_HEIGHT_METERS = 0.4318;
