@@ -320,6 +320,24 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     return Constants.EnabledSubsystems.calibration;
   }
 
+  public double getHubTargetRelativeAngleDeg() {
+    if (!EnabledSubsystems.supervisor) {
+      return Double.NaN;
+    }
+
+    Pose2d poseField = RobotContainer.driveSubsystem.getState().Pose;
+    Translation2d hubTarget = getAllianceAwareAimTarget(Constants.FieldTargets.AimTarget.HUB);
+    return TurretHelpers.computeStationaryRawTurretYawDeg(poseField, hubTarget);
+  }
+
+  public double getHubCommandRelativeAngleDeg() {
+    double rawHubTargetDeg = getHubTargetRelativeAngleDeg();
+    if (!Double.isFinite(rawHubTargetDeg)) {
+      return Double.NaN;
+    }
+    return chooseSoftLimitedEquivalent(rawHubTargetDeg, Timer.getFPGATimestamp());
+  }
+
   private void resetTurretSetpointFilter() {
     filteredDesiredTurretDeg = Double.NaN;
   }
@@ -640,7 +658,7 @@ lastBallAtThroat = ballAtThroat;
 
       // Log raw desired turret angle
       SmartDashboard.putNumber("TurretTesting/RawDesiredTurretDeg", rawDesiredTurretDeg);
-      SmartDashboard.putNumber("Turret/CurrentAngle", RobotContainer.turretSubsystem.getRelativePosition()); 
+      SmartDashboard.putNumber("Turret/CurrentAngle", RobotContainer.turretSubsystem.getContinuousAngleDeg()); 
 
       // Log CTRE pose (if available)
       SmartDashboard.putNumber("TurretTesting/RobotPoseX", poseField.getX());
@@ -1220,6 +1238,9 @@ return new TurretHelpers.Solution(
   }
 
   private void publishTelemetry() {
+    SmartDashboard.putNumber("Turret/HubTargetRelativeAngleDeg", getHubTargetRelativeAngleDeg());
+    SmartDashboard.putNumber("Turret/HubCommandRelativeAngleDeg", getHubCommandRelativeAngleDeg());
+
     if (!Constants.DebugTelemetrySubsystems.supervisor) {
       return;
     }

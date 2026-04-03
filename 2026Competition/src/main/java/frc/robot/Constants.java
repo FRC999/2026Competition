@@ -108,8 +108,13 @@ public final class Constants {
   public static final class EnabledSubsystems {
 
     public static final boolean chasis = true;
+<<<<<<< HEAD
     public static final boolean odometry = true;
     public static final boolean ll = true;
+=======
+    public static final boolean odometry = false;
+    public static final boolean ll = false;
+>>>>>>> 0182fc74835278eb707d1b73ade3b2bf78abd8bd
     public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true;
@@ -118,7 +123,7 @@ public final class Constants {
     public static final boolean spindexer = true;
     public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = true;
+    public static final boolean supervisor = false;
     public static boolean calibration = false;
   }
 
@@ -1249,7 +1254,11 @@ public final class Constants {
       public static enum IntakePositions { // arm degrees (not motor rotations)
         // IntakeStowedDeg(37.0),
         IntakeRetracted(0.0),
+<<<<<<< HEAD
         IntakeDeployedDeg(32.0);
+=======
+        IntakeDeployedDeg(33.0);
+>>>>>>> 0182fc74835278eb707d1b73ade3b2bf78abd8bd
 
         private double armDeg;
 

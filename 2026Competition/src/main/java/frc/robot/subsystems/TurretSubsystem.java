@@ -895,6 +895,11 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
 
     // Update continuous (multi-turn) angle state every loop.
      updateContinuousAngle();
+    SmartDashboard.putNumber("Turret/CurrentRelativeAngleDeg", getContinuousAngleDeg());
+    SmartDashboard.putNumber("Turret/CANcoderAbsoluteRot", getAbsolutePosition());
+    SmartDashboard.putNumber(
+        "Turret/CANcoderMagnetOffsetRot",
+        Constants.OperatorConstants.Turret.CANCODER_MAGNET_OFFSET_ROT);
     if(DebugTelemetrySubsystems.turret){
     // Telemetry block: expose key state for debugging and tuning.
       SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
