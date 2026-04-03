@@ -11,24 +11,23 @@ public class DeployIntakeSequence extends Command {
 
   @Override
   public void initialize() {
-    RobotContainer.intakeSubsystem.onDriverIntakeTriggerReleased();
-    RobotContainer.intakeSubsystem.selectDeployedMode();
+    RobotContainer.intakeSubsystem.stopIntake();
+    RobotContainer.intakeSubsystem.setIntakePositionWithAngle(IntakePositions.IntakeDeployedDeg);
   }
 
   @Override
   public void execute() {
-    if (RobotContainer.intakeSubsystem.isAtPosition(IntakePositions.IntakeDeployedDeg)) {
-      RobotContainer.intakeSubsystem.onDriverIntakeTriggerPressed();
-    }
   }
 
   @Override
   public void end(boolean interrupted) {
-    RobotContainer.intakeSubsystem.onDriverIntakeTriggerReleased();
+    if (!interrupted) {
+      RobotContainer.intakeSubsystem.releaseDeployHoldToCoast();
+    }
   }
 
   @Override
   public boolean isFinished() {
-    return false;
+    return RobotContainer.intakeSubsystem.isAtPosition(IntakePositions.IntakeDeployedDeg);
   }
 }

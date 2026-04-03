@@ -73,6 +73,7 @@ import frc.robot.commands.ShootCalibrationBurstWhileHeld;
 import frc.robot.commands.ShootWhileHeld;
 import frc.robot.commands.ShooterAdjustRpmCommand;
 import frc.robot.commands.ShooterEnableCommand;
+import frc.robot.commands.StartIntake;
 import frc.robot.commands.StopClimb;
 import frc.robot.commands.StopIntake;
 import frc.robot.commands.StopRobot;
@@ -247,7 +248,7 @@ public class RobotContainer {
       //configureSpindexerCalibrationBindings();
     }
     competitionXBOXButtonBindings();
-    betaTesting();
+    //betaTesting();
     //setYaws();
 
     new JoystickButton(xboxDriveController, 8) // Left of X
@@ -311,16 +312,16 @@ public class RobotContainer {
    new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
         > OIContants.XBOX_TRIGGER_ACTIVE_THRESHOLD)
         .and(panicInactiveTrigger)
-        .onTrue(new InstantCommand(() -> intakeSubsystem.onDriverIntakeTriggerPressed(), intakeSubsystem))
-        .onFalse(new InstantCommand(() -> intakeSubsystem.onDriverIntakeTriggerReleased(), intakeSubsystem));
+        .whileTrue(new DeployIntakeSequence().andThen(new StartIntake()))
+        .onFalse(new RetractIntakeSequence());
 
     new JoystickButton(xboxDriveController, OIContants.XBOX_BUTTON_A)
         .and(panicInactiveTrigger)
-        .onTrue(new InstantCommand(() -> intakeSubsystem.selectDeployedMode(), intakeSubsystem));
+        .onTrue(new DeployIntakeSequence());
 
     new JoystickButton(xboxDriveController, 4) // Y
         .and(panicInactiveTrigger)
-        .onTrue(new InstantCommand(() -> intakeSubsystem.selectRetractedMode(), intakeSubsystem));
+        .onTrue(new RetractIntakeSequence());
 
     new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
@@ -361,8 +362,7 @@ public class RobotContainer {
 
     new JoystickButton(xboxDriveController, 5) // LB
         .and(panicInactiveTrigger)
-        .onTrue(new ReverseIntake())
-        .onFalse(new StopIntake());
+        .whileTrue(new ReverseIntake());
 
     new JoystickButton(xboxDriveController, 6) // LB
         .and(panicInactiveTrigger)

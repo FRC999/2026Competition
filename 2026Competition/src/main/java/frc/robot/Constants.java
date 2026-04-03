@@ -110,7 +110,7 @@ public final class Constants {
     public static final boolean chasis = true;
     public static final boolean odometry = true;
     public static final boolean ll = true;
-    public static final boolean intake = false;
+    public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true;
     public static final boolean hood = true;
@@ -132,7 +132,7 @@ public final class Constants {
     public static final boolean intake = true;
     public static final boolean shooter = false;
     public static final boolean turret = true;
-    public static final boolean hood = true;
+    public static final boolean hood = false;
     public static final boolean hopper = false;
     public static final boolean spindexer = false;
     public static final boolean transfer = false;
@@ -450,7 +450,7 @@ public final class Constants {
       public static final CANBus CANBUS_NAME = OperatorConstants.RIO_CANBUS;
 
       /** CANcoder magnet offset in rotations. Matches Phoenix Tuner. */
-      public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521 - 0.023926;
+      public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521 - 0.023926 - 0.002197 - 0.0003;
 
       /** After applying magnet offset, turret-zero should read 0.0 rotations. */
       public static final double ABS_ZERO_ROTATIONS = 0.0;
@@ -1244,12 +1244,12 @@ public final class Constants {
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
       public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.20;
-      public static final double INTAKE_ROLLER_DUTY = 0.7;
+      public static final double INTAKE_ROLLER_DUTY = 0.9;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         // IntakeStowedDeg(37.0),
         IntakeRetracted(0.0),
-        IntakeDeployedDeg(28.0);
+        IntakeDeployedDeg(32.0);
 
         private double armDeg;
 

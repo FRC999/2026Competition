@@ -11,8 +11,8 @@ public class RetractIntakeSequence extends Command {
 
   @Override
   public void initialize() {
-    RobotContainer.intakeSubsystem.onDriverIntakeTriggerReleased();
-    RobotContainer.intakeSubsystem.selectRetractedMode();
+    RobotContainer.intakeSubsystem.stopIntake();
+    RobotContainer.intakeSubsystem.setIntakePositionWithAngle(IntakePositions.IntakeRetracted);
   }
 
   @Override
@@ -21,7 +21,6 @@ public class RetractIntakeSequence extends Command {
 
   @Override
   public void end(boolean interrupted) {
-    RobotContainer.intakeSubsystem.onDriverIntakeTriggerReleased();
   }
 
   @Override

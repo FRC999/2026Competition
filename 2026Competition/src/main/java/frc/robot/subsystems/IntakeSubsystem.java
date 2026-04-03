@@ -84,6 +84,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private double lastPivotTargetRot = Double.NaN;
   private double lastPivotDutyCommand = Double.NaN;
   private int activePivotClosedLoopSlot = PIVOT_DEPLOYED_SLOT;
+  private NeutralModeValue pivotNeutralMode = NeutralModeValue.Brake;
 
   private enum IntakeDriverMode {
     DEPLOYED_IDLE,
@@ -92,6 +93,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
   private IntakeDriverMode driverMode = IntakeDriverMode.RETRACTED_IDLE;
   private boolean driverIntakeTriggerActive = false;
+  private boolean driverReverseIntakeActive = false;
   private boolean pivotSeekingDeployed = false;
 
   // Status signals (telemetry + SysId logs)
@@ -471,16 +473,19 @@ public class IntakeSubsystem extends SubsystemBase {
   }
 
   public void selectDeployedMode() {
+    setPivotNeutralMode(NeutralModeValue.Brake);
     driverMode = IntakeDriverMode.DEPLOYED_IDLE;
     pivotSeekingDeployed = true;
   }
 
   public void selectRetractedMode() {
+    setPivotNeutralMode(NeutralModeValue.Brake);
     driverMode = IntakeDriverMode.RETRACTED_IDLE;
     pivotSeekingDeployed = false;
   }
 
   public void onDriverIntakeTriggerPressed() {
+    setPivotNeutralMode(NeutralModeValue.Brake);
     driverIntakeTriggerActive = true;
     pivotSeekingDeployed = true;
   }
@@ -488,6 +493,15 @@ public class IntakeSubsystem extends SubsystemBase {
   public void onDriverIntakeTriggerReleased() {
     driverIntakeTriggerActive = false;
     pivotSeekingDeployed = false;
+  }
+
+  public void onDriverReverseIntakePressed() {
+    driverReverseIntakeActive = true;
+    setPivotNeutralMode(NeutralModeValue.Brake);
+  }
+
+  public void onDriverReverseIntakeReleased() {
+    driverReverseIntakeActive = false;
   }
 
   private double getPivotTravelDeg() {
@@ -501,6 +515,7 @@ public class IntakeSubsystem extends SubsystemBase {
   }
 
   public void setTargetPivotDeg(double armDeg) {
+    setPivotNeutralMode(NeutralModeValue.Brake);
     double clampedDeg = MathUtil.clamp(armDeg, IntakeConstants.PIVOT_MIN_DEG,
         IntakeConstants.PIVOT_MAX_DEG);
     targetPivotDeg = clampedDeg;
@@ -516,7 +531,23 @@ public class IntakeSubsystem extends SubsystemBase {
     lastPivotDutyCommand = Double.NaN;
   }
 
-  
+  private void setPivotNeutralMode(NeutralModeValue neutralMode) {
+    if (pivotNeutralMode == neutralMode) {
+      return;
+    }
+
+    var pivotMotorOutputConfig = new MotorOutputConfigs();
+    pivotMotorOutputConfig.NeutralMode = neutralMode;
+    intakePivotMotor.getConfigurator().apply(pivotMotorOutputConfig);
+    intakePivotFollowerMotor.getConfigurator().apply(pivotMotorOutputConfig);
+    pivotNeutralMode = neutralMode;
+  }
+
+  public void releaseDeployHoldToCoast() {
+    targetPivotDeg = getPivotDeg();
+    setPivotDutyCycle(0.0);
+    setPivotNeutralMode(NeutralModeValue.Coast);
+  }
 
   public void seedZeroFromRetractedHardStop() {
     // Because you guarantee intake starts fully retracted.
@@ -619,6 +650,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
   public void applyPanicStop() {
     driverIntakeTriggerActive = false;
+    driverReverseIntakeActive = false;
     pivotSeekingDeployed = false;
     driverMode = IntakeDriverMode.DEPLOYED_IDLE;
     stopIntake();
@@ -730,52 +762,6 @@ public class IntakeSubsystem extends SubsystemBase {
 
     BaseStatusSignal.refreshAll(rollerVelSig, rollerVoltageSig, pivotPosSig, pivotVelSig, pivotVoltageSig);
 
-    if (driverMode == IntakeDriverMode.DEPLOYED_IDLE) {
-      if (driverIntakeTriggerActive) {
-        if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
-          setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
-          stopIntake();
-        } else {
-           exitOpenLoopHold();
-          pivotSeekingDeployed = false;
-          runIntakeNoPid(IntakeConstants.INTAKE_ROLLER_DUTY);
-        }
-      } else {
-        if (pivotSeekingDeployed) {
-          if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
-            setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
-          } else {
-            exitOpenLoopHold();
-            pivotSeekingDeployed = false;
-          }
-        } else {
-           exitOpenLoopHold();
-        }
-        stopIntake();
-      }
-    } else {
-      if (driverIntakeTriggerActive) {
-        if (pivotSeekingDeployed) {
-          // alex text
-          // System.out.println("SHOULD DEPLOY AND RUN ROLLER");
-          if (!isAtPosition(IntakePositions.IntakeDeployedDeg)) {
-            setTargetPivotDeg(IntakePositions.IntakeDeployedDeg.getPosition());
-            stopIntake();
-          } else {
-             exitOpenLoopHold();
-            pivotSeekingDeployed = false;
-            runIntakeNoPid(IntakeConstants.INTAKE_ROLLER_DUTY);
-          }
-        } else {
-           exitOpenLoopHold();
-          runIntakeNoPid(IntakeConstants.INTAKE_ROLLER_DUTY);
-        }
-      } else {
-        stopIntake();
-        setTargetPivotDeg(IntakePositions.IntakeRetracted.getPosition());
-      }
-    }
-
     if (DebugTelemetrySubsystems.intake) {
       SmartDashboard.putNumber(
           "Intake/RollerVelRps",
@@ -799,10 +785,7 @@ public class IntakeSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("Intake/PivotErrorDeg", getTargetPivotDeg() - getPivotDeg());
       SmartDashboard.putBoolean("Intake/PivotZeroed", isPivotZeroed());
 
-      SmartDashboard.putString("Intake/DriverMode", driverMode.name());
-      SmartDashboard.putBoolean("Intake/DriverTriggerActive", driverIntakeTriggerActive);
       SmartDashboard.putNumber("Intake/PivotToleranceDeg", getPivotPositionToleranceDeg());
-      SmartDashboard.putBoolean("Intake/PivotSeekingDeployed", pivotSeekingDeployed);
       SmartDashboard.putNumber("Intake/PivotActiveClosedLoopSlot", activePivotClosedLoopSlot);
     }
   }
