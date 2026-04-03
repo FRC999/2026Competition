@@ -26,14 +26,10 @@ public class ElasticHelpers {
         switch (state) {
             case "INITIALIZE":
                 return "#4E5FFF";
-            case "SEEKING_TAGS_Q":
+            case "SEEKING_TAGS":
                 return "#CF4EFF";
-            case "SEEKING_TAGS_NO_Q":
-                return "#E22222";
-            case "CALIBRATED_Q":
+            case "CALIBRATED":
                 return "#43D567";
-            case "CALIBRATED_NO_Q":
-                return "#EDFF4E";
             default:
                 return "#000000";
         }
