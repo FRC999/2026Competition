@@ -64,7 +64,9 @@ import frc.robot.commands.AutoBlueTrenchToOutpostAndShoot;
 import frc.robot.commands.ClimbDown;
 import frc.robot.commands.ClimbUp;
 import frc.robot.commands.DeployIntakeSequence;
+import frc.robot.commands.DeployAndRunIntakeWhileHeld;
 import frc.robot.commands.DriveManuallyCommand;
+import frc.robot.commands.InitialAutoDeployWhileHeld;
 import frc.robot.commands.IntakeRezeroFromRetractedHardStop;
 import frc.robot.commands.IntakeToPositionAndHold;
 import frc.robot.commands.NoAuto_Auto;
@@ -98,6 +100,7 @@ import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.HoodSubsystem;
 import frc.robot.commands.PrintTurretShotDiagnosticsCommand;
 import frc.robot.commands.RetractIntakeSequence;
+import frc.robot.commands.RetractIntakeSequenceWithTimeout;
 
 public class RobotContainer {
 
@@ -314,7 +317,7 @@ public class RobotContainer {
         > OIContants.XBOX_TRIGGER_ACTIVE_THRESHOLD)
         .and(panicInactiveTrigger)
         .whileTrue(Commands.defer(
-            () -> new DeployIntakeSequence().andThen(new StartIntake()),
+            DeployAndRunIntakeWhileHeld::new,
             Set.of(intakeSubsystem)))
         .onFalse(Commands.defer(
             () -> intakeSubsystem.shouldStayDeployedAfterTriggerRelease()
@@ -354,6 +357,14 @@ public class RobotContainer {
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_4M,
             true));
+
+    new JoystickButton(bb, OIContants.BB_INTAKE_INIT_DEPLOY_6)
+        .whileTrue(Commands.defer(
+            InitialAutoDeployWhileHeld::new,
+            Set.of(intakeSubsystem)))
+        .onFalse(Commands.defer(
+            RetractIntakeSequenceWithTimeout::new,
+            Set.of(intakeSubsystem)));
 
     new JoystickButton(bb, OIContants.BB_FORCE_FEED)
         .and(panicInactiveTrigger)

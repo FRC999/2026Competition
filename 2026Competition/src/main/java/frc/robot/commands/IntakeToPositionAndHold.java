@@ -4,7 +4,9 @@
 
 package frc.robot.commands;
 
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.RobotContainer;
 
@@ -13,6 +15,7 @@ public class IntakeToPositionAndHold extends Command {
   /** Creates a new ArmToPositionAndHold. */
 
   private IntakePositions setPosition;
+  private final Timer timeoutTimer = new Timer();
 
   /**
    * Move arm to position described in the ArmPosition ENUM via PID and hold (the command will not end PID)
@@ -28,6 +31,7 @@ public class IntakeToPositionAndHold extends Command {
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {
+    timeoutTimer.restart();
     // System.out.println("Arm going to position: " + setPosition);
     RobotContainer.intakeSubsystem.setIntakePositionWithAngle(setPosition);
   }
@@ -39,12 +43,14 @@ public class IntakeToPositionAndHold extends Command {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
+    timeoutTimer.stop();
     // System.out.println("Arm at position: " + setPosition);
   }
 
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    return RobotContainer.intakeSubsystem.isAtPosition(setPosition);
+    return RobotContainer.intakeSubsystem.isAtPosition(setPosition)
+        || timeoutTimer.hasElapsed(IntakeConstants.INTAKE_PIVOT_POSITION_COMMAND_TIMEOUT_SEC);
   }
 }

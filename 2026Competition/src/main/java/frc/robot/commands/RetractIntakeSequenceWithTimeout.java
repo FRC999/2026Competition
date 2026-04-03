@@ -6,10 +6,10 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.RobotContainer;
 
-public class RetractIntakeSequence extends Command {
+public class RetractIntakeSequenceWithTimeout extends Command {
   private final Timer timeoutTimer = new Timer();
 
-  public RetractIntakeSequence() {
+  public RetractIntakeSequenceWithTimeout() {
     addRequirements(RobotContainer.intakeSubsystem);
   }
 
@@ -27,6 +27,9 @@ public class RetractIntakeSequence extends Command {
   @Override
   public void end(boolean interrupted) {
     timeoutTimer.stop();
+    if (interrupted) {
+      RobotContainer.intakeSubsystem.stopPivotAndHoldCurrentPosition();
+    }
   }
 
   @Override

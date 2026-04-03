@@ -218,7 +218,7 @@ public final class Constants {
       public static final int BB_FORCE_FEED = 3;
       public static final int BB_UNUSED_4 = 4;
       public static final int BB_INTAKE_REZERO = 5;
-      public static final int BB_UNUSED_6 = 6;
+      public static final int BB_INTAKE_INIT_DEPLOY_6 = 6;
       public static final int BB_MANUAL_SHOT_2M = 2;
       public static final int BB_MANUAL_SHOT_3M = 10;
       public static final int BB_MANUAL_SHOT_4M = 11;
@@ -273,7 +273,7 @@ public final class Constants {
       public static final double kCoupleRatio = 3.0;
       public static final ClosedLoopOutputType kDriveClosedLoopOutput = ClosedLoopOutputType.Voltage;
       public static final Voltage kDriveFrictionVoltage = Volts.of(0.2);
-      public static final double kDriveGearRatio = 5.2734375;
+      public static final double kDriveGearRatio = 6.03; //5.2734375
       public static final MomentOfInertia kDriveInertia = KilogramSquareMeters.of(0.01);
       public static final DriveMotorArrangement kDriveMotorType = DriveMotorArrangement.TalonFX_Integrated;
 
@@ -281,7 +281,7 @@ public final class Constants {
       // public static final int kPigeonId = 15; // 2024
 
       public static final Current kSlipCurrent = Amps.of(80.0); // 120
-      public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.85);
+      public static final LinearVelocity kSpeedAt12Volts = MetersPerSecond.of(5.12064); //5.85
       public static final ClosedLoopOutputType kSteerClosedLoopOutput = ClosedLoopOutputType.Voltage;
       public static final SteerFeedbackType kSteerFeedbackType = SteerFeedbackType.FusedCANcoder;
       public static final Voltage kSteerFrictionVoltage = Volts.of(0.2);
@@ -1244,13 +1244,19 @@ public final class Constants {
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
       public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.20;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_DUTY = 1.0;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_TIMEOUT_SEC = 3.0;
+      public static final double INTAKE_PIVOT_POSITION_COMMAND_TIMEOUT_SEC = 2.0;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_RETRACT_TIMEOUT_SEC = 2.0;
       public static final double INTAKE_ROLLER_DUTY = 0.9;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         // IntakeStowedDeg(37.0),
         IntakeRetracted(0.0),
 
-        IntakeDeployedDeg(33.0);
+        IntakeDeployedDeg(33.0),
+
+        IntakeInitialDeployDeg(25);
 
 
         private double armDeg;
@@ -1308,7 +1314,7 @@ public final class Constants {
           public static final double intake_kD = 0.0;
         }
 
-        public static final double PIVOT_AT_TARGET_TOLERANCE_DEG = 4.0;
+        public static final double PIVOT_AT_TARGET_TOLERANCE_DEG = 6.0;
       }
 
       /** Simulation placeholders for SysId/Sim (tune once mechanism is built). */

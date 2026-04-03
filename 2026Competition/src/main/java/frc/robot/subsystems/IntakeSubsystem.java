@@ -301,11 +301,7 @@ public class IntakeSubsystem extends SubsystemBase {
     intakeRollerFollowerMotor.setControl(
         new Follower(IntakeConstants.intakeRollerMotorId, rollerAlignment));
 
-    final MotorAlignmentValue alignment = IntakeConstants.intakePivotFollowerOpposeLeader
-        ? MotorAlignmentValue.Opposed
-        : MotorAlignmentValue.Aligned;
-
-    intakePivotFollowerMotor.setControl(new Follower(IntakeConstants.intakePivotMotorId, alignment));
+    applyPivotFollowerControl();
 
     var motorPivotConfig = new MotorOutputConfigs();
     motorPivotConfig.NeutralMode = NeutralModeValue.Brake;
@@ -430,7 +426,15 @@ public class IntakeSubsystem extends SubsystemBase {
 
     intakePivotMotor.getConfigurator().apply(config);
     intakePivotFollowerMotor.getConfigurator().apply(config);
+    applyPivotFollowerControl();
 
+  }
+
+  private void applyPivotFollowerControl() {
+    final MotorAlignmentValue alignment = IntakeConstants.intakePivotFollowerOpposeLeader
+        ? MotorAlignmentValue.Opposed
+        : MotorAlignmentValue.Aligned;
+    intakePivotFollowerMotor.setControl(new Follower(IntakeConstants.intakePivotMotorId, alignment));
   }
 
   private int choosePivotClosedLoopSlot(double targetDeg) {
@@ -557,6 +561,18 @@ public class IntakeSubsystem extends SubsystemBase {
     targetPivotDeg = getPivotDeg();
     setPivotDutyCycle(0.0);
     setPivotNeutralMode(NeutralModeValue.Coast);
+  }
+
+  public void beginInitialAutoDeploy(double duty) {
+    targetPivotDeg = IntakePositions.IntakeDeployedDeg.getPosition();
+    setPivotNeutralMode(NeutralModeValue.Brake);
+    setPivotDutyCycle(Math.abs(duty));
+  }
+
+  public void stopPivotAndHoldCurrentPosition() {
+    targetPivotDeg = getPivotDeg();
+    setPivotDutyCycle(0.0);
+    setPivotNeutralMode(NeutralModeValue.Brake);
   }
 
   public void seedZeroFromRetractedHardStop() {
