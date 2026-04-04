@@ -48,6 +48,7 @@ import frc.robot.commands.AutoMainTwoDepotMiddle;
 import frc.robot.commands.AutoRedHubSimpleMoveAndShoot;
 import frc.robot.commands.AutoRedSimpleMoveAndShootLastResort;
 import frc.robot.commands.AutoRedTrenchToOutpostAndShoot;
+import frc.robot.commands.AutoShootOnly;
 import frc.robot.commands.AutoShootUntilEmpty;
 import frc.robot.commands.AutoBlueSimpleMoveAndShootLastResort;
 import frc.robot.commands.AutoStrategyEight;
@@ -59,6 +60,7 @@ import frc.robot.commands.AutoStrategySix;
 import frc.robot.commands.AutoStrategyThree;
 import frc.robot.commands.AutoStrategyTwo;
 import frc.robot.commands.AutoBlueHubSimpleMoveAndShoot;
+import frc.robot.commands.AutoBlueMiddleToOutpostAndShoot;
 import frc.robot.commands.AutoBlueSimpleMoveAndShootLastResort;
 import frc.robot.commands.AutoBlueTrenchToOutpostAndShoot;
 import frc.robot.commands.ClimbDown;
@@ -171,25 +173,29 @@ public class RobotContainer {
     // sets the default option of the SendableChooser to the simplest autonomous
     // command. (from touching the hub, drive until outside the tarmac zone)
     SmartDashboard.putData(autoChooser);
-    autoChooser.addOption("Auto Strategy One", new AutoStrategyOne());
-    autoChooser.addOption("Auto Strategy Two", new AutoStrategyTwo());
-    autoChooser.addOption("Auto Strategy Three", new AutoStrategyThree());
-    autoChooser.addOption("Auto Strategy Four", new AutoStrategyFour());
-    autoChooser.addOption("Auto Strategy Five", new AutoStrategyFive());
-    autoChooser.addOption("Auto Strategy Six", new AutoStrategySix());
-    autoChooser.addOption("Auto Strategy Seven", new AutoStrategySeven());
-    autoChooser.addOption("Auto Strategy Eight", new AutoStrategyEight());
-    autoChooser.addOption("Auto Main One Left", new AutoMainOneLeft());
-    autoChooser.addOption("AutoMainOneRight", new AutoMainOneRight());
-    autoChooser.addOption("AutoMainTwoDepotHubSide", new AutoMainTwoDepotHubSide());
-    autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
-    autoChooser.addOption("Test Auto", new TestAuto());
-    autoChooser.addOption("Blue - SimpleMoveAndShootLastResort", new AutoBlueSimpleMoveAndShootLastResort());
+    // autoChooser.addOption("Auto Strategy One", new AutoStrategyOne());
+    // autoChooser.addOption("Auto Strategy Two", new AutoStrategyTwo());
+    // autoChooser.addOption("Auto Strategy Three", new AutoStrategyThree());
+    // autoChooser.addOption("Auto Strategy Four", new AutoStrategyFour());
+    // autoChooser.addOption("Auto Strategy Five", new AutoStrategyFive());
+    // autoChooser.addOption("Auto Strategy Six", new AutoStrategySix());
+    // autoChooser.addOption("Auto Strategy Seven", new AutoStrategySeven());
+    // autoChooser.addOption("Auto Strategy Eight", new AutoStrategyEight());
+    // autoChooser.addOption("Auto Main One Left", new AutoMainOneLeft());
+    // autoChooser.addOption("AutoMainOneRight", new AutoMainOneRight());
+    // autoChooser.addOption("AutoMainTwoDepotHubSide", new AutoMainTwoDepotHubSide());
+    // autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
+    // autoChooser.addOption("Test Auto", new TestAuto());
+    // autoChooser.addOption("Blue - SimpleMoveAndShootLastResort", new AutoBlueSimpleMoveAndShootLastResort());
     autoChooser.addOption("Blue - AutoTrenchToOutpostAndShoot", new AutoBlueTrenchToOutpostAndShoot());
-    autoChooser.addOption("Blue - HubSimpleMoveAndShoot ", new AutoBlueHubSimpleMoveAndShoot());
-    autoChooser.addOption("Red - SimpleMoveAndShootLastResort", new AutoRedSimpleMoveAndShootLastResort());
-    autoChooser.addOption("Red - AutoTrenchToOutpostAndShoot", new AutoRedTrenchToOutpostAndShoot());
-    autoChooser.addOption("Red - HubSimpleMoveAndShoot", new AutoRedHubSimpleMoveAndShoot());
+
+     autoChooser.addOption("Blue - AutoMiddleToOutpostAndShoot", new AutoBlueMiddleToOutpostAndShoot());
+    autoChooser.addOption("Auto Shoot Only", new AutoShootOnly());
+
+    // autoChooser.addOption("Blue - HubSimpleMoveAndShoot ", new AutoBlueHubSimpleMoveAndShoot());
+    // autoChooser.addOption("Red - SimpleMoveAndShootLastResort", new AutoRedSimpleMoveAndShootLastResort());
+    // autoChooser.addOption("Red - AutoTrenchToOutpostAndShoot", new AutoRedTrenchToOutpostAndShoot());
+    // autoChooser.addOption("Red - HubSimpleMoveAndShoot", new AutoRedHubSimpleMoveAndShoot());
     autoChooser.addOption("no auto", new NoAuto_Auto());
   }
 
@@ -353,26 +359,41 @@ public class RobotContainer {
             () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(false),
             intakeSubsystem).andThen(new RetractIntakeSequence()));
 
-    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
+
+    new JoystickButton(xboxDriveController, 3)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
-            true));
+            false));
 
-    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
+    new JoystickButton(xboxDriveController, 2)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_3M,
-            true));
+            false));
+
+    // new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
+    //     .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+    //     .and(panicInactiveTrigger)
+    //     .whileTrue(new ShootWhileHeld(
+    //         AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
+    //         true));
+
+    // new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
+    //     .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+    //     .and(panicInactiveTrigger)
+    //     .whileTrue(new ShootWhileHeld(
+    //         AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_3M,
+    //         true));
 
     new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_4M)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_4M,
-            true));
+            false));
 
     new JoystickButton(bb, OIContants.BB_INTAKE_INIT_DEPLOY_6)
         .whileTrue(Commands.defer(

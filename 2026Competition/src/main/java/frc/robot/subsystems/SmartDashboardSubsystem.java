@@ -51,6 +51,7 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     // Keep pose -> field object updates here (global display), gated with the rest.
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
     ElasticHelpers.updateRobotPose(robotPose);
+    teleopTelemetry();
 
     // systemsCheckTelemetry();
     // teleopTelemetry();

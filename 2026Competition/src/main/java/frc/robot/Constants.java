@@ -1244,6 +1244,8 @@ public final class Constants {
       public static final double CAL_STEP_LOW_DEG = 30.0;
       public static final double CAL_STEP_HIGH_DEG = 90.0;
       public static final double INTAKE_PIVOT_POWER_OUT_DUTY = 0.20;
+      public static final double INTAKE_PIVOT_POWER_OUT_TIME_SEC = 0.25;
+      public static final double INTAKE_PIVOT_POWER_IN_TIME_SEC = 0.25;
       public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_DUTY = 1.0;
       public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_TIMEOUT_SEC = 3.0;
       public static final double INTAKE_PIVOT_POSITION_COMMAND_TIMEOUT_SEC = 2.0;
@@ -1298,9 +1300,9 @@ public final class Constants {
           public static final double gravityArmPositionOffsetRot = -pivotHorizontalDeg / 360.0;
 
           // Motion Magic in MECHANISM rotations because SensorToMechanismRatio is applied.
-          public static final double MotionMagicCruiseVelocity = 30; //0.20
-          public static final double motionMagicAcceleration = 120; //0.50
-          public static final double motionMagicJerk = 1000; //0.0
+          public static final double MotionMagicCruiseVelocity = 60; //0.20
+          public static final double motionMagicAcceleration = 240; //0.50
+          public static final double motionMagicJerk = 2400; //0.0
         }
 
         public static class RollerVelocityVoltageConstants {

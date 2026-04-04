@@ -9,6 +9,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.RobotContainer;
 import com.pathplanner.lib.path.PathPlannerPath;
 
@@ -95,6 +96,7 @@ public class ElasticHelpers {
 
     public static boolean shouldEndGame() { 
         double matchTime = DriverStation.getMatchTime();
+        SmartDashboard.putNumber("Match/TimeSec", matchTime);
         return matchTime <= 30.0;
     }
 
