@@ -438,7 +438,11 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
     Translation2d target2d = null;
     if (shouldComputeAimTarget) {
-      currentAimTarget = selectAimTargetForPose(poseField);
+      if (manualTurretMode) {
+        currentAimTarget = Constants.FieldTargets.AimTarget.HUB;
+      } else {
+        currentAimTarget = selectAimTargetForPose(poseField);
+      }
       target2d = getAllianceAwareAimTarget(currentAimTarget);
     }
 

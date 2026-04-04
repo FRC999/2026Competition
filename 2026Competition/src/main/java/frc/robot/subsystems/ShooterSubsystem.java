@@ -225,6 +225,9 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public void stop() {
+    if (!EnabledSubsystems.shooter || shooterLeader == null || shooterFollower == null) {
+      return;
+    }
     targetRpm = 0.0;
     readySince = 0.0;
     wasReady = false;

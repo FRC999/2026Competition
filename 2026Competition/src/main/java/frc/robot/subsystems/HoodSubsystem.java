@@ -265,6 +265,9 @@ public class HoodSubsystem extends SubsystemBase {
 
 
   public void stop() {
+    if (!EnabledSubsystems.hood || hoodMotor == null) {
+      return;
+    }
     hoodMotor.setControl(dutyRequest.withOutput(0.0));
     // Default back to closed-loop holding the last target
     controlMode = ControlMode.POSITION_CLOSED_LOOP;

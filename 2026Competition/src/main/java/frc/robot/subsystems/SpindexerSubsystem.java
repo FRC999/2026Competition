@@ -251,7 +251,7 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Stop spindexer motor. */
   public void stop() {
-    if (!EnabledSubsystems.spindexer) {
+    if (!EnabledSubsystems.spindexer || motor == null) {
       return;
     }
 

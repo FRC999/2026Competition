@@ -558,6 +558,9 @@ private final double forwardDeg =
 
 
   public void stop() {
+    if (!EnabledSubsystems.turret || turret == null) {
+      return;
+    }
     // Immediately stop output.
     turret.stopMotor();
   }

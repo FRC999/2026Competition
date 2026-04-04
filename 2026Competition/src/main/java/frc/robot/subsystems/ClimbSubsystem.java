@@ -251,6 +251,9 @@ public class ClimbSubsystem extends SubsystemBase {
 
   /** Stop the climber (leader). Follower stops because it follows leader output. */
   public void stopMotors() {
+    if (!EnabledSubsystems.climber || climbMotorLeft == null) {
+      return;
+    }
     climbMotorLeft.setControl(stopOut);
   }
 

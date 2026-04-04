@@ -280,14 +280,30 @@ public class RobotContainer {
   }
 
   private static void applyPanicStop() {
-    autoShootSupervisorSubsystem.setShootRequested(false);
-    shooterSubsystem.stop();
-    transferSubsystem.stop();
-    spindexerSubsystem.stop();
-    turretSubsystem.stop();
-    hoodSubsystem.stop();
-    intakeSubsystem.applyPanicStop();
-    climbSubsystem.stopMotors();
+    if (Constants.EnabledSubsystems.supervisor) {
+      autoShootSupervisorSubsystem.setShootRequested(false);
+    }
+    if (Constants.EnabledSubsystems.shooter) {
+      shooterSubsystem.stop();
+    }
+    if (Constants.EnabledSubsystems.transfer) {
+      transferSubsystem.stop();
+    }
+    if (Constants.EnabledSubsystems.spindexer) {
+      spindexerSubsystem.stop();
+    }
+    if (Constants.EnabledSubsystems.turret) {
+      turretSubsystem.stop();
+    }
+    if (Constants.EnabledSubsystems.hood) {
+      hoodSubsystem.stop();
+    }
+    if (Constants.EnabledSubsystems.intake) {
+      intakeSubsystem.applyPanicStop();
+    }
+    if (Constants.EnabledSubsystems.climber) {
+      climbSubsystem.stopMotors();
+    }
   }
 
   private static void cancelAllCommandsForPanicStop() {
@@ -427,12 +443,10 @@ public class RobotContainer {
 
     new POVButton(xboxDriveController, 90)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
         .whileTrue(new TurretJogCommand(turretSubsystem, 0.18));
 
     new POVButton(xboxDriveController, 270)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
         .whileTrue(new TurretJogCommand(turretSubsystem, -0.18));
 
     new JoystickButton(bb, OIContants.BB_INTAKE_REZERO)

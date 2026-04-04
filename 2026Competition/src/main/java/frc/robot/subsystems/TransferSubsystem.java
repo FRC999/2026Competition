@@ -213,13 +213,13 @@ public class TransferSubsystem extends SubsystemBase {
 
   /** Stop transfer. */
   public void stop() {
-    if (!EnabledSubsystems.transfer) {
+    if (!EnabledSubsystems.transfer || motor == null) {
       return;
     }
 
     commandedDuty = 0.0;
     commandedRps = 0.0;
-    runDuty(0.0);
+    motor.setControl(duty.withOutput(0.0));
   }
 
   /**
