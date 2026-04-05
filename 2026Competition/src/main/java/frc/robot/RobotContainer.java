@@ -194,7 +194,7 @@ public class RobotContainer {
      autoChooser.addOption("Blue - AutoMiddleToOutpostAndShoot", new AutoBlueMiddleToOutpostAndShoot());
     autoChooser.addOption("Auto Shoot Only", new AutoShootOnly());
 
-    // autoChooser.addOption("Blue - HubSimpleMoveAndShoot ", new AutoBlueHubSimpleMoveAndShoot());
+     autoChooser.addOption("Blue - HubSimpleMoveAndShoot ", new AutoBlueHubSimpleMoveAndShoot());
     // autoChooser.addOption("Red - SimpleMoveAndShootLastResort", new AutoRedSimpleMoveAndShootLastResort());
     // autoChooser.addOption("Red - AutoTrenchToOutpostAndShoot", new AutoRedTrenchToOutpostAndShoot());
     // autoChooser.addOption("Red - HubSimpleMoveAndShoot", new AutoRedHubSimpleMoveAndShoot());
@@ -365,12 +365,12 @@ public class RobotContainer {
             intakeSubsystem).andThen(new RetractIntakeSequence()));
 
 
-    new JoystickButton(xboxDriveController, 3)
-        .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
-        .whileTrue(new ShootWhileHeld(
-            AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
-            false));
+    // new JoystickButton(xboxDriveController, 3)
+    //     .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+    //     .and(panicInactiveTrigger)
+    //     .whileTrue(new ShootWhileHeld(
+    //         AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
+    //         false));
 
     new JoystickButton(xboxDriveController, 2)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
@@ -379,12 +379,12 @@ public class RobotContainer {
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_3M,
             false));
 
-    // new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
-    //     .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-    //     .and(panicInactiveTrigger)
-    //     .whileTrue(new ShootWhileHeld(
-    //         AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
-    //         true));
+    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
+        .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+        .and(panicInactiveTrigger)
+        .whileTrue(new ShootWhileHeld(
+            AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
+            true));
 
     // new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
     //     .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
@@ -393,7 +393,7 @@ public class RobotContainer {
     //         AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_3M,
     //         true));
 
-    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_4M)
+    new JoystickButton(xboxDriveController, 3)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
