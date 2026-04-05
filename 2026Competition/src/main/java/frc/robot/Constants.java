@@ -837,11 +837,11 @@ public final class Constants {
       /** Base shooter RPM for the manual fixed shot. */
       public static final double MANUAL_FIXED_SHOT_BASE_RPM = 2200.0; // TODO: tune
 
-      /** Driver-adjustable trim applied to manual shot RPM commands. */
-      public static double MANUAL_SHOT_RPM_TRIM_RPM = 0.0;
+      /** Driver-adjustable percent offset applied to manual shot RPM commands. */
+      public static double MANUAL_SHOT_RPM_TRIM_PERCENT = 0.0;
 
-      /** RPM change applied per button-box click while in manual shooting mode. */
-      public static final double MANUAL_SHOT_RPM_TRIM_STEP_RPM = 100.0;
+      /** Percent change applied per button-box click while in manual shooting mode. */
+      public static final double MANUAL_SHOT_RPM_TRIM_STEP_PERCENT = 0.02;
 
       /**
        * Shooter RPM trim from the joystick twist ("tail").

@@ -383,8 +383,8 @@ public class RobotContainer {
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
         .onTrue(new InstantCommand(
-            () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_RPM +=
-                Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_RPM));
+            () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT +=
+                Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_PERCENT));
 
     new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
         .and(panicInactiveTrigger)
@@ -417,8 +417,8 @@ public class RobotContainer {
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
         .onTrue(new InstantCommand(
-            () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_RPM -=
-                Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_RPM));
+            () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT -=
+                Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_PERCENT));
     
 
 

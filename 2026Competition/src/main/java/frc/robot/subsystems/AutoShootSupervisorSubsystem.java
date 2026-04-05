@@ -316,7 +316,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private static double applyManualShotRpmTrim(double baseRpm) {
     return Math.max(
         0.0,
-        baseRpm + Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_RPM);
+        baseRpm * (1.0 + Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT));
   }
 
   public void setCalibrationActive(boolean active) {
@@ -1267,8 +1267,8 @@ return new TurretHelpers.Solution(
     SmartDashboard.putNumber("Turret/HubCommandRelativeAngleDeg", getHubCommandRelativeAngleDeg());
     SmartDashboard.putNumber("Turret/AutoAimTrimDeg", Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG);
     SmartDashboard.putNumber(
-        "AutoShoot/ManualShotRpmTrimRpm",
-        Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_RPM);
+        "AutoShoot/ManualShotRpmTrimPercent",
+        Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT * 100.0);
 
     if (!Constants.DebugTelemetrySubsystems.supervisor) {
       return;
