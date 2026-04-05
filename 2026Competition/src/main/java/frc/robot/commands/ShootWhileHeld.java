@@ -89,6 +89,12 @@ public class ShootWhileHeld extends Command {
     RobotContainer.autoShootSupervisorSubsystem.setShotMode(mode);
     RobotContainer.autoShootSupervisorSubsystem.setShootRequested(true);
 
+    if (holdDriveHeading) {
+      headingSetpointDeg = RobotContainer.driveSubsystem.getYaw();
+      headingPid.reset();
+      headingPid.setSetpoint(headingSetpointDeg);
+    }
+
     // Print diagnostics once when manual fixed shot begins
     //  SmartDashboard.putString("Shoot While Held Parameters",
     //       "Distance to Hub: " + String.format("%.3f", "") + " Manual Fixed Shot Hood Deg: "

@@ -384,7 +384,7 @@ public class RobotContainer {
         .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
-            true));
+            false));
 
     new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
         .and(panicInactiveTrigger)
