@@ -386,12 +386,10 @@ public class RobotContainer {
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
             true));
 
-    // new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
-    //     .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-    //     .and(panicInactiveTrigger)
-    //     .whileTrue(new ShootWhileHeld(
-    //         AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_3M,
-    //         true));
+    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
+        .and(panicInactiveTrigger)
+        .onTrue(new InstantCommand(
+            () -> Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG -= 1.0));
 
     new JoystickButton(xboxDriveController, 3)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
@@ -399,6 +397,11 @@ public class RobotContainer {
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_4M,
             false));
+
+    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_4M)
+        .and(panicInactiveTrigger)
+        .onTrue(new InstantCommand(
+            () -> Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG += 1.0));
 
     new JoystickButton(bb, OIContants.BB_INTAKE_INIT_DEPLOY_6)
         .whileTrue(Commands.defer(

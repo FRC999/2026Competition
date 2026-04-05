@@ -1257,6 +1257,7 @@ return new TurretHelpers.Solution(
   private void publishTelemetry() {
     SmartDashboard.putNumber("Turret/HubTargetRelativeAngleDeg", getHubTargetRelativeAngleDeg());
     SmartDashboard.putNumber("Turret/HubCommandRelativeAngleDeg", getHubCommandRelativeAngleDeg());
+    SmartDashboard.putNumber("Turret/AutoAimTrimDeg", Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG);
 
     if (!Constants.DebugTelemetrySubsystems.supervisor) {
       return;
