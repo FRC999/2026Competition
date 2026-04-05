@@ -222,6 +222,8 @@ public final class Constants {
       public static final int BB_MANUAL_SHOT_2M = 2;
       public static final int BB_MANUAL_SHOT_3M = 10;
       public static final int BB_MANUAL_SHOT_4M = 11;
+      public static final int BB_MANUAL_RPM_UP = 2;
+      public static final int BB_MANUAL_RPM_DOWN = 3;
 
       // Xbox inputs used in competition bindings
       public static final int XBOX_BUTTON_A = 1;
@@ -834,6 +836,12 @@ public final class Constants {
 
       /** Base shooter RPM for the manual fixed shot. */
       public static final double MANUAL_FIXED_SHOT_BASE_RPM = 2200.0; // TODO: tune
+
+      /** Driver-adjustable trim applied to manual shot RPM commands. */
+      public static double MANUAL_SHOT_RPM_TRIM_RPM = 0.0;
+
+      /** RPM change applied per button-box click while in manual shooting mode. */
+      public static final double MANUAL_SHOT_RPM_TRIM_STEP_RPM = 100.0;
 
       /**
        * Shooter RPM trim from the joystick twist ("tail").

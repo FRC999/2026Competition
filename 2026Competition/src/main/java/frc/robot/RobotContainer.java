@@ -379,12 +379,12 @@ public class RobotContainer {
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_3M,
             false));
 
-    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
+    new JoystickButton(bb, OIContants.BB_MANUAL_RPM_UP)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
-        .whileTrue(new ShootWhileHeld(
-            AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
-            false));
+        .onTrue(new InstantCommand(
+            () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_RPM +=
+                Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_RPM));
 
     new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
         .and(panicInactiveTrigger)
@@ -413,19 +413,12 @@ public class RobotContainer {
 
     
 
-    new JoystickButton(bb, OIContants.BB_FORCE_FEED)
+    new JoystickButton(bb, OIContants.BB_MANUAL_RPM_DOWN)
+        .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
-        .whileTrue(
-            new RunCommand(
-                () -> {
-                  transferSubsystem.runFeed();
-                  spindexerSubsystem.runSupply();
-                },
-                transferSubsystem,
-                spindexerSubsystem))
-        .onFalse(
-            new InstantCommand(() -> transferSubsystem.stop(), transferSubsystem)
-                .alongWith(new InstantCommand(() -> spindexerSubsystem.stop(), spindexerSubsystem)));
+        .onTrue(new InstantCommand(
+            () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_RPM -=
+                Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_RPM));
     
 
 

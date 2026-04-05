@@ -207,7 +207,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       final double dy = target2d.getY() - poseField.getY();
       final double yawFieldRad = Math.atan2(dy, dx);
 
-            final double shooterRpm;
+            double shooterRpm;
       final double hoodAngleRad;
 
             if (shotMode == ShotMode.STATIC_TOWER_BASE) {
@@ -254,6 +254,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         shooterRpm =
             Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
                 + throttle * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
+        shooterRpm = applyManualShotRpmTrim(shooterRpm);
         hoodAngleRad =
             Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
         // hoodAngleRad = Math.toRadians(throttle2*100.0);
@@ -310,6 +311,12 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   }
   public ShotMode getShotMode() {
     return shotMode;
+  }
+
+  private static double applyManualShotRpmTrim(double baseRpm) {
+    return Math.max(
+        0.0,
+        baseRpm + Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_RPM);
   }
 
   public void setCalibrationActive(boolean active) {
@@ -492,7 +499,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         final double dy = target2d.getY() - poseField.getY();
         final double yawFieldRad = Math.atan2(dy, dx);
 
-        final double shooterRpm;
+        double shooterRpm;
         final double hoodAngleRad;
 
                 if (shotMode == ShotMode.STATIC_TOWER_BASE) {
@@ -537,6 +544,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
           shooterRpm =
               Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
                   + twist * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
+          shooterRpm = applyManualShotRpmTrim(shooterRpm);
           hoodAngleRad =
               Math.toRadians(Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG);
           // hoodAngleRad = Math.toRadians(twist2*100.0);
@@ -912,7 +920,7 @@ lastBallAtThroat = ballAtThroat;
         Double.NaN,
         Double.NaN,
         new Translation3d(),
-        shot.shooterRpmCommand,
+        applyManualShotRpmTrim(shot.shooterRpmCommand),
         shot.hoodCommandAngleRad,
         Double.NaN,
         Double.NaN);
@@ -1258,6 +1266,9 @@ return new TurretHelpers.Solution(
     SmartDashboard.putNumber("Turret/HubTargetRelativeAngleDeg", getHubTargetRelativeAngleDeg());
     SmartDashboard.putNumber("Turret/HubCommandRelativeAngleDeg", getHubCommandRelativeAngleDeg());
     SmartDashboard.putNumber("Turret/AutoAimTrimDeg", Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG);
+    SmartDashboard.putNumber(
+        "AutoShoot/ManualShotRpmTrimRpm",
+        Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_RPM);
 
     if (!Constants.DebugTelemetrySubsystems.supervisor) {
       return;
