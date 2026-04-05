@@ -73,6 +73,7 @@ import frc.robot.commands.IntakeRezeroFromRetractedHardStop;
 import frc.robot.commands.IntakeToPositionAndHold;
 import frc.robot.commands.NoAuto_Auto;
 import frc.robot.commands.ReverseIntake;
+import frc.robot.commands.ReverseSpindexer;
 import frc.robot.commands.ReverseTransfer;
 import frc.robot.commands.ShootCalibrationBurstWhileHeld;
 import frc.robot.commands.ShootWhileHeld;
@@ -407,6 +408,8 @@ public class RobotContainer {
             RetractIntakeSequenceWithTimeout::new,
             Set.of(intakeSubsystem)));
 
+    
+
     new JoystickButton(bb, OIContants.BB_FORCE_FEED)
         .and(panicInactiveTrigger)
         .whileTrue(
@@ -429,7 +432,7 @@ public class RobotContainer {
 
     new JoystickButton(xboxDriveController, 6) // LB
         .and(panicInactiveTrigger)
-        .onTrue(new ReverseTransfer())
+        .onTrue(new ReverseTransfer().alongWith(new ReverseSpindexer()))
         .onFalse(new StopIntake());
 
 
