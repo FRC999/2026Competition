@@ -335,7 +335,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     if (!Double.isFinite(rawHubTargetDeg)) {
       return Double.NaN;
     }
-    return chooseSoftLimitedEquivalent(rawHubTargetDeg, Timer.getFPGATimestamp());
+    return chooseSoftLimitedEquivalent(
+        applyTurretAutoAimTrim(rawHubTargetDeg),
+        Timer.getFPGATimestamp());
   }
 
   private void resetTurretSetpointFilter() {
@@ -458,7 +460,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
       if (aimEnabled && target2d != null) {
         rawDesiredTurretDeg =
-            TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d);
+            applyTurretAutoAimTrim(
+                TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d));
 
         boolean turretZoneValid =
             Double.isFinite(rawDesiredTurretDeg)
@@ -574,15 +577,17 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       if (ballisticValid) {
         if (isStaticForPredict) {
           rawDesiredTurretDeg =
-              TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d);
+              applyTurretAutoAimTrim(
+                  TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d));
         } else {
           rawDesiredTurretDeg =
-              computeDesiredTurretDeg(
-                  poseField.getRotation().getRadians(),
-                  omegaForPredict,
-                  Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
-                  lastSolution.yawFieldRad,
-                  Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG);
+              applyTurretAutoAimTrim(
+                  computeDesiredTurretDeg(
+                      poseField.getRotation().getRadians(),
+                      omegaForPredict,
+                      Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
+                      lastSolution.yawFieldRad,
+                      Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG));
         }
       } else {
         rawDesiredTurretDeg = Double.NaN;
@@ -1169,6 +1174,14 @@ return new TurretHelpers.Solution(
         robotRelative - Math.toRadians(turretZeroOffsetFromRobotFwdDeg));
 
     return Math.toDegrees(robotRelative);
+  }
+
+  private static double applyTurretAutoAimTrim(double desiredTurretDeg) {
+    if (!Double.isFinite(desiredTurretDeg)) {
+      return Double.NaN;
+    }
+
+    return desiredTurretDeg + Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG;
   }
 
   /** Simple aim check: compare current continuous turret angle to desired. */

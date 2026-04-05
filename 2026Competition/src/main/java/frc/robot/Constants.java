@@ -499,6 +499,11 @@ public final class Constants {
        */
       public static final double ZERO_OFFSET_FROM_ROBOT_FWD_DEG = 180.0; // 180.0
       /**
+       * Global turret auto-aim trim relative to the computed target direction.
+       * Positive values shift the turret counterclockwise.
+       */
+      public static final double AUTO_AIM_TRIM_DEG = 11.0;
+      /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
        */
