@@ -191,8 +191,10 @@ public class TransferSubsystem extends SubsystemBase {
 
   /** Run transfer at a raw duty cycle in [-1, +1]. */
   public void runDuty(double dutyCycle) {
-    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
-      stop();
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+    if (RobotContainer.isPanicStopActive()) {
       return;
     }
 
@@ -202,8 +204,10 @@ public class TransferSubsystem extends SubsystemBase {
 
   /** Run transfer at a target rotor speed in RPS (closed-loop). */
   public void runVelocityRps(double targetRps) {
-    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
-      stop();
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+    if (RobotContainer.isPanicStopActive()) {
       return;
     }
 
@@ -219,7 +223,7 @@ public class TransferSubsystem extends SubsystemBase {
 
     commandedDuty = 0.0;
     commandedRps = 0.0;
-    motor.setControl(duty.withOutput(0.0));
+    motor.stopMotor();
   }
 
   /**
@@ -227,8 +231,10 @@ public class TransferSubsystem extends SubsystemBase {
    * if throat is already occupied.
    */
   public void runStage() {
-    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
-      stop();
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+    if (RobotContainer.isPanicStopActive()) {
       return;
     }
 
@@ -273,8 +279,10 @@ public class TransferSubsystem extends SubsystemBase {
    * the shooter.
    */
   public void runFeed() {
-    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
-      stop();
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+    if (RobotContainer.isPanicStopActive()) {
       return;
     }
 
@@ -283,8 +291,10 @@ public class TransferSubsystem extends SubsystemBase {
   }
 
   public void reverseTransfer() {
-    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
-      stop();
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+    if (RobotContainer.isPanicStopActive()) {
       return;
     }
 
@@ -293,8 +303,10 @@ public class TransferSubsystem extends SubsystemBase {
   }
 
   public void runThroat() {
-    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
-      stop();
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+    if (RobotContainer.isPanicStopActive()) {
       return;
     }
 
@@ -313,8 +325,10 @@ public class TransferSubsystem extends SubsystemBase {
    * FIRING state).
    */
   public void runFeedMetered() {
-    if (!EnabledSubsystems.transfer || RobotContainer.isPanicStopActive()) {
-      stop();
+    if (!EnabledSubsystems.transfer) {
+      return;
+    }
+    if (RobotContainer.isPanicStopActive()) {
       return;
     }
 

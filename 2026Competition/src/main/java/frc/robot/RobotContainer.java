@@ -119,6 +119,7 @@ public class RobotContainer {
   private static final Joystick turretStick = new Joystick(0);
   private static final Joystick turretStick2 = new Joystick(1);
   public static final Joystick bb = new Joystick(OIContants.BUTTON_BOX);
+  private static boolean panicStopLatched = false;
 
   //public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
@@ -280,9 +281,13 @@ public class RobotContainer {
         < OIContants.BB_HUB_TRACKING_DISABLE_THRESHOLD;
   }
 
-  public static boolean isPanicStopActive() {
+  private static boolean isPanicSwitchActive() {
     return bb.getRawAxis(OIContants.BB_PANIC_STOP_AXIS)
         > OIContants.BB_PANIC_STOP_THRESHOLD;
+  }
+
+  public static boolean isPanicStopActive() {
+    return panicStopLatched;
   }
 
   private static void applyPanicStop() {
@@ -318,21 +323,20 @@ public class RobotContainer {
   }
 
   private void competitionXBOXButtonBindings() {
-    Trigger panicStopTrigger = new Trigger(RobotContainer::isPanicStopActive);
+    panicStopLatched = isPanicSwitchActive();
+    if (panicStopLatched) {
+      cancelAllCommandsForPanicStop();
+    }
+
+    Trigger panicStopTrigger = new Trigger(RobotContainer::isPanicSwitchActive);
     Trigger panicInactiveTrigger = new Trigger(() -> !RobotContainer.isPanicStopActive());
 
     panicStopTrigger
-        .onTrue(new InstantCommand(RobotContainer::cancelAllCommandsForPanicStop))
-        .whileTrue(new RunCommand(
-            RobotContainer::applyPanicStop,
-            autoShootSupervisorSubsystem,
-            shooterSubsystem,
-            transferSubsystem,
-            spindexerSubsystem,
-            turretSubsystem,
-            hoodSubsystem,
-            intakeSubsystem,
-            climbSubsystem));
+        .onTrue(new InstantCommand(() -> {
+          panicStopLatched = true;
+          cancelAllCommandsForPanicStop();
+        }))
+        .onFalse(new InstantCommand(() -> panicStopLatched = false));
 
     
    new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
