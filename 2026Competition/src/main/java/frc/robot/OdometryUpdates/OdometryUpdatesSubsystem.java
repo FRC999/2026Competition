@@ -304,6 +304,16 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       SmartDashboard.putBoolean("Odometry/GatePassOverride", gatePassOverride);
     }
 
+    int desiredIMUMode;
+    if (state != VisionState.CALIBRATED) {
+      desiredIMUMode = LLVisionConstants.LL_IMU_MODE_SEED;
+    } else if (RobotContainer.llAprilTagSubsystem.hasReliableMultiTagMegaTag1Observation()) {
+      desiredIMUMode = LLVisionConstants.LL_IMU_MODE_TRACKING_MT1_ASSIST;
+    } else {
+      desiredIMUMode = LLVisionConstants.LL_IMU_MODE_TRACKING_INTERNAL;
+    }
+    RobotContainer.llAprilTagSubsystem.ensureIMUMode(desiredIMUMode);
+
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
     RobotContainer.llAprilTagSubsystem.setLLOrientation(
         robotPose.getRotation().getDegrees(),

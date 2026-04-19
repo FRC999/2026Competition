@@ -12,8 +12,13 @@ public class LLAprilTagConstants {
 
     public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2026RebuiltAndymark; // Field Layout - changes year-to-year
 	
-	/** Limelight IMU mode for MT2: 0=external only, 1=external seeds LL IMU, 2=internal. */
-	public static final int LL_IMU_MODE = 1;
+	/** Seed LL4 internal IMU from robot yaw while waiting for first reliable field anchor. */
+	public static final int LL_IMU_MODE_SEED = 1;
+	/** Use LL4 internal IMU only for MT2 after initial anchoring. */
+	public static final int LL_IMU_MODE_TRACKING_INTERNAL = 2;
+	/** Allow MT1 to gently correct LL4 internal IMU, but only while reliable multi-tag MT1 is visible. */
+	public static final int LL_IMU_MODE_TRACKING_MT1_ASSIST = 3;
+	public static final double LL_IMU_ASSIST_ALPHA = 0.001;
 		
 	public static enum LLCamera {
 

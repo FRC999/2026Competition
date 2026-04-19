@@ -35,7 +35,7 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   private static final LLCamera[] APRILTAG_CAMERAS = LLCamera.values();
   public static AprilTagFieldLayout fieldLayout;
   
-  private boolean imuModeSet = false;
+  private int currentIMUMode = Integer.MIN_VALUE;
   private double lastOrientationYawDeg = Double.NaN;
   private double lastOrientationYawRateDegPerSec = Double.NaN;
   private double lastOrientationUpdateTs = Double.NEGATIVE_INFINITY;
@@ -153,6 +153,24 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     lastOrientationUpdateTs = now;
   }
 
+  public void ensureIMUMode(int mode) {
+    if (currentIMUMode == mode) {
+      return;
+    }
+
+    for (LLCamera llcamera : APRILTAG_CAMERAS) {
+      String cameraName = llcamera.getCameraName();
+      LimelightHelpers.SetIMUMode(cameraName, mode);
+      if (mode == LLAprilTagConstants.LLVisionConstants.LL_IMU_MODE_TRACKING_MT1_ASSIST) {
+        LimelightHelpers.setLimelightNTDouble(
+            cameraName,
+            "imuassistalpha_set",
+            LLAprilTagConstants.LLVisionConstants.LL_IMU_ASSIST_ALPHA);
+      }
+    }
+    currentIMUMode = mode;
+  }
+
   private boolean hasValidPoseEstimate(PoseEstimate pe) {
     return pe != null && pe.tagCount > 0 && pe.rawFiducials != null && pe.rawFiducials.length > 0;
   }
@@ -165,6 +183,16 @@ public class LLAprilTagSubsystem extends SubsystemBase {
   private PoseEstimate getMegaTag2PoseEstimate(String cameraName) {
     PoseEstimate poseEstimate = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(cameraName);
     return hasValidPoseEstimate(poseEstimate) ? poseEstimate : null;
+  }
+
+  public boolean hasReliableMultiTagMegaTag1Observation() {
+    for (LLCamera llcamera : APRILTAG_CAMERAS) {
+      PoseEstimate megaTag1 = getMegaTag1PoseEstimate(llcamera.getCameraName());
+      if (megaTag1 != null && megaTag1.tagCount >= INITIAL_SEED_MT1_MIN_TAGS) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -396,14 +424,6 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     
     if (!EnabledSubsystems.ll) {
       return;
-    }
-
-    // One-time IMU mode set: 1 = mirror external yaw into LL IMU (keeps MT2/IMU consistent).
-    if (!imuModeSet) {
-      for (LLCamera llcamera : APRILTAG_CAMERAS) {
-        LimelightHelpers.SetIMUMode(llcamera.getCameraName(),  LLAprilTagConstants.LLVisionConstants.LL_IMU_MODE);
-      }
-      imuModeSet = true;
     }
 
     if (DebugTelemetrySubsystems.ll) {
