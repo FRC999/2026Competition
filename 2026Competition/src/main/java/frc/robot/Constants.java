@@ -110,7 +110,7 @@ public final class Constants {
     public static final boolean chasis = true;
     public static final boolean odometry = true;
     public static final boolean ll = true;
-    public static final boolean intake = true;
+    public static final boolean intake = false;
     public static final boolean shooter = true;
     public static final boolean turret = true;
     public static final boolean hood = true;
@@ -129,15 +129,15 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean llLight = false;
     public static final boolean perfLight = false;
-    public static final boolean intake = true;
-    public static final boolean shooter = false;
-    public static final boolean turret = false;
+    public static final boolean intake = false;
+    public static final boolean shooter = true;
+    public static final boolean turret = true;
     public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public stati final boolean spindexer = true;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
+    public static final boolean supervisor = true;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = false;
 
@@ -454,8 +454,11 @@ public final class Constants {
       /** CANcoder magnet offset in rotations. Matches Phoenix Tuner. */
       public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521 - 0.023926 - 0.002197 - 0.0003 + 0.018;
 
-      /** After applying magnet offset, turret-zero should read 0.0 rotations. */
-      public static final double ABS_ZERO_ROTATIONS = 0.0;
+      /**
+       * After applying magnet offset, turret-zero should read this absolute rotation.
+       * Calibrated from the CANcoder absolute reading captured at physical turret zero.
+       */
+      public static final double ABS_ZERO_ROTATIONS = 0.007568;
 
       /**
        * Boot assumption: at robot power-on, turret is within +/- 0.5 motor-pinion
