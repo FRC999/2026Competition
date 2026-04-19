@@ -24,6 +24,7 @@ import frc.robot.lib.VisionHelpers;
 
 public class OdometryUpdatesSubsystem extends SubsystemBase {
   private static final int PERF_PUBLISH_EVERY_LOOPS = 25;
+  private static final double INITIAL_MT1_SEED_WAIT_BEFORE_MT2_FALLBACK_SEC = 5.0;
   /**
    * Limelight AprilTag pose estimation needs a good robot yaw to disambiguate tags,
    * especially when using MegaTag2. This subsystem assumes the drivetrain IMU
@@ -35,11 +36,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
    * The subsystem publishes drivetrain yaw to the Limelights and immediately moves
    * into the seeking state.
    *
-   * SEEKING_TAGS
-   * The robot is waiting for the first good AprilTag-based field pose.
-   * Limelight yaw continues to come from drivetrain odometry/Pigeon.
-   * Once a valid pose estimate is found, the drivetrain IMU yaw and CTRE pose are
-   * reset to that field pose and the state transitions to CALIBRATED.
+ * SEEKING_TAGS
+ * The robot is waiting for the first good AprilTag-based field pose.
+ * Limelight yaw continues to come from drivetrain odometry/Pigeon.
+ * Startup anchoring prefers a two-tag MegaTag1 solution because it can correct a
+ * slightly-wrong boot heading. If that is not available, MegaTag2 is used as the
+ * fallback to avoid waiting forever.
+ * Once a valid pose estimate is found, the drivetrain IMU yaw and CTRE pose are
+ * reset to that field pose and the state transitions to CALIBRATED.
    *
    * CALIBRATED
    * The robot has a field anchor and now runs LL-only vision fusion.
@@ -74,6 +78,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private int transitionSeq = 0;
 
   private boolean gatePassOverride = true;
+  private boolean initialVisionAnchorComplete = false;
   private boolean hasRequestedReanchor = false;
   private int loopsSinceSeed = 0;
   private boolean visionReady = false;
@@ -196,6 +201,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     RobotContainer.driveSubsystem.resetChassisIMUToAngle(poseEstimate.pose.getRotation().getDegrees());
     RobotContainer.driveSubsystem.resetCTREPose(poseEstimate.pose);
     gatePassOverride = false;
+    initialVisionAnchorComplete = true;
 
     if (RobotContainer.llAprilTagSubsystem.wasLastBestPoseMegaTag1()) {
       scheduleDelayedMegaTag1Recalibration();
@@ -303,20 +309,29 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         robotPose.getRotation().getDegrees(),
         RobotContainer.driveSubsystem.getTurnRate());
 
-    LimelightHelpers.PoseEstimate bestPoseEstimate = Constants.EnabledSubsystems.ll
-        ? RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL()
-        : null;
-    String bestCameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
-
     switch (state) {
       case INITIALIZE -> transitionTo(VisionState.SEEKING_TAGS, "Initialized LL-only odometry");
       case SEEKING_TAGS -> {
-        if (bestPoseEstimate != null && bestCameraName != null) {
-          resetRobotPoseFromVision(bestPoseEstimate);
+        boolean allowMegaTag2SeedFallback =
+            initialVisionAnchorComplete
+                || Timer.getFPGATimestamp() - lastTransitionTime
+                    >= INITIAL_MT1_SEED_WAIT_BEFORE_MT2_FALLBACK_SEC;
+        LimelightHelpers.PoseEstimate seedPoseEstimate = Constants.EnabledSubsystems.ll
+            ? RobotContainer.llAprilTagSubsystem.getInitialSeedPoseEstimateFromAllLL(allowMegaTag2SeedFallback)
+            : null;
+        String seedCameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
+        if (seedPoseEstimate != null
+            && seedCameraName != null
+            && !shouldRejectPoseEstimate(seedPoseEstimate)) {
+          resetRobotPoseFromVision(seedPoseEstimate);
           transitionTo(VisionState.CALIBRATED, "Good LL fix; anchored field pose");
         }
       }
       case CALIBRATED -> {
+        LimelightHelpers.PoseEstimate bestPoseEstimate = Constants.EnabledSubsystems.ll
+            ? RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL()
+            : null;
+        String bestCameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
         if (bestPoseEstimate != null && bestCameraName != null) {
           fusePoseEstimate(bestPoseEstimate, bestCameraName, true);
         }
