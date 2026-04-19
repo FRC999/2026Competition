@@ -965,7 +965,6 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     }
     if(DebugTelemetrySubsystems.turret){
     // Telemetry block: expose key state for debugging and tuning.
-      SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
       SmartDashboard.putNumber("Turret/VelDegPerSec", getVelocityDegPerSec());
       SmartDashboard.putNumber("Turret/VelDegPerSecRaw", rawVelDegPerSec);
       SmartDashboard.putNumber("Turret/AngleDeg_Unclamped", continuousDegUnclamped);

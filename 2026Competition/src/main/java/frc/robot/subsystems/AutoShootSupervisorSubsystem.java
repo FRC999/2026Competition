@@ -1242,12 +1242,37 @@ return new TurretHelpers.Solution(
   }
 
   private void publishTelemetry() {
-    SmartDashboard.putNumber("Turret/HubTargetRelativeAngleDeg", getHubTargetRelativeAngleDeg());
-    SmartDashboard.putNumber("Turret/HubCommandRelativeAngleDeg", getHubCommandRelativeAngleDeg());
-
     if (!Constants.DebugTelemetrySubsystems.supervisor) {
       return;
     }
+
+    Pose2d robotPoseField = RobotContainer.driveSubsystem.getPose();
+    Translation2d aimTargetField = getAllianceAwareAimTarget(currentAimTarget);
+    Translation2d turretCenterField =
+        robotPoseField.getTranslation().plus(
+            Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+                .rotateBy(robotPoseField.getRotation()));
+
+    double currentTurretRelativeDeg = RobotContainer.turretSubsystem.getContinuousAngleDeg();
+    double currentTurretFieldDeg = MathUtil.inputModulus(
+        robotPoseField.getRotation().getDegrees()
+            + Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG
+            + currentTurretRelativeDeg,
+        -180.0,
+        180.0);
+    double targetYawFieldDeg = Math.toDegrees(
+        Math.atan2(
+            aimTargetField.getY() - turretCenterField.getY(),
+            aimTargetField.getX() - turretCenterField.getX()));
+
+    SmartDashboard.putNumber("Turret/HubTargetRelativeAngleDeg", getHubTargetRelativeAngleDeg());
+    SmartDashboard.putNumber("Turret/HubCommandRelativeAngleDeg", getHubCommandRelativeAngleDeg());
+    SmartDashboard.putNumber("Turret/AimTargetX", aimTargetField.getX());
+    SmartDashboard.putNumber("Turret/AimTargetY", aimTargetField.getY());
+    SmartDashboard.putNumber("Turret/TurretCenterX", turretCenterField.getX());
+    SmartDashboard.putNumber("Turret/TurretCenterY", turretCenterField.getY());
+    SmartDashboard.putNumber("Turret/CurrentAbsoluteFieldAngleDeg", currentTurretFieldDeg);
+    SmartDashboard.putNumber("Turret/TargetYawFieldDeg", targetYawFieldDeg);
 
     SmartDashboard.putString("AutoShoot/State", state.toString());
     SmartDashboard.putString("AutoShoot/SolutionValidity", solutionValidity.toString());
