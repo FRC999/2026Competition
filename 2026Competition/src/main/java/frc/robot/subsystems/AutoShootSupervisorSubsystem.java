@@ -90,6 +90,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   private boolean shotCooldownActive = false;
   private boolean lastBallAtThroat = false;
   private double shootRequestStartTs = -1.0;
+  private boolean calibrationActive = false;
   private static final double FEED_FORCE_START_AFTER_S = 1.0;
   private long periodicRuntimeAccumNs = 0L;
   private long periodicRuntimeMaxNs = 0L;
@@ -311,6 +312,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     return shotMode;
   }
 
+  private boolean isManualCalibrationShotMode() {
+    return Constants.DebugTelemetrySubsystems.calibration && shotMode == ShotMode.MANUAL_FIXED;
+  }
+
   private static double applyManualShotRpmTrim(double baseRpm) {
     return Math.max(
         0.0,
@@ -318,11 +323,11 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   }
 
   public void setCalibrationActive(boolean active) {
-    Constants.EnabledSubsystems.calibration = active;
+    calibrationActive = active;
   }
 
   public boolean isCalibrationActive() {
-    return Constants.EnabledSubsystems.calibration;
+    return calibrationActive;
   }
 
   public double getHubTargetRelativeAngleDeg() {
@@ -450,10 +455,12 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     var driveState = RobotContainer.driveSubsystem.getState();
     var poseField = driveState.Pose;
     //System.out.println("Pose to autoshoot: " + poseField.toString());
+    final boolean calibrationManualShotMode = isManualCalibrationShotMode();
     boolean manualTurretMode = RobotContainer.isHubTrackingDisabledByButtonBox();
     boolean aimEnabled =
         (Constants.OperatorConstants.AutoShoot.ALWAYS_AIM || effectiveShootRequested)
-            && !manualTurretMode;
+            && !manualTurretMode
+            && !calibrationManualShotMode;
     boolean shouldComputeAimTarget = aimEnabled || effectiveShootRequested;
 
     Translation2d target2d = null;
@@ -592,7 +599,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       final double omegaForPredict = isStaticForPredict ? 0.0 : omega;
 
       if (ballisticValid) {
-        if (isStaticForPredict) {
+        if (calibrationManualShotMode) {
+          rawDesiredTurretDeg = Double.NaN;
+        } else if (isStaticForPredict) {
           rawDesiredTurretDeg =
               applyTurretAutoAimTrim(
                   TurretHelpers.computeStationaryRawTurretYawDeg(poseField, target2d));
@@ -611,7 +620,8 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       }
 
       boolean turretZoneValid =
-          ballisticValid && isTurretWithinLegalShootZone(rawDesiredTurretDeg);
+          calibrationManualShotMode
+              || (ballisticValid && isTurretWithinLegalShootZone(rawDesiredTurretDeg));
 
       if (!ballisticValid) {
         solutionValidity = SolutionValidity.GLOBAL_INVALID;
@@ -622,7 +632,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       }
 
       desiredTurretDeg =
-          Double.isFinite(rawDesiredTurretDeg)
+          !calibrationManualShotMode && Double.isFinite(rawDesiredTurretDeg)
               ? chooseSoftLimitedEquivalent(rawDesiredTurretDeg, now)
               : Double.NaN;
     }
@@ -639,7 +649,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
         boolean suppress = now < suppressShootUntilTs;
 
-    boolean turretAimed = manualTurretMode || isTurretAimed(desiredTurretDeg);
+    boolean turretAimed = calibrationManualShotMode || manualTurretMode || isTurretAimed(desiredTurretDeg);
     boolean shooterReady = RobotContainer.shooterSubsystem.isReadyToShoot();
     boolean ballAtThroat = RobotContainer.transferSubsystem.hasBallAtThroat();
     if (lastBallAtThroat && !ballAtThroat) {

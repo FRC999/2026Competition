@@ -64,7 +64,18 @@ public class ShootWhileHeld extends Command {
     headingPid.enableContinuousInput(-180.0, 180.0);
   }
 
+  private boolean isManualCalibrationShot() {
+    return Constants.DebugTelemetrySubsystems.calibration
+        && mode == AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED;
+  }
+
   private void applyInvalidShotRumble() {
+    if (isManualCalibrationShot()) {
+      RobotContainer.getDriveController().setRumble(RumbleType.kLeftRumble, 0.0);
+      RobotContainer.getDriveController().setRumble(RumbleType.kRightRumble, 0.0);
+      return;
+    }
+
     var validity = RobotContainer.autoShootSupervisorSubsystem.getSolutionValidity();
 
     double left = 0.0;
@@ -86,6 +97,10 @@ public class ShootWhileHeld extends Command {
   @Override
   public void initialize() {
     System.out.println("Shoot while held called");
+    if (isManualCalibrationShot()) {
+      RobotContainer.getDriveController().setRumble(RumbleType.kLeftRumble, 0.0);
+      RobotContainer.getDriveController().setRumble(RumbleType.kRightRumble, 0.0);
+    }
     RobotContainer.autoShootSupervisorSubsystem.setShotMode(mode);
     RobotContainer.autoShootSupervisorSubsystem.setShootRequested(true);
 

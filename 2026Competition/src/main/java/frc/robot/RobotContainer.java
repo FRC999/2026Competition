@@ -252,7 +252,7 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      configureShooterCalibrationBindings(); 
+      //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
       //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
@@ -260,7 +260,7 @@ public class RobotContainer {
       //configureSpindexerCalibrationBindings();
     }
     competitionXBOXButtonBindings();
-    //betaTesting();
+    betaTesting();
     //setYaws();
 
     new JoystickButton(xboxDriveController, 8) // Left of X
@@ -664,20 +664,13 @@ public class RobotContainer {
 
 
   private void configureShooterCalibrationBindings() {
-    // TODO: PLACEHOLDER - pick real button numbers (ok to reuse across subsystems
-    // if you disable others)
+    // Calibration bindings are intentionally isolated from beta-testing turretStick
+    // bindings so the calibration burst never routes through ShootWhileHeld.
     final int BTN_SHOOTER_SET_RPM_A = 1;
     final int BTN_SHOOTER_SET_RPM_B = 2;
     final int BTN_SHOOTER_STOP = 3;
-
-    // Runs your existing volley state machine command (hold)
-    final int BTN_SHOOTER_AUTOSHOOT_UNTIL_EMPTY = 4;
-
-    // SysId routines (hold)
-    final int BTN_SHOOTER_SYSID_QS_FWD = 9;
-    final int BTN_SHOOTER_SYSID_QS_REV = 10;
-    final int BTN_SHOOTER_SYSID_DYN_FWD = 11;
-    final int BTN_SHOOTER_SYSID_DYN_REV = 12;
+    final int BTN_SHOOTER_CAL_BURST_A = 11;
+    final int BTN_SHOOTER_CAL_BURST_B = 12;
 
     // TODO: PLACEHOLDER - choose two practical calibration RPMs
     final double RPM_A = 2000.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
@@ -743,8 +736,11 @@ public class RobotContainer {
           hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
         }));
 
-    // new JoystickButton(turretStick, 2)
-    // .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
+    new JoystickButton(turretStick, BTN_SHOOTER_CAL_BURST_A)
+        .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
+
+    new JoystickButton(turretStick, BTN_SHOOTER_CAL_BURST_B)
+        .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_B));
 
     // Auto shoot until empty (hold)
     // new JoystickButton(turretStick, 4)
