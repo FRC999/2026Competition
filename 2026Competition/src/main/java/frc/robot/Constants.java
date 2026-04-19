@@ -134,7 +134,7 @@ public final class Constants {
     public static final boolean turret = true;
     public static final boolean hood = false;
     public static final boolean hopper = false;
-    public stati final boolean spindexer = true;
+    public static final boolean spindexer = true;
     public static final boolean transfer = true;
     public static final boolean climber = false;
     public static final boolean supervisor = true;
