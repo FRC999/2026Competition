@@ -456,10 +456,10 @@ public final class Constants {
       public static final double ABS_ZERO_ROTATIONS = 0.0;
 
       /**
-       * Boot assumption: at robot power-on, turret is within +/- 120 degrees of
-       * turret zero.
+       * Boot assumption: at robot power-on, turret is within a narrow window around
+       * turret zero so the pinion-mounted CANcoder can seed unambiguously.
        */
-      public static final double BOOT_MAX_ABS_DEG = 120.0;
+      public static final double BOOT_MAX_ABS_DEG = 15.0;
 
       /** Mechanical safe range relative to forward (degrees). */
       public static final double MIN_ANGLE_DEG = -110.0; // CW hard stop -100
