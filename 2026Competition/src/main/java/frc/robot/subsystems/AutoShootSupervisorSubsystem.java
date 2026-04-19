@@ -675,8 +675,6 @@ lastBallAtThroat = ballAtThroat;
 
       // Log raw desired turret angle
       SmartDashboard.putNumber("TurretTesting/RawDesiredTurretDeg", rawDesiredTurretDeg);
-      SmartDashboard.putNumber("Turret/CurrentAngle", RobotContainer.turretSubsystem.getContinuousAngleDeg()); 
-
       // Log CTRE pose (if available)
       SmartDashboard.putNumber("TurretTesting/RobotPoseX", poseField.getX());
       SmartDashboard.putNumber("TurretTesting/RobotPoseY", poseField.getY());
@@ -1263,9 +1261,11 @@ return new TurretHelpers.Solution(
   }
 
   private void publishTelemetry() {
-    SmartDashboard.putNumber("Turret/HubTargetRelativeAngleDeg", getHubTargetRelativeAngleDeg());
-    SmartDashboard.putNumber("Turret/HubCommandRelativeAngleDeg", getHubCommandRelativeAngleDeg());
-    SmartDashboard.putNumber("Turret/AutoAimTrimDeg", Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG);
+    if (Constants.DebugTelemetrySubsystems.supervisor || Constants.DebugTelemetrySubsystems.turret) {
+      SmartDashboard.putNumber("Turret/HubTargetRelativeAngleDeg", getHubTargetRelativeAngleDeg());
+      SmartDashboard.putNumber("Turret/HubCommandRelativeAngleDeg", getHubCommandRelativeAngleDeg());
+      SmartDashboard.putNumber("Turret/AutoAimTrimDeg", Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG);
+    }
     SmartDashboard.putNumber(
         "AutoShoot/ManualShotRpmTrimPercent",
         Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT * 100.0);

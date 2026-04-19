@@ -458,10 +458,12 @@ public final class Constants {
       public static final double ABS_ZERO_ROTATIONS = 0.0;
 
       /**
-       * Boot assumption: at robot power-on, turret is within +/- 120 degrees of
-       * turret zero.
+       * Boot assumption: at robot power-on, turret is within +/- 0.5 motor-pinion
+       * rotation of turret zero.
        */
-      public static final double BOOT_MAX_ABS_DEG = 120.0;
+      public static final double BOOT_MAX_ABS_MOTOR_ROT = 0.5;
+      public static final double BOOT_MAX_ABS_DEG =
+          BOOT_MAX_ABS_MOTOR_ROT * 360.0 * (20.0 / 220.0);
 
       /** Mechanical safe range relative to forward (degrees). */
       public static final double MIN_ANGLE_DEG = -110.0; // CW hard stop -100
@@ -504,7 +506,7 @@ public final class Constants {
        * Global turret auto-aim trim relative to the computed target direction.
        * Positive values shift the turret counterclockwise.
        */
-      public static double AUTO_AIM_TRIM_DEG = 15.0; //11
+      public static double AUTO_AIM_TRIM_DEG = 0.0;
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
