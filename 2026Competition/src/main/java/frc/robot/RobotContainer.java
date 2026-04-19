@@ -452,12 +452,12 @@ public class RobotContainer {
             false));
 
     // Button 3: STATIC HUB BASE shot while held (drivetrain hold heading)
-    new JoystickButton(xboxDriveController, 3) // X
-        .and(new Trigger(() -> !RobotContainer.isHubTrackingDisabledByButtonBox()))
-        .and(panicInactiveTrigger)
-        .whileTrue(new ShootWhileHeld(
-            AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
-            true));
+    // new JoystickButton(xboxDriveController, 3) // X
+    //     .and(new Trigger(() -> !RobotContainer.isHubTrackingDisabledByButtonBox()))
+    //     .and(panicInactiveTrigger)
+    //     .whileTrue(new ShootWhileHeld(
+    //         AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
+    //         true));
 
     // Button B: STATIC TOWER BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 2) // B

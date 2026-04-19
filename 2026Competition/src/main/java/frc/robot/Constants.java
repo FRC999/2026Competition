@@ -132,7 +132,7 @@ public final class Constants {
     public static final boolean intake = false;
     public static final boolean shooter = true;
     public static final boolean turret = true;
-    public static final boolean hood = false;
+    public static final boolean hood = true;
     public static final boolean hopper = false;
     public static final boolean spindexer = true;
     public static final boolean transfer = true;
@@ -871,13 +871,14 @@ public final class Constants {
       public static final double STATIONARY_ASSIST_TRIGGER_THRESHOLD = 0.30;
 
       /**
-       * Additional comfort margin inside turret hard limits for deciding when the
-       * chassis should auto-turn to make a shot legal.
+       * Shared comfort margin inside turret hard limits for both:
+       * - deciding when the chassis should auto-turn to make a shot legal
+       * - deciding when the shot is actually legal enough to feed
        *
-       * With turret hard limits of [-110, +110], a value of 10 creates a comfort
-       * window of [-100, +100].
+       * With turret hard limits of [-110, +110], a value of 15 creates a comfort
+       * window of [-95, +95].
        */
-      public static final double STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG = 10.0;
+      public static final double STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG = 15.0;
 
       /**
        * Fixed robot angular speed for the stationary illegal-shot auto-turn assist.

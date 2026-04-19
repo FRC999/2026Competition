@@ -161,6 +161,18 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         || !isReasonablePose(poseEstimate.pose);
   }
 
+  private boolean shouldRejectInitialSeedPoseEstimate(LimelightHelpers.PoseEstimate poseEstimate) {
+    if (poseEstimate == null || poseEstimate.tagCount <= 0 || poseEstimate.rawFiducials == null
+        || poseEstimate.rawFiducials.length == 0) {
+      return true;
+    }
+
+    double ambiguity = MathUtil.clamp(poseEstimate.rawFiducials[0].ambiguity, 0.0, 1.0);
+    return (poseEstimate.tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity)
+        || poseEstimate.rawFiducials[0].distToCamera > LLVisionConstants.kMaxInitialSeedCameraToTargetDistance
+        || !isReasonablePose(poseEstimate.pose);
+  }
+
   private boolean fusePoseEstimate(LimelightHelpers.PoseEstimate poseEstimate, String cameraName, boolean strict) {
     if (shouldRejectPoseEstimate(poseEstimate)) {
       VisionHelpers.clearLLTelemetry(cameraName);
@@ -332,7 +344,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         String seedCameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
         if (seedPoseEstimate != null
             && seedCameraName != null
-            && !shouldRejectPoseEstimate(seedPoseEstimate)) {
+            && !shouldRejectInitialSeedPoseEstimate(seedPoseEstimate)) {
           resetRobotPoseFromVision(seedPoseEstimate);
           transitionTo(VisionState.CALIBRATED, "Good LL fix; anchored field pose");
         }

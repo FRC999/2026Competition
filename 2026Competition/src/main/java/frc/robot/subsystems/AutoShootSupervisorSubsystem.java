@@ -203,9 +203,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         if (!isStatic) {
           solution = solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
         } else {
-      final double dx = target2d.getX() - poseField.getX();
-      final double dy = target2d.getY() - poseField.getY();
-      final double yawFieldRad = Math.atan2(dy, dx);
+      final double yawFieldRad = computeStaticYawFieldRadFromTurretCenter(poseField, target2d);
 
             double shooterRpm;
       final double hoodAngleRad;
@@ -349,6 +347,19 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
   private void resetTurretSetpointFilter() {
     filteredDesiredTurretDeg = Double.NaN;
+  }
+
+  private static double computeStaticYawFieldRadFromTurretCenter(
+      Pose2d poseField,
+      Translation2d target2d) {
+    Translation2d turretCenterField =
+        poseField.getTranslation().plus(
+            Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+                .rotateBy(poseField.getRotation()));
+
+    return Math.atan2(
+        target2d.getY() - turretCenterField.getY(),
+        target2d.getX() - turretCenterField.getX());
   }
 
   private double smoothTurretSetpoint(double requestedDeg) {
@@ -495,9 +506,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
       if (shotMode == ShotMode.MOVING_AUTO) {
         lastSolution = solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
       } else {
-        final double dx = target2d.getX() - poseField.getX();
-        final double dy = target2d.getY() - poseField.getY();
-        final double yawFieldRad = Math.atan2(dy, dx);
+        final double yawFieldRad = computeStaticYawFieldRadFromTurretCenter(poseField, target2d);
 
         double shooterRpm;
         final double hoodAngleRad;
@@ -772,7 +781,10 @@ lastBallAtThroat = ballAtThroat;
         shootRequestStartTs >= 0.0
             && (now - shootRequestStartTs) >= FEED_FORCE_START_AFTER_S;
 
-    boolean okToStartFeed = shooterReady || feedTimeoutElapsed;
+    boolean okToStartFeed =
+        (shooterReady || feedTimeoutElapsed)
+            && turretAimed
+            && solutionValidity == SolutionValidity.VALID;
 
     if (shotMode == ShotMode.STATIC_HUB_BASE
         || shotMode == ShotMode.STATIC_TOWER_BASE) {
@@ -1118,9 +1130,13 @@ return new TurretHelpers.Solution(
   }
 
   private static boolean isTurretWithinLegalShootZone(double turretDeg) {
+    double comfortMarginDeg =
+        Constants.OperatorConstants.AutoShoot.STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG;
+    double minDeg = Constants.OperatorConstants.Turret.MIN_ANGLE_DEG + comfortMarginDeg;
+    double maxDeg = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG - comfortMarginDeg;
     return Double.isFinite(turretDeg)
-        && turretDeg >= Constants.OperatorConstants.Turret.MIN_ANGLE_DEG
-        && turretDeg <= Constants.OperatorConstants.Turret.MAX_ANGLE_DEG;
+        && turretDeg >= minDeg
+        && turretDeg <= maxDeg;
   }
 
   private double computeCompensatedHoodAngleRad(double baseHoodRad, double targetRpm) {

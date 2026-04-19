@@ -49,7 +49,8 @@ public class LLAprilTagConstants {
 		}
 
         public static final double kMaxSingleTagAmbiguity = 0.20; // Maximum ambiguity when seeing a single AprilTag
-        public static final double kMaxCameraToTargetDistance = 3.0; //Maximum distance from camera to AprilTag
+        public static final double kMaxCameraToTargetDistance = 3.0; // Maximum distance from camera to AprilTag during normal fusion
+        public static final double kMaxInitialSeedCameraToTargetDistance = 4.0; // Allow a longer range for the first field anchor
 	}
 
     public static final class VisionHelperConstants {
