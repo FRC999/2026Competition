@@ -110,7 +110,7 @@ public final class Constants {
     public static final boolean chasis = true;
     public static final boolean odometry = true;
     public static final boolean ll = true;
-    public static final boolean intake = true;
+    public static final boolean intake = false;
     public static final boolean shooter = true;
     public static final boolean turret = true;
     public static final boolean hood = true;
@@ -129,15 +129,15 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean llLight = false;
     public static final boolean perfLight = false;
-    public static final boolean intake = true;
-    public static final boolean shooter = false;
-    public static final boolean turret = false;
-    public static final boolean hood = false;
+    public static final boolean intake = false;
+    public static final boolean shooter = true;
+    public static final boolean turret = true;
+    public static final boolean hood = true;
     public static final boolean hopper = false;
-    public static final boolean spindexer = false;
-    public static final boolean transfer = false;
+    public static final boolean spindexer = true;
+    public static final boolean transfer = true;
     public static final boolean climber = false;
-    public static final boolean supervisor = false;
+    public static final boolean supervisor = true;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = false;
 
@@ -222,6 +222,8 @@ public final class Constants {
       public static final int BB_MANUAL_SHOT_2M = 2;
       public static final int BB_MANUAL_SHOT_3M = 10;
       public static final int BB_MANUAL_SHOT_4M = 11;
+      public static final int BB_MANUAL_RPM_UP = 2;
+      public static final int BB_MANUAL_RPM_DOWN = 3;
 
       // Xbox inputs used in competition bindings
       public static final int XBOX_BUTTON_A = 1;
@@ -452,14 +454,19 @@ public final class Constants {
       /** CANcoder magnet offset in rotations. Matches Phoenix Tuner. */
       public static final double CANCODER_MAGNET_OFFSET_ROT = -0.134521 - 0.023926 - 0.002197 - 0.0003 + 0.018;
 
-      /** After applying magnet offset, turret-zero should read 0.0 rotations. */
-      public static final double ABS_ZERO_ROTATIONS = 0.0;
+      /**
+       * After applying magnet offset, turret-zero should read this absolute rotation.
+       * Calibrated from the CANcoder absolute reading captured at physical turret zero.
+       */
+      public static final double ABS_ZERO_ROTATIONS = 0.007568;
 
       /**
-       * Boot assumption: at robot power-on, turret is within +/- 120 degrees of
-       * turret zero.
+       * Boot assumption: at robot power-on, turret is within +/- 0.5 motor-pinion
+       * rotation of turret zero.
        */
-      public static final double BOOT_MAX_ABS_DEG = 120.0;
+      public static final double BOOT_MAX_ABS_MOTOR_ROT = 0.5;
+      public static final double BOOT_MAX_ABS_DEG =
+          BOOT_MAX_ABS_MOTOR_ROT * 360.0 * (20.0 / 220.0);
 
       /** Mechanical safe range relative to forward (degrees). */
       public static final double MIN_ANGLE_DEG = -110.0; // CW hard stop -100
@@ -502,7 +509,7 @@ public final class Constants {
        * Global turret auto-aim trim relative to the computed target direction.
        * Positive values shift the turret counterclockwise.
        */
-      public static final double AUTO_AIM_TRIM_DEG = 11.0;
+      public static double AUTO_AIM_TRIM_DEG = 0.0;
       /**
        * When within this margin of a limit, prefer turning the other direction when
        * possible.
@@ -835,6 +842,12 @@ public final class Constants {
       /** Base shooter RPM for the manual fixed shot. */
       public static final double MANUAL_FIXED_SHOT_BASE_RPM = 2200.0; // TODO: tune
 
+      /** Driver-adjustable percent offset applied to manual shot RPM commands. */
+      public static double MANUAL_SHOT_RPM_TRIM_PERCENT = 0.0;
+
+      /** Percent change applied per button-box click while in manual shooting mode. */
+      public static final double MANUAL_SHOT_RPM_TRIM_STEP_PERCENT = 0.02;
+
       /**
        * Shooter RPM trim from the joystick twist ("tail").
        * A twist input of -1..+1 becomes -1000..+1000 RPM.
@@ -858,13 +871,14 @@ public final class Constants {
       public static final double STATIONARY_ASSIST_TRIGGER_THRESHOLD = 0.30;
 
       /**
-       * Additional comfort margin inside turret hard limits for deciding when the
-       * chassis should auto-turn to make a shot legal.
+       * Shared comfort margin inside turret hard limits for both:
+       * - deciding when the chassis should auto-turn to make a shot legal
+       * - deciding when the shot is actually legal enough to feed
        *
-       * With turret hard limits of [-110, +110], a value of 10 creates a comfort
-       * window of [-100, +100].
+       * With turret hard limits of [-110, +110], a value of 15 creates a comfort
+       * window of [-95, +95].
        */
-      public static final double STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG = 10.0;
+      public static final double STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG = 15.0;
 
       /**
        * Fixed robot angular speed for the stationary illegal-shot auto-turn assist.

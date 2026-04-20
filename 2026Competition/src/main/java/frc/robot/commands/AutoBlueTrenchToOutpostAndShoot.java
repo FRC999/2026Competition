@@ -31,14 +31,14 @@ public class AutoBlueTrenchToOutpostAndShoot extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueOutpost", false, false)
-        .alongWith(createDelayedIntakeCycleSequence(5)),
+      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueOutpost", false, false),
+        // .alongWith(createDelayedIntakeCycleSequence(5)),
       new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
         .raceWith(new WaitCommand(5)),
-      new RetractIntakeSequence(),
+      //new RetractIntakeSequence(),
       new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
         .raceWith(new WaitCommand(4)),
-      new RetractIntakeSequence(),
+      //new RetractIntakeSequence(),
       new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
         .raceWith(new WaitCommand(10))
     );

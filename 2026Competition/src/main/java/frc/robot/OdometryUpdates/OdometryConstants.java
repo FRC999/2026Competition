@@ -13,6 +13,11 @@ public class OdometryConstants {
 
   /** Reject obviously invalid field poses before vision fusion. */
   public static final double MAX_REASONABLE_FIELD_COORD_ABS_METERS = 100.0;
+  /** Default duration that all LLs must be blind before a reanchor is armed. */
+  public static final double TAG_LOSS_REANCHOR_ARM_DELAY_SEC_DEFAULT = 2.0;
+  /** Dashboard key for tuning the post-tag-loss reanchor arm delay. */
+  public static final String TAG_LOSS_REANCHOR_ARM_DELAY_DASHBOARD_KEY =
+      "Odometry/TagLossReanchorArmDelaySec";
 
   public static Rotation2d initialYawForAlliance() {
     return DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)

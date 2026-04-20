@@ -73,6 +73,7 @@ import frc.robot.commands.IntakeRezeroFromRetractedHardStop;
 import frc.robot.commands.IntakeToPositionAndHold;
 import frc.robot.commands.NoAuto_Auto;
 import frc.robot.commands.ReverseIntake;
+import frc.robot.commands.ReverseSpindexer;
 import frc.robot.commands.ReverseTransfer;
 import frc.robot.commands.ShootCalibrationBurstWhileHeld;
 import frc.robot.commands.ShootWhileHeld;
@@ -193,7 +194,7 @@ public class RobotContainer {
      autoChooser.addOption("Blue - AutoMiddleToOutpostAndShoot", new AutoBlueMiddleToOutpostAndShoot());
     autoChooser.addOption("Auto Shoot Only", new AutoShootOnly());
 
-    // autoChooser.addOption("Blue - HubSimpleMoveAndShoot ", new AutoBlueHubSimpleMoveAndShoot());
+     autoChooser.addOption("Blue - HubSimpleMoveAndShoot ", new AutoBlueHubSimpleMoveAndShoot());
     // autoChooser.addOption("Red - SimpleMoveAndShootLastResort", new AutoRedSimpleMoveAndShootLastResort());
     // autoChooser.addOption("Red - AutoTrenchToOutpostAndShoot", new AutoRedTrenchToOutpostAndShoot());
     // autoChooser.addOption("Red - HubSimpleMoveAndShoot", new AutoRedHubSimpleMoveAndShoot());
@@ -251,7 +252,7 @@ public class RobotContainer {
     // --- Calibration bindings (easy on/off) ---
     // TODO: PLACEHOLDER: flip this boolean to enable calibration bindings
     if (Constants.DebugTelemetrySubsystems.calibration) {
-      configureShooterCalibrationBindings(); 
+      //configureShooterCalibrationBindings(); 
       //configureHoodCalibrationBindings();
       //configureIntakeCalibrationBindings();
       //configureTurretCalibrationBindings();
@@ -259,7 +260,7 @@ public class RobotContainer {
       //configureSpindexerCalibrationBindings();
     }
     competitionXBOXButtonBindings();
-    //betaTesting();
+    betaTesting();
     //setYaws();
 
     new JoystickButton(xboxDriveController, 8) // Left of X
@@ -364,12 +365,12 @@ public class RobotContainer {
             intakeSubsystem).andThen(new RetractIntakeSequence()));
 
 
-    new JoystickButton(xboxDriveController, 3)
-        .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
-        .whileTrue(new ShootWhileHeld(
-            AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
-            false));
+    // new JoystickButton(xboxDriveController, 3)
+    //     .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+    //     .and(panicInactiveTrigger)
+    //     .whileTrue(new ShootWhileHeld(
+    //         AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
+    //         false));
 
     new JoystickButton(xboxDriveController, 2)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
@@ -378,26 +379,29 @@ public class RobotContainer {
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_3M,
             false));
 
-    // new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_2M)
-    //     .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-    //     .and(panicInactiveTrigger)
-    //     .whileTrue(new ShootWhileHeld(
-    //         AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_2M,
-    //         true));
+    new JoystickButton(bb, OIContants.BB_MANUAL_RPM_UP)
+        .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
+        .and(panicInactiveTrigger)
+        .onTrue(new InstantCommand(
+            () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT +=
+                Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_PERCENT));
 
-    // new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
-    //     .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-    //     .and(panicInactiveTrigger)
-    //     .whileTrue(new ShootWhileHeld(
-    //         AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_3M,
-    //         true));
+    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
+        .and(panicInactiveTrigger)
+        .onTrue(new InstantCommand(
+            () -> Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG += 1.0));
 
-    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_4M)
+    new JoystickButton(xboxDriveController, 3)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_PRESET_4M,
             false));
+
+    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_4M)
+        .and(panicInactiveTrigger)
+        .onTrue(new InstantCommand(
+            () -> Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG -= 1.0));
 
     new JoystickButton(bb, OIContants.BB_INTAKE_INIT_DEPLOY_6)
         .whileTrue(Commands.defer(
@@ -407,19 +411,14 @@ public class RobotContainer {
             RetractIntakeSequenceWithTimeout::new,
             Set.of(intakeSubsystem)));
 
-    new JoystickButton(bb, OIContants.BB_FORCE_FEED)
+    
+
+    new JoystickButton(bb, OIContants.BB_MANUAL_RPM_DOWN)
+        .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
         .and(panicInactiveTrigger)
-        .whileTrue(
-            new RunCommand(
-                () -> {
-                  transferSubsystem.runFeed();
-                  spindexerSubsystem.runSupply();
-                },
-                transferSubsystem,
-                spindexerSubsystem))
-        .onFalse(
-            new InstantCommand(() -> transferSubsystem.stop(), transferSubsystem)
-                .alongWith(new InstantCommand(() -> spindexerSubsystem.stop(), spindexerSubsystem)));
+        .onTrue(new InstantCommand(
+            () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT -=
+                Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_PERCENT));
     
 
 
@@ -429,7 +428,7 @@ public class RobotContainer {
 
     new JoystickButton(xboxDriveController, 6) // LB
         .and(panicInactiveTrigger)
-        .onTrue(new ReverseTransfer())
+        .onTrue(new ReverseTransfer().alongWith(new ReverseSpindexer()))
         .onFalse(new StopIntake());
 
 
@@ -453,14 +452,16 @@ public class RobotContainer {
             false));
 
     // Button 3: STATIC HUB BASE shot while held (drivetrain hold heading)
-    new JoystickButton(xboxDriveController, 3) // X
-        .and(panicInactiveTrigger)
-        .whileTrue(new ShootWhileHeld(
-            AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
-            true));
+    // new JoystickButton(xboxDriveController, 3) // X
+    //     .and(new Trigger(() -> !RobotContainer.isHubTrackingDisabledByButtonBox()))
+    //     .and(panicInactiveTrigger)
+    //     .whileTrue(new ShootWhileHeld(
+    //         AutoShootSupervisorSubsystem.ShotMode.STATIC_HUB_BASE,
+    //         true));
 
     // Button B: STATIC TOWER BASE shot while held (drivetrain hold heading)
     new JoystickButton(xboxDriveController, 2) // B
+        .and(new Trigger(() -> !RobotContainer.isHubTrackingDisabledByButtonBox()))
         .and(panicInactiveTrigger)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.STATIC_TOWER_BASE,
@@ -663,20 +664,13 @@ public class RobotContainer {
 
 
   private void configureShooterCalibrationBindings() {
-    // TODO: PLACEHOLDER - pick real button numbers (ok to reuse across subsystems
-    // if you disable others)
+    // Calibration bindings are intentionally isolated from beta-testing turretStick
+    // bindings so the calibration burst never routes through ShootWhileHeld.
     final int BTN_SHOOTER_SET_RPM_A = 1;
     final int BTN_SHOOTER_SET_RPM_B = 2;
     final int BTN_SHOOTER_STOP = 3;
-
-    // Runs your existing volley state machine command (hold)
-    final int BTN_SHOOTER_AUTOSHOOT_UNTIL_EMPTY = 4;
-
-    // SysId routines (hold)
-    final int BTN_SHOOTER_SYSID_QS_FWD = 9;
-    final int BTN_SHOOTER_SYSID_QS_REV = 10;
-    final int BTN_SHOOTER_SYSID_DYN_FWD = 11;
-    final int BTN_SHOOTER_SYSID_DYN_REV = 12;
+    final int BTN_SHOOTER_CAL_BURST_A = 11;
+    final int BTN_SHOOTER_CAL_BURST_B = 12;
 
     // TODO: PLACEHOLDER - choose two practical calibration RPMs
     final double RPM_A = 2000.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
@@ -742,8 +736,11 @@ public class RobotContainer {
           hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
         }));
 
-    // new JoystickButton(turretStick, 2)
-    // .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
+    new JoystickButton(turretStick, BTN_SHOOTER_CAL_BURST_A)
+        .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
+
+    new JoystickButton(turretStick, BTN_SHOOTER_CAL_BURST_B)
+        .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_B));
 
     // Auto shoot until empty (hold)
     // new JoystickButton(turretStick, 4)

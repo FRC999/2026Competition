@@ -94,21 +94,15 @@ public class DriveManuallyCommand extends Command {
           robotPoseField,
           targetPositionField);
 
-      // System.out.println("AD:"+autoTurnRawTurretDeg + " RP:"+robotPoseField.toString()+ "TP:"+targetPositionField.toString());
-
-      double thresholdDeg = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG;
-
-      if (autoTurnRawTurretDeg < 0 && autoTurnRawTurretDeg < -thresholdDeg) {
-        autoTurnOmegaRadPerSec =
-            -Constants.OperatorConstants.AutoShoot.STATIONARY_ILLEGAL_SHOT_FIXED_AUTO_TURN_RAD_PER_SEC;
-      } else if (autoTurnRawTurretDeg >= 0 && autoTurnRawTurretDeg > thresholdDeg) {
-        autoTurnOmegaRadPerSec =
-            Constants.OperatorConstants.AutoShoot.STATIONARY_ILLEGAL_SHOT_FIXED_AUTO_TURN_RAD_PER_SEC;
-      } else {
-        autoTurnOmegaRadPerSec = 0.0;
-      }
-
-      autoTurnOmegaCmd = autoTurnOmegaRadPerSec / SwerveConstants.MaxAngularRate;
+      autoTurnOmegaCmd =
+          TurretHelpers.computeStationaryRobotAutoTurnCommandToEnterLegalShotWindow(
+              robotPoseField,
+              targetPositionField,
+              Constants.OperatorConstants.AutoShoot.STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG,
+              1.0);
+      autoTurnOmegaRadPerSec =
+          autoTurnOmegaCmd
+              * Constants.OperatorConstants.AutoShoot.STATIONARY_ILLEGAL_SHOT_FIXED_AUTO_TURN_RAD_PER_SEC;
       autoTurnRobotHeadingDeltaDeg = autoTurnRawTurretDeg;
 
       // alex test
@@ -121,7 +115,7 @@ public class DriveManuallyCommand extends Command {
       //         + " omegaDeadband=" + omegaDeadband);
 
       if (Math.abs(autoTurnOmegaRadPerSec) > 1e-9) {
-        omegaInput = autoTurnOmegaCmd;
+        omegaInput = autoTurnOmegaRadPerSec / SwerveConstants.MaxAngularRate;
         autoTurnActive = true;
       }
     }

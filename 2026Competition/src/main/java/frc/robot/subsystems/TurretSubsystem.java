@@ -27,6 +27,8 @@ import com.ctre.phoenix6.signals.SensorPhaseValue;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
@@ -90,7 +92,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   // Track what we last commanded so simulation can use true volts (not normalized output).
 
-  // Absolute CAN Through-Bore (0..1 rotations). (Wraps every revolution.)
+  // Absolute CAN Through-Bore in signed rotations (-0.5..+0.5). Wraps every revolution.
   private final StatusSignal<Angle> absPosSig = throughboreCANcoder.getAbsolutePosition();
 																				 
   // Motor voltage is used for telemetry and SysId logging.
@@ -136,6 +138,10 @@ public class TurretSubsystem extends SubsystemBase {
   /** turret ZERO reference in degrees in the absolute sensor frame */
 private final double forwardDeg =
     Constants.OperatorConstants.Turret.ABS_ZERO_ROTATIONS * 360.0;
+  /** Whether the most recent CANcoder-based seed fell inside the allowed boot window. */
+  private boolean lastSeedWasValid = false;
+  /** Whether the current zero/integrated seed came from the CANcoder absolute reading. */
+  private boolean zeroCalibratedFromAbsolute = false;
   // ---------------- Continuous wrap toggling ----------------
 
   // Tracks the currently-applied wrap mode (so we don't spam configs).
@@ -308,9 +314,9 @@ private final double forwardDeg =
     return throughboreCANcoder.getPosition().getValueAsDouble();
   }
 
-    /** Absolute throughbore position for telemetry (wraps every 1 rotation). */
+    /** Absolute throughbore position for telemetry (wraps every 1 rotation at -0.5..+0.5). */
   public final double getAbsolutePosition() {
-    // Returns [0, 1) rotations, wraps at 1.0
+    // Returns approximately [-0.5, +0.5), wrapping across the half-turn boundary.
     return throughboreCANcoder.getAbsolutePosition().getValueAsDouble();
   }
 
@@ -353,6 +359,34 @@ private final double forwardDeg =
     return Math.abs(wrapToPlusMinus180(aDeg - bDeg));
   }
 
+  private double computeTurretSeedDegFromAbsoluteRot(double absRot) {
+    double motorRotError = MathUtil.inputModulus(
+        absRot - Constants.OperatorConstants.Turret.ABS_ZERO_ROTATIONS,
+        -0.5,
+        0.5);
+
+    // CANcoder absolute deltas already come back with the same sign convention we want
+    // for turret angle after wrapping to the nearest offset from zero:
+    // CW from zero => negative, CCW from zero => positive.
+    return motorRotError
+        * 360.0
+        * Constants.OperatorConstants.Turret.GEAR_RATIO_TURRET_ROT_PER_MOTOR_ROT;
+  }
+
+  private void publishSeedTelemetry(
+      String prefix,
+      double absRot,
+      double motorRotError,
+      double turretSeedDeg,
+      boolean validSeed) {
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      SmartDashboard.putNumber(prefix + "AbsRot", absRot);
+      SmartDashboard.putNumber(prefix + "MotorRotError", motorRotError);
+      SmartDashboard.putNumber(prefix + "TurretDeg", turretSeedDeg);
+      SmartDashboard.putBoolean(prefix + "Valid", validSeed);
+    }
+  }
+
   private double sampleAbsoluteForSeed() {
     double startTs = Timer.getFPGATimestamp();
     double lastValidAbsDeg = lastAbsDegWrapped;
@@ -393,18 +427,32 @@ private final double forwardDeg =
    */
   private void seedFromAbsoluteAtBoot() {
     double absDeg = sampleAbsoluteForSeed();
+    double absRot = absDeg / 360.0;
 
     // Initialize last wrapped state for future delta calculations.
     lastAbsDegWrapped = absDeg;	
 
-    // Compute shortest signed angle difference from the defined forward reference.
-    // wrapToPlusMinus180 handles wrap-around at 0/360.
-    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);										 
-    // Boot assumption: within +/-180 (or whatever BOOT_MAX_ABS_DEG is set to).
-    deltaDeg = MathUtil.clamp(
-        deltaDeg,
-        -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
-        Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG);
+    double motorRotError = MathUtil.inputModulus(
+        absRot - Constants.OperatorConstants.Turret.ABS_ZERO_ROTATIONS,
+        -0.5,
+        0.5);
+    double deltaDeg = computeTurretSeedDegFromAbsoluteRot(absRot);
+    boolean validSeed =
+        Math.abs(deltaDeg) <= Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG;
+    lastSeedWasValid = validSeed;
+
+    publishSeedTelemetry("Turret/Seed/", absRot, motorRotError, deltaDeg, validSeed);
+
+    if (!validSeed) {
+      continuousDeg = 0.0;
+      continuousDegUnclamped = 0.0;
+      targetDeg = 0.0;
+      zeroCalibratedFromAbsolute = false;
+      turret.setPosition(0.0);
+      lastContinuousDeg = continuousDeg;
+      lastUpdateTs = Timer.getFPGATimestamp();
+      return;
+    }
 
     // Initialize continuous turret position in your forward-relative frame.
     continuousDeg = deltaDeg;
@@ -417,6 +465,7 @@ private final double forwardDeg =
     double motorRot = motorRotFromTurretDeg(continuousDeg);
     // alex test
     turret.setPosition(ANGLE_SIGN * motorRot);
+    zeroCalibratedFromAbsolute = true;
 
     // Initialize velocity bookkeeping.
     lastContinuousDeg = continuousDeg;
@@ -477,7 +526,6 @@ private final double forwardDeg =
     lastUpdateTs = now;
 
     if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
-      SmartDashboard.putNumber("Turret/MeasuredContinuousDeg", continuousDeg);
       SmartDashboard.putNumber("Turret/MeasuredContinuousDegUnclamped", continuousDegUnclamped);
       SmartDashboard.putNumber("Turret/MotorSensorRot", motorRotSensor);
     }
@@ -568,6 +616,25 @@ private final double forwardDeg =
   /** Current continuous turret angle in degrees in this subsystem's reference frame (0 = "forward" per ABS_FORWARD_TICKS, CCW+). */
   public double getContinuousAngleDeg() {
     return continuousDeg;
+  }
+
+  public double getRelativeAngleFromZeroDeg() {
+    return continuousDeg;
+  }
+
+  public Translation2d getTurretCenterFieldMeters() {
+    Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
+    return robotPose.getTranslation().plus(
+        Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+            .rotateBy(robotPose.getRotation()));
+  }
+
+  public double getTurretAbsoluteFieldDeg() {
+    double robotHeadingDeg = RobotContainer.driveSubsystem.getPose().getRotation().getDegrees();
+    return wrapToPlusMinus180(
+        robotHeadingDeg
+            + Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG
+            + getRelativeAngleFromZeroDeg());
   }
 
   /** Estimated turret angular velocity in deg/sec (sign matches getContinuousAngleDeg convention). */
@@ -667,17 +734,16 @@ private final double forwardDeg =
 
   /**
    * Convert a continuous target (deg relative to forward) into the wrapped absolute
-   * rotation value [0,1).
+   * rotation value in the signed CANcoder frame [-0.5, +0.5).
    */
   private double wrappedRotFromContinuousDeg(double continuousDegTarget) {
-    // Convert from forward-relative degrees back into encoder-frame absolute degrees.
-    double absDeg = forwardDeg + (continuousDegTarget);
+    // Convert turret angle back into the pinion CANcoder frame.
+    double motorRot =
+        (continuousDegTarget / 360.0)
+            * Constants.OperatorConstants.Turret.GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT;
+    double absRot = Constants.OperatorConstants.Turret.ABS_ZERO_ROTATIONS + (motorRot / ANGLE_SIGN);
 
-    // Wrap to [0,360) so we can convert to a wrapped rotation value.
-    absDeg = wrapTo0To360(absDeg);
-
-    // Convert degrees to rotations [0,1).
-    return absDeg / 360.0;
+    return MathUtil.inputModulus(absRot, -0.5, 0.5);
   }
 
   private double motorRotFromTurretDeg(double turretDeg) {
@@ -699,14 +765,25 @@ private final double forwardDeg =
   private double tunedKd = Constants.OperatorConstants.Turret.kD;
 
   public void reseedIntegratedFromAbsoluteNow() {
-    double absDeg = getAbsDegWrapped(true);
+    double absRot = getAbsolutePosition();
+    double absDeg = wrapTo0To360(absRot * 360.0);
     lastAbsDegWrapped = absDeg;
 
-    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
-        deltaDeg = MathUtil.clamp(
-        deltaDeg,
-        -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
-        Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG);
+    double motorRotError = MathUtil.inputModulus(
+        absRot - Constants.OperatorConstants.Turret.ABS_ZERO_ROTATIONS,
+        -0.5,
+        0.5);
+    double deltaDeg = computeTurretSeedDegFromAbsoluteRot(absRot);
+    boolean validSeed =
+        Math.abs(deltaDeg) <= Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG;
+    lastSeedWasValid = validSeed;
+
+    publishSeedTelemetry("Turret/Reseed/", absRot, motorRotError, deltaDeg, validSeed);
+
+    if (!validSeed) {
+      zeroCalibratedFromAbsolute = false;
+      return;
+    }
 
     continuousDeg = deltaDeg;
     continuousDegUnclamped = deltaDeg;
@@ -715,10 +792,11 @@ private final double forwardDeg =
 
     // alex test
     turret.setPosition(ANGLE_SIGN * motorRot);
+    zeroCalibratedFromAbsolute = true;
 
     targetDeg = continuousDeg;
     if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
-      SmartDashboard.putNumber("Turret/ReseedAbsDeg", absDeg);
+      SmartDashboard.putNumber("Turret/ReseedAbsDegWrapped", absDeg);
       SmartDashboard.putNumber("Turret/ReseedContinuousDeg", continuousDeg);
     }
   }
@@ -764,24 +842,36 @@ private final double forwardDeg =
    * Calibration: reseed TalonFX integrated position from absolute encoder NOW.
    */
   public void calibrationReseedIntegratedFromAbsoluteNow() {
-    double absDeg = getAbsDegWrapped(true);
+    double absRot = getAbsolutePosition();
+    double absDeg = wrapTo0To360(absRot * 360.0);
     lastAbsDegWrapped = absDeg;
 
-    double deltaDeg = ANGLE_SIGN * wrapToPlusMinus180(absDeg - forwardDeg);
-        deltaDeg = MathUtil.clamp(
-        deltaDeg,
-        -Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG,
-        Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG);
+    double motorRotError = MathUtil.inputModulus(
+        absRot - Constants.OperatorConstants.Turret.ABS_ZERO_ROTATIONS,
+        -0.5,
+        0.5);
+    double deltaDeg = computeTurretSeedDegFromAbsoluteRot(absRot);
+    boolean validSeed =
+        Math.abs(deltaDeg) <= Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG;
+    lastSeedWasValid = validSeed;
+
+    publishSeedTelemetry("Turret/Cal/Reseed/", absRot, motorRotError, deltaDeg, validSeed);
+
+    if (!validSeed) {
+      zeroCalibratedFromAbsolute = false;
+      return;
+    }
 
     continuousDeg = deltaDeg;
     continuousDegUnclamped = deltaDeg;
 
     double motorRot = motorRotFromTurretDeg(continuousDeg);
     turret.setPosition(ANGLE_SIGN * motorRot);
+    zeroCalibratedFromAbsolute = true;
 
     targetDeg = continuousDeg;
     if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
-      SmartDashboard.putNumber("Turret/Cal/ReseedAbsDeg", absDeg);
+      SmartDashboard.putNumber("Turret/Cal/ReseedAbsDegWrapped", absDeg);
       SmartDashboard.putNumber("Turret/Cal/ReseedContinuousDeg", continuousDeg);
     }
   }
@@ -898,14 +988,21 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
 
     // Update continuous (multi-turn) angle state every loop.
      updateContinuousAngle();
-    SmartDashboard.putNumber("Turret/CurrentRelativeAngleDeg", getContinuousAngleDeg());
-    SmartDashboard.putNumber("Turret/CANcoderAbsoluteRot", getAbsolutePosition());
-    SmartDashboard.putNumber(
-        "Turret/CANcoderMagnetOffsetRot",
-        Constants.OperatorConstants.Turret.CANCODER_MAGNET_OFFSET_ROT);
+    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
+      Translation2d turretCenterField = getTurretCenterFieldMeters();
+      SmartDashboard.putNumber("Turret/RelativeAngleFromZeroDeg", getRelativeAngleFromZeroDeg());
+      SmartDashboard.putNumber("Turret/CenterFieldX", turretCenterField.getX());
+      SmartDashboard.putNumber("Turret/CenterFieldY", turretCenterField.getY());
+      SmartDashboard.putNumber("Turret/AbsoluteFieldDeg", getTurretAbsoluteFieldDeg());
+      SmartDashboard.putNumber("Turret/CANcoderAbsoluteRot", getAbsolutePosition());
+      SmartDashboard.putNumber(
+          "Turret/CANcoderMagnetOffsetRot",
+          Constants.OperatorConstants.Turret.CANCODER_MAGNET_OFFSET_ROT);
+      SmartDashboard.putBoolean("Turret/SeedValid", lastSeedWasValid);
+      SmartDashboard.putBoolean("Turret/ZeroCalibratedFromAbsolute", zeroCalibratedFromAbsolute);
+    }
     if(DebugTelemetrySubsystems.turret){
     // Telemetry block: expose key state for debugging and tuning.
-      SmartDashboard.putNumber("Turret/AngleDeg", getAngleDeg());
       SmartDashboard.putNumber("Turret/VelDegPerSec", getVelocityDegPerSec());
       SmartDashboard.putNumber("Turret/VelDegPerSecRaw", rawVelDegPerSec);
       SmartDashboard.putNumber("Turret/AngleDeg_Unclamped", continuousDegUnclamped);

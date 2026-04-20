@@ -284,6 +284,17 @@ public class SpindexerSubsystem extends SubsystemBase {
     //requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SUPPLY_RPS);
   }
 
+  public void runSupplyReverse() {
+    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+      stop();
+      return;
+    }
+
+    calMode = "OFF";
+    motor.set(-0.7);
+    //requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SUPPLY_RPS);
+  }
+
   public void runSlow() {
     if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
       stop();

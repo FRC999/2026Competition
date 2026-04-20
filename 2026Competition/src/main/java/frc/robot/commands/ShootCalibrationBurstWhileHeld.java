@@ -1,12 +1,17 @@
 package frc.robot.commands;
 
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.RobotContainer;
 
 /**
- * Fixed-RPM calibration cycle for shooter + transfer + spindexer only.
+ * Fixed-shot calibration cycle for shooter + transfer + spindexer only.
+ *
+ * Turret aim and hood angle are intentionally left under manual/calibration
+ * control. This command does not use hub tracking, distance lookup, or the
+ * normal firing-solution path.
  *
  * Behavior while held:
  * - Shooter spins to a fixed RPM once on initialize.
@@ -49,6 +54,8 @@ public class ShootCalibrationBurstWhileHeld extends Command {
 
     RobotContainer.autoShootSupervisorSubsystem.setShootRequested(false);
     RobotContainer.autoShootSupervisorSubsystem.setCalibrationActive(true);
+    RobotContainer.getDriveController().setRumble(RumbleType.kLeftRumble, 0.0);
+    RobotContainer.getDriveController().setRumble(RumbleType.kRightRumble, 0.0);
 
     RobotContainer.shooterSubsystem.setTargetRpm(shooterRpm);
     RobotContainer.spindexerSubsystem.runSupply();
@@ -118,6 +125,8 @@ public class ShootCalibrationBurstWhileHeld extends Command {
     RobotContainer.spindexerSubsystem.stop();
     RobotContainer.shooterSubsystem.stop();
     RobotContainer.autoShootSupervisorSubsystem.setCalibrationActive(false);
+    RobotContainer.getDriveController().setRumble(RumbleType.kLeftRumble, 0.0);
+    RobotContainer.getDriveController().setRumble(RumbleType.kRightRumble, 0.0);
   }
 
   @Override

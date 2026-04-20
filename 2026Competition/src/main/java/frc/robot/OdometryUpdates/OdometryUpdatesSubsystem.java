@@ -24,6 +24,7 @@ import frc.robot.lib.VisionHelpers;
 
 public class OdometryUpdatesSubsystem extends SubsystemBase {
   private static final int PERF_PUBLISH_EVERY_LOOPS = 25;
+  private static final double INITIAL_MT1_SEED_WAIT_BEFORE_MT2_FALLBACK_SEC = 5.0;
   /**
    * Limelight AprilTag pose estimation needs a good robot yaw to disambiguate tags,
    * especially when using MegaTag2. This subsystem assumes the drivetrain IMU
@@ -35,11 +36,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
    * The subsystem publishes drivetrain yaw to the Limelights and immediately moves
    * into the seeking state.
    *
-   * SEEKING_TAGS
-   * The robot is waiting for the first good AprilTag-based field pose.
-   * Limelight yaw continues to come from drivetrain odometry/Pigeon.
-   * Once a valid pose estimate is found, the drivetrain IMU yaw and CTRE pose are
-   * reset to that field pose and the state transitions to CALIBRATED.
+ * SEEKING_TAGS
+ * The robot is waiting for the first good AprilTag-based field pose.
+ * Limelight yaw continues to come from drivetrain odometry/Pigeon.
+ * Startup anchoring prefers a two-tag MegaTag1 solution because it can correct a
+ * slightly-wrong boot heading. If that is not available, MegaTag2 is used as the
+ * fallback to avoid waiting forever.
+ * Once a valid pose estimate is found, the drivetrain IMU yaw and CTRE pose are
+ * reset to that field pose and the state transitions to CALIBRATED.
    *
    * CALIBRATED
    * The robot has a field anchor and now runs LL-only vision fusion.
@@ -54,11 +58,15 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
    *   A valid Limelight pose estimate was accepted as the field anchor.
    *
    * CALIBRATED -> SEEKING_TAGS
-   *   A manual yaw reset or delayed MegaTag1 recalibration requests a fresh LL anchor.
+   *   A manual yaw reset, delayed MegaTag1 recalibration, or sustained all-tag
+   *   loss requests a fresh LL anchor.
    *
    * Notes:
    * Yaw reset/re-anchor requests force gate bypass temporarily so the next accepted
-   * Limelight measurement can establish a fresh anchor.
+   * Limelight measurement can establish a fresh anchor. A sustained loss of all
+   * visible tags arms the same re-anchor path so the first reliable pose after
+   * reacquisition is allowed to reset odometry instead of being rejected by the
+   * normal discrepancy gate.
    * The subsystem deliberately does not use a blind fallback pose when tags are absent.
    */
   private enum VisionState {
@@ -74,9 +82,12 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private int transitionSeq = 0;
 
   private boolean gatePassOverride = true;
+  private boolean initialVisionAnchorComplete = false;
   private boolean hasRequestedReanchor = false;
   private int loopsSinceSeed = 0;
   private boolean visionReady = false;
+  private double allTagsLostStartTs = Double.NaN;
+  private boolean pendingReanchorOnVisionReturn = false;
 
   private final Timer delayedMegaTag1RecalTimer = new Timer();
   private boolean waitingForMegaTag1Recal = false;
@@ -88,6 +99,18 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.odometry) {
       return;
     }
+
+    SmartDashboard.putNumber(
+        OdometryConstants.TAG_LOSS_REANCHOR_ARM_DELAY_DASHBOARD_KEY,
+        SmartDashboard.getNumber(
+            OdometryConstants.TAG_LOSS_REANCHOR_ARM_DELAY_DASHBOARD_KEY,
+            OdometryConstants.TAG_LOSS_REANCHOR_ARM_DELAY_SEC_DEFAULT));
+  }
+
+  private double getTagLossReanchorArmDelaySec() {
+    return SmartDashboard.getNumber(
+        OdometryConstants.TAG_LOSS_REANCHOR_ARM_DELAY_DASHBOARD_KEY,
+        OdometryConstants.TAG_LOSS_REANCHOR_ARM_DELAY_SEC_DEFAULT);
   }
 
   private void transitionTo(VisionState newState, String reason) {
@@ -156,6 +179,18 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         || !isReasonablePose(poseEstimate.pose);
   }
 
+  private boolean shouldRejectInitialSeedPoseEstimate(LimelightHelpers.PoseEstimate poseEstimate) {
+    if (poseEstimate == null || poseEstimate.tagCount <= 0 || poseEstimate.rawFiducials == null
+        || poseEstimate.rawFiducials.length == 0) {
+      return true;
+    }
+
+    double ambiguity = MathUtil.clamp(poseEstimate.rawFiducials[0].ambiguity, 0.0, 1.0);
+    return (poseEstimate.tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity)
+        || poseEstimate.rawFiducials[0].distToCamera > LLVisionConstants.kMaxInitialSeedCameraToTargetDistance
+        || !isReasonablePose(poseEstimate.pose);
+  }
+
   private boolean fusePoseEstimate(LimelightHelpers.PoseEstimate poseEstimate, String cameraName, boolean strict) {
     if (shouldRejectPoseEstimate(poseEstimate)) {
       VisionHelpers.clearLLTelemetry(cameraName);
@@ -196,6 +231,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     RobotContainer.driveSubsystem.resetChassisIMUToAngle(poseEstimate.pose.getRotation().getDegrees());
     RobotContainer.driveSubsystem.resetCTREPose(poseEstimate.pose);
     gatePassOverride = false;
+    initialVisionAnchorComplete = true;
+    clearVisionLossReanchorState();
 
     if (RobotContainer.llAprilTagSubsystem.wasLastBestPoseMegaTag1()) {
       scheduleDelayedMegaTag1Recalibration();
@@ -219,19 +256,55 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     hasRequestedReanchor = true;
   }
 
-  public void requestReanchorFromLimelightAfterYawReset() {
+  private void clearVisionLossReanchorState() {
+    allTagsLostStartTs = Double.NaN;
+    pendingReanchorOnVisionReturn = false;
+  }
+
+  private void requestReanchorFromLimelight(String reason) {
     if (!RobotContainer.driveSubsystem.hasFinishedSeeding()) {
       return;
     }
 
     gatePassOverride = true;
+    clearVisionLossReanchorState();
+    cancelDelayedMegaTag1Recalibration();
 
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
     RobotContainer.llAprilTagSubsystem.setLLOrientation(
         robotPose.getRotation().getDegrees(),
         RobotContainer.driveSubsystem.getTurnRate());
 
-    transitionTo(VisionState.SEEKING_TAGS, "Driver yaw reset; re-seek LL");
+    transitionTo(VisionState.SEEKING_TAGS, reason);
+  }
+
+  public void requestReanchorFromLimelightAfterYawReset() {
+    requestReanchorFromLimelight("Driver yaw reset; re-seek LL");
+  }
+
+  private void handleVisionLossReturnReanchor(double now) {
+    if (state != VisionState.CALIBRATED || !Constants.EnabledSubsystems.ll) {
+      clearVisionLossReanchorState();
+      return;
+    }
+
+    boolean anyTagsVisible = RobotContainer.llAprilTagSubsystem.isAprilTagVisibleAny();
+
+    if (!anyTagsVisible) {
+      if (!Double.isFinite(allTagsLostStartTs)) {
+        allTagsLostStartTs = now;
+      }
+
+      if (now - allTagsLostStartTs >= getTagLossReanchorArmDelaySec()) {
+        pendingReanchorOnVisionReturn = true;
+      }
+      return;
+    }
+
+    allTagsLostStartTs = Double.NaN;
+    if (pendingReanchorOnVisionReturn) {
+      requestReanchorFromLimelight("All tags lost; re-seek LL on return");
+    }
   }
 
   private void scheduleDelayedMegaTag1Recalibration() {
@@ -292,31 +365,59 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.odometry || RobotBase.isSimulation()) {
       return;
     }
+    double now = Timer.getFPGATimestamp();
 
     if (DebugTelemetrySubsystems.odometry) {
       SmartDashboard.putString("Odometry/UpdatesState", state.name());
       SmartDashboard.putBoolean("Odometry/GatePassOverride", gatePassOverride);
+      SmartDashboard.putBoolean(
+          "Odometry/AnyTagsVisible",
+          Constants.EnabledSubsystems.ll && RobotContainer.llAprilTagSubsystem.isAprilTagVisibleAny());
+      SmartDashboard.putNumber(
+          "Odometry/AllTagsLostForSec",
+          Double.isFinite(allTagsLostStartTs) ? now - allTagsLostStartTs : 0.0);
+      SmartDashboard.putBoolean("Odometry/PendingVisionReturnReanchor", pendingReanchorOnVisionReturn);
     }
+
+    int desiredIMUMode;
+    if (state != VisionState.CALIBRATED) {
+      desiredIMUMode = LLVisionConstants.LL_IMU_MODE_SEED;
+    } else if (RobotContainer.llAprilTagSubsystem.hasReliableMultiTagMegaTag1Observation()) {
+      desiredIMUMode = LLVisionConstants.LL_IMU_MODE_TRACKING_MT1_ASSIST;
+    } else {
+      desiredIMUMode = LLVisionConstants.LL_IMU_MODE_TRACKING_INTERNAL;
+    }
+    RobotContainer.llAprilTagSubsystem.ensureIMUMode(desiredIMUMode);
 
     Pose2d robotPose = RobotContainer.driveSubsystem.getPose();
     RobotContainer.llAprilTagSubsystem.setLLOrientation(
         robotPose.getRotation().getDegrees(),
         RobotContainer.driveSubsystem.getTurnRate());
-
-    LimelightHelpers.PoseEstimate bestPoseEstimate = Constants.EnabledSubsystems.ll
-        ? RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL()
-        : null;
-    String bestCameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
+    handleVisionLossReturnReanchor(now);
 
     switch (state) {
       case INITIALIZE -> transitionTo(VisionState.SEEKING_TAGS, "Initialized LL-only odometry");
       case SEEKING_TAGS -> {
-        if (bestPoseEstimate != null && bestCameraName != null) {
-          resetRobotPoseFromVision(bestPoseEstimate);
+        boolean allowMegaTag2SeedFallback =
+            initialVisionAnchorComplete
+                || Timer.getFPGATimestamp() - lastTransitionTime
+                    >= INITIAL_MT1_SEED_WAIT_BEFORE_MT2_FALLBACK_SEC;
+        LimelightHelpers.PoseEstimate seedPoseEstimate = Constants.EnabledSubsystems.ll
+            ? RobotContainer.llAprilTagSubsystem.getInitialSeedPoseEstimateFromAllLL(allowMegaTag2SeedFallback)
+            : null;
+        String seedCameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
+        if (seedPoseEstimate != null
+            && seedCameraName != null
+            && !shouldRejectInitialSeedPoseEstimate(seedPoseEstimate)) {
+          resetRobotPoseFromVision(seedPoseEstimate);
           transitionTo(VisionState.CALIBRATED, "Good LL fix; anchored field pose");
         }
       }
       case CALIBRATED -> {
+        LimelightHelpers.PoseEstimate bestPoseEstimate = Constants.EnabledSubsystems.ll
+            ? RobotContainer.llAprilTagSubsystem.getBestPoseEstimateFromAllLL()
+            : null;
+        String bestCameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
         if (bestPoseEstimate != null && bestCameraName != null) {
           fusePoseEstimate(bestPoseEstimate, bestCameraName, true);
         }
