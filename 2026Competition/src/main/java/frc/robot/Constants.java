@@ -110,7 +110,7 @@ public final class Constants {
     public static final boolean chasis = true;
     public static final boolean odometry = true;
     public static final boolean ll = true;
-    public static final boolean intake = false;
+    public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true;
     public static final boolean hood = true;
@@ -129,7 +129,7 @@ public final class Constants {
     public static final boolean ll = false;
     public static final boolean llLight = false;
     public static final boolean perfLight = false;
-    public static final boolean intake = false;
+    public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true;
     public static final boolean hood = true;
@@ -859,6 +859,18 @@ public final class Constants {
       public static final double STATIC_MAX_VX_MPS = 0.15;
       public static final double STATIC_MAX_VY_MPS = 0.15;
       public static final double STATIC_MAX_OMEGA_DEG_PER_S = 12.0;
+
+      /**
+       * Empirical lateral lead time used for moving hub shots.
+       * This compensates for the ball carrying robot sideways velocity after release.
+       */
+      public static final double MOVING_AIM_LATERAL_LEAD_SEC = 0.45;
+
+      /**
+       * Extra lookahead used for RPM/hood distance selection while moving.
+       * This makes the moving-shot table react to continuing robot motion after release.
+       */
+      public static final double MOVING_DISTANCE_LOOKUP_LEAD_SEC = 0.30;
 
       // Drivetrain heading-hold controller (used while static-shot button held).
       // TODO: PLACEHOLDER: Tune on carpet.

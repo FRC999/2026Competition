@@ -202,7 +202,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     TurretHelpers.Solution solution;
 
         if (!isStatic) {
-          solution = solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
+          solution = solveMovingAutoShot(poseField, target2d, driveState.Speeds);
         } else {
       final double yawFieldRad = computeStaticYawFieldRadFromTurretCenter(poseField, target2d);
 
@@ -511,7 +511,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     } else {
       // Actively shooting: run the existing full solution path.
       if (shotMode == ShotMode.MOVING_AUTO) {
-        lastSolution = solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
+        lastSolution = solveMovingAutoShot(poseField, target2d, driveState.Speeds);
       } else {
         final double yawFieldRad = computeStaticYawFieldRadFromTurretCenter(poseField, target2d);
 
@@ -597,6 +597,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
 
       final boolean isStaticForPredict = isStaticShotMode(shotMode);
       final double omegaForPredict = isStaticForPredict ? 0.0 : omega;
+      final double turretPredictionSec =
+          !isStaticForPredict && Double.isFinite(lastSolution.timeOfFlightS) && lastSolution.timeOfFlightS > 0.0
+              ? lastSolution.timeOfFlightS
+              : Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC;
 
       if (ballisticValid) {
         if (calibrationManualShotMode) {
@@ -611,7 +615,7 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
                   computeDesiredTurretDeg(
                       poseField.getRotation().getRadians(),
                       omegaForPredict,
-                      Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC,
+                      turretPredictionSec,
                       lastSolution.yawFieldRad,
                       Constants.OperatorConstants.Turret.ZERO_OFFSET_FROM_ROBOT_FWD_DEG));
         }
@@ -899,7 +903,7 @@ lastBallAtThroat = ballAtThroat;
     }
   }
 
-    private TurretHelpers.Solution solveManualPresetDistanceShot(
+  private TurretHelpers.Solution solveManualPresetDistanceShot(
       Pose2d poseField,
       Translation2d target2d,
       double presetDistanceMeters) {
@@ -946,7 +950,18 @@ lastBallAtThroat = ballAtThroat;
         Double.NaN);
   }
 
-    private TurretHelpers.Solution solveDistanceInterpolatedMovingAutoShot(
+  private TurretHelpers.Solution solveMovingAutoShot(
+      Pose2d poseField,
+      Translation2d target2d,
+      edu.wpi.first.math.kinematics.ChassisSpeeds robotRelativeSpeeds) {
+    if (robotRelativeSpeeds == null) {
+      return solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
+    }
+
+    return solvePredictedDistanceInterpolatedMovingAutoShot(poseField, target2d, robotRelativeSpeeds);
+  }
+
+  private TurretHelpers.Solution solveDistanceInterpolatedMovingAutoShot(
       Pose2d poseField,
       Translation2d target2d) {
 
@@ -985,22 +1000,26 @@ lastBallAtThroat = ballAtThroat;
 
     double commandedHoodRad = shot.hoodCommandAngleRad;
 
-if (currentAimTarget == Constants.FieldTargets.AimTarget.NEUTRAL_LOW
-    || currentAimTarget == Constants.FieldTargets.AimTarget.NEUTRAL_HIGH) {
-  commandedHoodRad = Math.toRadians(AutoShoot.HOOD_ANGLE_SHUTTLE);
-}
+    if (currentAimTarget == Constants.FieldTargets.AimTarget.NEUTRAL_LOW
+        || currentAimTarget == Constants.FieldTargets.AimTarget.NEUTRAL_HIGH) {
+      commandedHoodRad = Math.toRadians(AutoShoot.HOOD_ANGLE_SHUTTLE);
+    }
 
-return new TurretHelpers.Solution(
-    true,
-    0.0,
-    yawFieldRad,
-    Double.NaN,
-    Double.NaN,
-    new Translation3d(),
-    shot.shooterRpmCommand,
-    commandedHoodRad,
-    Double.NaN,
-    Double.NaN);
+    if (Constants.DebugTelemetrySubsystems.supervisor) {
+      SmartDashboard.putString("AutoShoot/MovingSolverMode", "DISTANCE_TABLE");
+    }
+
+    return new TurretHelpers.Solution(
+        true,
+        0.0,
+        yawFieldRad,
+        Double.NaN,
+        Double.NaN,
+        new Translation3d(),
+        shot.shooterRpmCommand,
+        commandedHoodRad,
+        Double.NaN,
+        Double.NaN);
 
     // return new TurretHelpers.Solution(
     //     true,
@@ -1015,6 +1034,94 @@ return new TurretHelpers.Solution(
     //     Double.NaN);
   }
 
+  private TurretHelpers.Solution solvePredictedDistanceInterpolatedMovingAutoShot(
+      Pose2d poseField,
+      Translation2d target2d,
+      edu.wpi.first.math.kinematics.ChassisSpeeds robotRelativeSpeeds) {
+    if (movingAutoShotTable == null || !movingAutoShotTable.hasAnyData()) {
+      return TurretHelpers.makeInvalidSolution();
+    }
+
+    double dtReleaseSec = Constants.OperatorConstants.AutoShoot.DT_RELEASE_SEC;
+    Translation2d robotVelocityField =
+        new Translation2d(
+                robotRelativeSpeeds.vxMetersPerSecond,
+                robotRelativeSpeeds.vyMetersPerSecond)
+            .rotateBy(poseField.getRotation());
+    Pose2d predictedPoseField =
+        new Pose2d(
+            poseField.getX() + robotVelocityField.getX() * dtReleaseSec,
+            poseField.getY() + robotVelocityField.getY() * dtReleaseSec,
+            poseField.getRotation().plus(
+                edu.wpi.first.math.geometry.Rotation2d.fromRadians(
+                    robotRelativeSpeeds.omegaRadiansPerSecond * dtReleaseSec)));
+
+    Translation2d predictedTurretCenterField =
+        predictedPoseField.getTranslation().plus(
+            Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
+                .rotateBy(predictedPoseField.getRotation()));
+    MovingAimTarget movingAimTarget =
+        computeMovingAimTarget(predictedTurretCenterField, target2d, robotVelocityField);
+    double predictedYawFieldRad = movingAimTarget.yawFieldRad;
+    double predictedDistanceMeters =
+        movingAimTarget.effectiveDistanceMeters
+            - movingAimTarget.radialSpeedMps
+                * Constants.OperatorConstants.AutoShoot.MOVING_DISTANCE_LOOKUP_LEAD_SEC;
+    if (Constants.DebugTelemetrySubsystems.supervisor) {
+      SmartDashboard.putNumber(
+          "AutoShoot/MovingAim/DistanceLookupMeters",
+          predictedDistanceMeters);
+    }
+    double predictedTurretAngleDeg =
+        TurretHelpers.Solution.computeTurretYawAngleRelativeToRobotDeg(
+            poseField,
+            new Translation2d(
+                predictedTurretCenterField.getX()
+                    + Math.cos(predictedYawFieldRad) * predictedDistanceMeters,
+                predictedTurretCenterField.getY()
+                    + Math.sin(predictedYawFieldRad) * predictedDistanceMeters),
+            robotVelocityField.getX(),
+            robotVelocityField.getY(),
+            robotRelativeSpeeds.omegaRadiansPerSecond,
+            dtReleaseSec * 1000.0);
+    double preferredShooterRpm = RobotContainer.shooterSubsystem.getTargetRpm();
+
+    TurretHelpers.MovingAutoShotCommand shot =
+        movingAutoShotTable.findInterpolatedShot(
+            predictedDistanceMeters,
+            predictedTurretAngleDeg,
+            preferredShooterRpm);
+
+    if (!shot.valid
+        || !Double.isFinite(shot.shooterRpmCommand)
+        || !Double.isFinite(shot.hoodCommandAngleRad)
+        || !Double.isFinite(predictedYawFieldRad)) {
+      return solveDistanceInterpolatedMovingAutoShot(poseField, target2d);
+    }
+
+    double commandedHoodRad = shot.hoodCommandAngleRad;
+    if (currentAimTarget == Constants.FieldTargets.AimTarget.NEUTRAL_LOW
+        || currentAimTarget == Constants.FieldTargets.AimTarget.NEUTRAL_HIGH) {
+      commandedHoodRad = Math.toRadians(AutoShoot.HOOD_ANGLE_SHUTTLE);
+    }
+
+    if (Constants.DebugTelemetrySubsystems.supervisor) {
+      SmartDashboard.putString("AutoShoot/MovingSolverMode", "PREDICTED_DISTANCE_TABLE");
+    }
+
+    return new TurretHelpers.Solution(
+        true,
+        dtReleaseSec,
+        predictedYawFieldRad,
+        Double.NaN,
+        Double.NaN,
+        new Translation3d(),
+        shot.shooterRpmCommand,
+        commandedHoodRad,
+        Double.NaN,
+        Double.NaN);
+  }
+
   private static double computeTurretCenterToTargetDistanceMeters(
       Pose2d poseField,
       Translation2d target2d) {
@@ -1024,6 +1131,65 @@ return new TurretHelpers.Solution(
                 .rotateBy(poseField.getRotation()));
 
     return turretCenterField.getDistance(target2d);
+  }
+
+  private static class MovingAimTarget {
+    public final double yawFieldRad;
+    public final double effectiveDistanceMeters;
+    public final double radialSpeedMps;
+
+    private MovingAimTarget(double yawFieldRad, double effectiveDistanceMeters, double radialSpeedMps) {
+      this.yawFieldRad = yawFieldRad;
+      this.effectiveDistanceMeters = effectiveDistanceMeters;
+      this.radialSpeedMps = radialSpeedMps;
+    }
+  }
+
+  private MovingAimTarget computeMovingAimTarget(
+      Translation2d turretCenterField,
+      Translation2d target2d,
+      Translation2d robotVelocityField) {
+    double dx = target2d.getX() - turretCenterField.getX();
+    double dy = target2d.getY() - turretCenterField.getY();
+    double distanceMeters = Math.hypot(dx, dy);
+    if (distanceMeters < 1e-6) {
+      return new MovingAimTarget(Double.NaN, Double.NaN, Double.NaN);
+    }
+
+    double unitX = dx / distanceMeters;
+    double unitY = dy / distanceMeters;
+    double radialSpeedMps =
+        robotVelocityField.getX() * unitX + robotVelocityField.getY() * unitY;
+    double lateralUnitX = -unitY;
+    double lateralUnitY = unitX;
+    double lateralSpeedMps =
+        robotVelocityField.getX() * lateralUnitX + robotVelocityField.getY() * lateralUnitY;
+
+    if (currentAimTarget != Constants.FieldTargets.AimTarget.HUB) {
+      lateralSpeedMps = 0.0;
+    }
+
+    double leadMeters =
+        -lateralSpeedMps * Constants.OperatorConstants.AutoShoot.MOVING_AIM_LATERAL_LEAD_SEC;
+    double aimDx = dx + lateralUnitX * leadMeters;
+    double aimDy = dy + lateralUnitY * leadMeters;
+
+    if (Constants.DebugTelemetrySubsystems.supervisor) {
+      SmartDashboard.putNumber("AutoShoot/MovingAim/RadialSpeedMps", radialSpeedMps);
+      SmartDashboard.putNumber("AutoShoot/MovingAim/LateralSpeedMps", lateralSpeedMps);
+      SmartDashboard.putNumber("AutoShoot/MovingAim/LeadMeters", leadMeters);
+      SmartDashboard.putNumber(
+          "AutoShoot/MovingAim/LeadDeg",
+          Math.toDegrees(Math.atan2(aimDy, aimDx) - Math.atan2(dy, dx)));
+      SmartDashboard.putNumber(
+          "AutoShoot/MovingAim/EffectiveDistanceMeters",
+          Math.hypot(aimDx, aimDy));
+    }
+
+    return new MovingAimTarget(
+        Math.atan2(aimDy, aimDx),
+        Math.hypot(aimDx, aimDy),
+        radialSpeedMps);
   }
 
   private static Translation2d getAllianceHubTarget() {
