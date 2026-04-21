@@ -147,7 +147,7 @@ public final class TurretHelpers {
          * <ul>
          * <li>Header row is optional. Lines starting with '#' are ignored.</li>
          * <li>Delimiter: comma</li>
-         * <li>Required columns (either order):
+         * <li>Required columns in this exact order:
          * <ul>
          * <li>shooter_rpm (double)</li>
          * <li>hood_deg (double) - hood command angle in degrees</li>

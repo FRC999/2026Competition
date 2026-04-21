@@ -184,7 +184,7 @@ public class RobotContainer {
     // autoChooser.addOption("Auto Strategy Seven", new AutoStrategySeven());
     // autoChooser.addOption("Auto Strategy Eight", new AutoStrategyEight());
     // autoChooser.addOption("Auto Main One Left", new AutoMainOneLeft());
-    // autoChooser.addOption("AutoMainOneRight", new AutoMainOneRight());
+     autoChooser.addOption("AutoMainOneRight", new AutoMainOneRight());
     // autoChooser.addOption("AutoMainTwoDepotHubSide", new AutoMainTwoDepotHubSide());
     // autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
     // autoChooser.addOption("Test Auto", new TestAuto());
@@ -953,13 +953,16 @@ private void configureIntakeCalibrationBindings() {
       if (!shouldResetOdometryToStartingPose) {
 
         // alex test
-        // System.out.println("Rigth before driving without reset");
+         System.out.println("Rigth before driving without reset");
+         System.out.println("trajectory: " + tr);
         return AutoBuilder.followPath(path);
 
       } else { // reset odometry the right way
 
         // alex test
-        // System.out.println("Rigth before driving with reset");
+         System.out.println("Rigth before driving with reset");
+         System.out.println("trajectory: " + tr);
+
 
         return Commands.sequence(
             // new InstantCommand(
