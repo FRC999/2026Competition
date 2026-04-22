@@ -85,6 +85,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private double lastPivotDutyCommand = Double.NaN;
   private int activePivotClosedLoopSlot = PIVOT_DEPLOYED_SLOT;
   private NeutralModeValue pivotNeutralMode = NeutralModeValue.Brake;
+  private boolean pivotCurrentBoostActive = false;
   private boolean stayDeployedAfterTriggerRelease =
       Constants.OperatorConstants.OIContants.INTAKE_STAY_OUT_AFTER_TRIGGER_RELEASE_DEFAULT;
 
@@ -609,6 +610,57 @@ public class IntakeSubsystem extends SubsystemBase {
     return intakePivotFollowerMotor.getStatorCurrent().getValueAsDouble();
   }
 
+  public double getPivotAverageStatorCurrentAmps() {
+    return (getPivotLeaderStatorCurrentAmps() + getPivotFollowerStatorCurrentAmps()) * 0.5;
+  }
+
+  public double getPivotVelocityDegPerSec() {
+    return pivotVelSig.getValueAsDouble() * 360.0;
+  }
+
+  private void applyPivotCurrentLimits(
+      double supplyCurrentLimitAmps,
+      double supplyCurrentLowerLimitAmps,
+      double supplyCurrentLowerTimeSec,
+      double statorCurrentLimitAmps) {
+    final var currentLimits = new CurrentLimitsConfigs();
+    currentLimits.SupplyCurrentLimitEnable = true;
+    currentLimits.SupplyCurrentLimit = supplyCurrentLimitAmps;
+    currentLimits.SupplyCurrentLowerLimit = supplyCurrentLowerLimitAmps;
+    currentLimits.SupplyCurrentLowerTime = supplyCurrentLowerTimeSec;
+    currentLimits.StatorCurrentLimitEnable = true;
+    currentLimits.StatorCurrentLimit = statorCurrentLimitAmps;
+
+    intakePivotMotor.getConfigurator().apply(currentLimits);
+    intakePivotFollowerMotor.getConfigurator().apply(currentLimits);
+  }
+
+  public void enableInitialAutoDeployCurrentBoost() {
+    if (pivotCurrentBoostActive) {
+      return;
+    }
+
+    applyPivotCurrentLimits(
+        IntakeConstants.INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_SUPPLY_CURRENT_LIMIT_A,
+        IntakeConstants.INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_SUPPLY_CURRENT_LOWER_LIMIT_A,
+        IntakeConstants.INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_SUPPLY_CURRENT_LOWER_TIME_S,
+        IntakeConstants.INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_STATOR_CURRENT_LIMIT_A);
+    pivotCurrentBoostActive = true;
+  }
+
+  public void disableInitialAutoDeployCurrentBoost() {
+    if (!pivotCurrentBoostActive) {
+      return;
+    }
+
+    applyPivotCurrentLimits(
+        IntakeConstants.PIVOT_SUPPLY_CURRENT_LIMIT_A,
+        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A,
+        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_TIME_S,
+        IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A);
+    pivotCurrentBoostActive = false;
+  }
+
   public void exitOpenLoopHold() {
     //intakePivotMotor.setControl(new DutyCycleOut(0.0));
     setTargetPivotDeg(targetPivotDeg);
@@ -689,6 +741,7 @@ public class IntakeSubsystem extends SubsystemBase {
     driverReverseIntakeActive = false;
     pivotSeekingDeployed = false;
     driverMode = IntakeDriverMode.DEPLOYED_IDLE;
+    disableInitialAutoDeployCurrentBoost();
     stopIntake();
     setPivotDutyCycle(0.0);
     lastPivotTargetRot = Double.NaN;

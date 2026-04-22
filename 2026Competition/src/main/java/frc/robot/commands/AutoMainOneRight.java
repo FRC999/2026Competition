@@ -8,6 +8,7 @@ import java.util.Set;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
@@ -29,6 +30,9 @@ public class AutoMainOneRight extends SequentialCommandGroup {
     addCommands(
         //  new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED, false)
         //     .raceWith(new WaitCommand(3)), 
+        Commands.defer(
+            InitialAutoDeployWhileHeld::new,
+            Set.of(RobotContainer.intakeSubsystem)), 
          new DeferredCommand(
           () -> RobotContainer.runTrajectory2Poses(
               true,
@@ -44,17 +48,19 @@ public class AutoMainOneRight extends SequentialCommandGroup {
             // RobotContainer.intakeSubsystem).andThen(new DeployIntakeSequence())),
             // .alongWith(new DeployIntakeSequence()),
           //   .raceWith(new WaitCommand(0.2)),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueNeutralRightMiddle", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRight_BlueNeutralRightMiddle", false, false)
+            .raceWith(new StartIntake()),
           // new RetractIntakeSequence()
           //   .raceWith(new WaitCommand(0.2)),
           new PrintCommand("Past middle"),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRightMiddle_BlueNeutralHubRight", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRightMiddle_BlueNeutralHubRight", false, false)
+            .raceWith(new StartIntake()),
             // .alongWith(new StopIntake()),
           // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueTrenchRight2", false, false),
           // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueTrenchRight", false, false),
           // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRightTurn", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueNearBump", false, false),
-          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false).alongWith(new RetractIntakeSequence())
             .raceWith(new WaitCommand(5)),
           //RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRightUnTurn", false, false),
           //RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueAllianceRight", false, false),
@@ -65,13 +71,14 @@ public class AutoMainOneRight extends SequentialCommandGroup {
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueTrenchRight2", false, false),
           // new RetractIntakeSequence()
           //   .raceWith(new WaitCommand(0.2)),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralHubRight", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralHubRight", false, false)
+          .raceWith(new StartIntake()),
           //  .alongWith(new StartIntake()),
           //RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNearBump_BlueNeutralBump", false, false),
           //RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralBump_BlueNeutralHub", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight2_BlueNearBump", false, false),
           //  .alongWith(new StopIntake()),
-          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false).alongWith(new RetractIntakeSequence())
             .raceWith(new WaitCommand(5))
     );
   }

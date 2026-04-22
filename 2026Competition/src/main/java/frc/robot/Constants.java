@@ -1260,8 +1260,8 @@ public final class Constants {
       public static final double ROLLER_STATOR_CURRENT_LIMIT_A = 60.0;
 
       // Pivot motors current limits (applied to BOTH leader + follower)
-      public static final double PIVOT_SUPPLY_CURRENT_LIMIT_A = 30.0;
-      public static final double PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A = 25.0;
+      public static final double PIVOT_SUPPLY_CURRENT_LIMIT_A = 40.0;
+      public static final double PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A = 35.0;
       public static final double PIVOT_SUPPLY_CURRENT_LOWER_TIME_S = 0.25;
       public static final double PIVOT_SUPPLY_TIME_THRESHOLD_S = 0.10;
       public static final double PIVOT_STATOR_CURRENT_LIMIT_A = 80.0;
@@ -1279,7 +1279,16 @@ public final class Constants {
       public static final double INTAKE_PIVOT_POWER_IN_TIME_SEC = 0.25;
       public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_DUTY = 1.0;
       public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_TIMEOUT_SEC = 3.0;
-      public static final double INTAKE_PIVOT_POSITION_COMMAND_TIMEOUT_SEC = 2.0;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_STALL_CURRENT_A = 55.0;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_STALL_VELOCITY_DEG_PER_SEC = 8.0;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_STALL_DEBOUNCE_SEC = 0.10;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_MAX_SEC = 0.75;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_TARGET_WINDOW_FRACTION = 0.05;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_SUPPLY_CURRENT_LIMIT_A = 60.0;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_SUPPLY_CURRENT_LOWER_LIMIT_A = 55.0;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_SUPPLY_CURRENT_LOWER_TIME_S = 0.25;
+      public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_STATOR_CURRENT_LIMIT_A = 100.0;
+      public static final double INTAKE_PIVOT_POSITION_COMMAND_TIMEOUT_SEC = 5.0;
       public static final double INTAKE_PIVOT_INITIAL_AUTO_RETRACT_TIMEOUT_SEC = 2.0;
       public static final double INTAKE_ROLLER_DUTY = 0.8;
 
@@ -1331,9 +1340,9 @@ public final class Constants {
           public static final double gravityArmPositionOffsetRot = -pivotHorizontalDeg / 360.0;
 
           // Motion Magic in MECHANISM rotations because SensorToMechanismRatio is applied.
-          public static final double MotionMagicCruiseVelocity = 60; //0.20
-          public static final double motionMagicAcceleration = 240; //0.50
-          public static final double motionMagicJerk = 2400; //0.0
+          public static final double MotionMagicCruiseVelocity = 120; //0.20
+          public static final double motionMagicAcceleration = 480; //0.50
+          public static final double motionMagicJerk = 4800; //0.0
         }
 
         public static class RollerVelocityVoltageConstants {

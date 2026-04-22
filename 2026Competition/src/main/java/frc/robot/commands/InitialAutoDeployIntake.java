@@ -25,6 +25,7 @@ public class InitialAutoDeployIntake extends SequentialCommandGroup {
     public void initialize() {
       System.out.println("*****intake force command");
       timeoutTimer.restart();
+      RobotContainer.intakeSubsystem.enableInitialAutoDeployCurrentBoost();
       RobotContainer.intakeSubsystem.stopIntake();
       RobotContainer.intakeSubsystem.beginInitialAutoDeploy(
           IntakeConstants.INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_DUTY);
@@ -32,11 +33,14 @@ public class InitialAutoDeployIntake extends SequentialCommandGroup {
 
     @Override
     public void execute() {
+      RobotContainer.intakeSubsystem.enableInitialAutoDeployCurrentBoost();
+      RobotContainer.intakeSubsystem.setPivotDutyCycle(IntakeConstants.INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_DUTY);
     }
 
     @Override
     public void end(boolean interrupted) {
       timeoutTimer.stop();
+      RobotContainer.intakeSubsystem.disableInitialAutoDeployCurrentBoost();
       RobotContainer.intakeSubsystem.stopPivotAndHoldCurrentPosition();
     }
 
