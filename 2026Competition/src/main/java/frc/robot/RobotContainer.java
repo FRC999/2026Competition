@@ -59,6 +59,7 @@ import frc.robot.commands.AutoStrategySeven;
 import frc.robot.commands.AutoStrategySix;
 import frc.robot.commands.AutoStrategyThree;
 import frc.robot.commands.AutoStrategyTwo;
+import frc.robot.commands.AutoWorldsHubSweep;
 import frc.robot.commands.AutoBlueHubSimpleMoveAndShoot;
 import frc.robot.commands.AutoBlueMiddleToOutpostAndShoot;
 import frc.robot.commands.AutoBlueSimpleMoveAndShootLastResort;
@@ -185,6 +186,7 @@ public class RobotContainer {
     // autoChooser.addOption("Auto Strategy Eight", new AutoStrategyEight());
     // autoChooser.addOption("Auto Main One Left", new AutoMainOneLeft());
      autoChooser.addOption("AutoMainOneRight", new AutoMainOneRight());
+     autoChooser.addOption("AutoWorldsHubSweep", new AutoWorldsHubSweep());
     // autoChooser.addOption("AutoMainTwoDepotHubSide", new AutoMainTwoDepotHubSide());
     // autoChooser.addOption("AutoMainTwoDepotMiddle", new AutoMainTwoDepotMiddle());
     // autoChooser.addOption("Test Auto", new TestAuto());
