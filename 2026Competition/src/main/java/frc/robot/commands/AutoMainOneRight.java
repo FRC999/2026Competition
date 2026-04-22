@@ -42,7 +42,7 @@ public class AutoMainOneRight extends SequentialCommandGroup {
               TrajectoryHelper.AutoDesiredPoses.BlueTrenchRight2),    
           Set.of(RobotContainer.driveSubsystem)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralRight", false, false),
-          new PrintCommand("Past hub right"),
+          //new PrintCommand("Past hub right"),
             // .alongWith(new InstantCommand(
             // () -> RobotContainer.intakeSubsystem.setStayDeployedAfterTriggerRelease(true),
             // RobotContainer.intakeSubsystem).andThen(new DeployIntakeSequence())),
@@ -52,7 +52,7 @@ public class AutoMainOneRight extends SequentialCommandGroup {
             .raceWith(new StartIntake()),
           // new RetractIntakeSequence()
           //   .raceWith(new WaitCommand(0.2)),
-          new PrintCommand("Past middle"),
+          //new PrintCommand("Past middle"),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRightMiddle_BlueNeutralHubRight", false, false)
             .raceWith(new StartIntake()),
             // .alongWith(new StopIntake()),
@@ -61,12 +61,12 @@ public class AutoMainOneRight extends SequentialCommandGroup {
           // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRightTurn", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueNearBump", false, false),
           new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false).alongWith(new RetractIntakeSequence())
-            .raceWith(new WaitCommand(5)),
+            .raceWith(RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNearBump_BlueTrenchRight", false, false)),
           //RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRightUnTurn", false, false),
           //RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueAllianceRight", false, false),
           // new DeployIntakeSequence() 
           //   .raceWith(new WaitCommand(0.2)),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNearBump_BlueTrenchRight", false, false),
+          //RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNearBump_BlueTrenchRight", false, false),
           //RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueAllianceRight_BlueTrenchRight", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueTrenchRight2", false, false),
           // new RetractIntakeSequence()
