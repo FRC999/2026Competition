@@ -767,6 +767,10 @@ public class IntakeSubsystem extends SubsystemBase {
     return Math.abs(position.getPosition() - getPivotDeg()) <= getPivotPositionToleranceDeg();
   }
 
+  public boolean isAtPositionDeg(double targetDeg) {
+    return Math.abs(targetDeg - getPivotDeg()) <= getPivotPositionToleranceDeg();
+  }
+
   // ---------------- SysId factory commands ----------------
   public Command sysIdRollerQuasistatic(SysIdRoutine.Direction direction) {
     if (!isSysIdEnabled()) {

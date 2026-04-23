@@ -1291,6 +1291,8 @@ public final class Constants {
       public static final double INTAKE_PIVOT_POSITION_COMMAND_TIMEOUT_SEC = 5.0;
       public static final double INTAKE_PIVOT_INITIAL_AUTO_RETRACT_TIMEOUT_SEC = 2.0;
       public static final double INTAKE_ROLLER_DUTY = 0.8;
+      public static final double INTAKE_PULSE_MID_DEG = 18.0;
+      public static final double INTAKE_PULSE_STEP_TIMEOUT_SEC = 1.0;
 
       public static enum IntakePositions { // arm degrees (not motor rotations)
         // IntakeStowedDeg(37.0),
