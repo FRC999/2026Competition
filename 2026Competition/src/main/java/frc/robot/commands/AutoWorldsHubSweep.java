@@ -38,15 +38,17 @@ public class AutoWorldsHubSweep extends SequentialCommandGroup {
               RobotContainer.driveSubsystem.getPose(),
               TrajectoryHelper.AutoDesiredPoses.BlueTrenchRight2),    
           Set.of(RobotContainer.driveSubsystem)),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralHubRightMore", false, false)
-          .raceWith(new StartIntake()),
+          (RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralHubRightMore", false, false))
+            .raceWith(new StartIntake()),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRightMore_BlueOffCenter", false, false),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueOffCenter_BlueNearTower", false, false),
-          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+          ((new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false))
+            .alongWith(new PulseIntakeForBallSettle()))
             .raceWith(new WaitCommand(5)), 
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNearTower_BlueDepot", false, false)
-          .raceWith(new StartIntake()),
-          new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+          (RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNearTower_BlueDepot", false, false))
+            .raceWith(new StartIntake()),
+          ((new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false))
+            .alongWith(new PulseIntakeForBallSettle()))
             .raceWith(new WaitCommand(5)),  
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueDepot_BlueLeftLine", false, false)
     );
