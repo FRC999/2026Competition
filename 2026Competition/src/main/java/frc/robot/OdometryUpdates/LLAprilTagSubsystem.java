@@ -26,6 +26,35 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+/**
+ * Limelight AprilTag helper subsystem.
+ *
+ * This is not the master odometry FSM; it is the LL-side support layer used by
+ * OdometryUpdatesSubsystem.
+ *
+ * Practical operating modes:
+ * - seed mode:
+ *   used while the robot is still trying to establish an initial field pose.
+ *   Initial seeding prefers MT1 multi-tag and only falls back to MT2 after the caller
+ *   allows it.
+ *
+ * - tracking with MT1 assist:
+ *   LL internal IMU is still active, but reliable multi-tag MT1 observations are used to
+ *   gently improve heading behavior.
+ *
+ * - tracking internal:
+ *   normal LL tracking mode when MT1 assist is not currently reliable.
+ *
+ * Pose selection behavior:
+ * - getInitialSeedPoseEstimateFromAllLL(...):
+ *   startup anchor selection, preferring MT1 multi-tag before MT2 fallback
+ *
+ * - getBestPoseEstimateFromAllLL():
+ *   current best LL pose for ongoing LL fusion/fallback
+ *
+ * When Quest is primary, odometry may still use LL for anchoring and recovery, but the
+ * fallback LL behavior itself should remain the modern behavior implemented here.
+ */
 public class LLAprilTagSubsystem extends SubsystemBase {
   private static final int INITIAL_SEED_MT1_MIN_TAGS = 2;
   private static final double ORIENTATION_UPDATE_MIN_INTERVAL_SEC = 0.05;

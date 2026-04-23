@@ -41,6 +41,7 @@ import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
 import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
+import frc.robot.OdometryUpdates.QuestNavSubsystem;
 import frc.robot.commands.AutoMainOneLeft;
 import frc.robot.commands.AutoMainOneRight;
 import frc.robot.commands.AutoMainTwoDepotHubSide;
@@ -126,6 +127,7 @@ public class RobotContainer {
   //public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
+  public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
   public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
   public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
   public static ClimbSubsystem climbSubsystem = new ClimbSubsystem();

@@ -13,6 +13,10 @@ public class OdometryConstants {
 
   /** Reject obviously invalid field poses before vision fusion. */
   public static final double MAX_REASONABLE_FIELD_COORD_ABS_METERS = 100.0;
+  /** Hold Quest-primary mode briefly through short dropouts before falling back to LL. */
+  public static final double QUEST_LOSS_HOLD_SEC = 5.0;
+  /** Maximum age of the last unread Quest frame before Quest is treated as stale. */
+  public static final double QUEST_STALE_TIMEOUT_SEC = 0.5;
   /** Default duration that all LLs must be blind before a reanchor is armed. */
   public static final double TAG_LOSS_REANCHOR_ARM_DELAY_SEC_DEFAULT = 2.0;
   /** Dashboard key for tuning the post-tag-loss reanchor arm delay. */

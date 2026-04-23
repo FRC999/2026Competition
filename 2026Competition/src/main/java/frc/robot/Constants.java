@@ -110,6 +110,7 @@ public final class Constants {
     public static final boolean chasis = true;
     public static final boolean odometry = true;
     public static final boolean ll = true;
+    public static final boolean questnav = true;
     public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true;
@@ -128,6 +129,7 @@ public final class Constants {
     public static final boolean chassis = true;
     public static final boolean ll = false;
     public static final boolean llLight = false;
+    public static final boolean questnav = false;
     public static final boolean perfLight = false;
     public static final boolean intake = true;
     public static final boolean shooter = true;
