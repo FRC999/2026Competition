@@ -264,7 +264,8 @@ public class RobotContainer {
       //configureSpindexerCalibrationBindings();
     }
     competitionXBOXButtonBindings();
-    betaTesting();
+    questCalibration();
+    //turretCalibration();
     //setYaws();
 
     new JoystickButton(xboxDriveController, 8) // Left of X
@@ -531,7 +532,17 @@ public class RobotContainer {
       .onTrue(new InstantCommand(() -> supplyRpsSet[0] = Math.max(0.0, supplyRpsSet[0] - SUPPLY_STEP_RPS)));
 }
 
-  private void betaTesting() {
+  private void questCalibration() {
+    new JoystickButton(turretStick, 11)
+        .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
+        .onFalse(new StopRobot());
+
+    new JoystickButton(turretStick, 12)
+        .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
+        .onFalse(new StopRobot());
+  }
+
+  private void turretCalibration() {
 
     // new JoystickButton(turretStick, 4)
     //   .onTrue(new RunCommand(() -> transferSubsystem.runFeed(), transferSubsystem).alongWith(
