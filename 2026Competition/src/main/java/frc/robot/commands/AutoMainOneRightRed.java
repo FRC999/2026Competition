@@ -33,14 +33,16 @@ public class AutoMainOneRightRed extends SequentialCommandGroup {
             .raceWith(new StartIntake()),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueNearBump", false, false),
           ((new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false))
-            .alongWith(new PulseIntakeForBallSettle()))
+            //.alongWith(new PulseIntakeForBallSettle())
+            )
             .raceWith(RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNearBump_BlueTrenchRight", false, false)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueTrenchRight2", false, false),
           (RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralHubRight", false, false))
             .raceWith(new StartIntake()),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight2_BlueNearBump", false, false),
           ((new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false))
-            .alongWith(new PulseIntakeForBallSettle()))
+            //.alongWith(new PulseIntakeForBallSettle())
+            )
             .raceWith(new WaitCommand(5))
     );
   }
