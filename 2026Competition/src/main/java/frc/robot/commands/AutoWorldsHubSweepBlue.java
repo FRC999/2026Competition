@@ -12,12 +12,8 @@ import frc.robot.RobotContainer;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 
-// NOTE:  Consider using this command inline, rather than writing a subclass.  For more
-// information, see:
-// https://docs.wpilib.org/en/stable/docs/software/commandbased/convenience-features.html
-public class AutoWorldsHubSweep extends SequentialCommandGroup {
-  /** Creates a new AutoWorldsHubSweep. */
-  public AutoWorldsHubSweep() {
+public class AutoWorldsHubSweepBlue extends SequentialCommandGroup {
+  public AutoWorldsHubSweepBlue() {
     addCommands(
         new WaitCommand(3.75),
         Commands.defer(

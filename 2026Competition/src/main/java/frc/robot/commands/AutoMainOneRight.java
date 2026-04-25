@@ -39,7 +39,7 @@ public class AutoMainOneRight extends SequentialCommandGroup {
               //TrajectoryHelper.AutoDesiredPoses.BlueTrenchRight,
               //new Pose2d(3.884, 6.966, new Rotation2d()),
               RobotContainer.driveSubsystem.getPose(),
-              TrajectoryHelper.flipPoseRed(TrajectoryHelper.AutoDesiredPoses.BlueTrenchRight2)),    
+              TrajectoryHelper.AutoDesiredPoses.BlueTrenchRight2),    
           Set.of(RobotContainer.driveSubsystem)),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralRight", false, false),
           //new PrintCommand("Past hub right"),

@@ -36,6 +36,12 @@ public class TrajectoryHelper {
             pose;
     }
 
+    public static Pose2d getAllianceTrenchRight2() {
+        return DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
+            ? AutoDesiredPoses.RedTrenchRight2
+            : AutoDesiredPoses.BlueTrenchRight2;
+    }
+
     public static final class AutoDesiredPoses {
         public static final Pose2d BlueOutpost = new Pose2d(0.50, 0.65, new Rotation2d(Math.toRadians(90)));
         public static final Pose2d BlueDepot = new Pose2d(0.55, 5.95, new Rotation2d(0));
@@ -53,7 +59,7 @@ public class TrajectoryHelper {
         public static final Pose2d BlueTrenchRight = new Pose2d(3.5, 0.65, new Rotation2d());
         public static final Pose2d BlueTrenchLeft = new Pose2d(3.5, 7.45, new Rotation2d());
         public static final Pose2d BlueTrenchRight2 = new Pose2d(5.942, 0.677, new Rotation2d());
-        public static final Pose2d RedTrenchRight2 = new Pose2d(5.942, 0.677, new Rotation2d());
+        public static final Pose2d RedTrenchRight2 = new Pose2d(10.598, 7.393, new Rotation2d(Math.toRadians(180)));
         public static final Pose2d BlueTrenchLeft2 = new Pose2d(5.647, 7.45, new Rotation2d());
     }
 }

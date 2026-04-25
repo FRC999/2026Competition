@@ -12,12 +12,8 @@ import frc.robot.RobotContainer;
 import frc.robot.lib.TrajectoryHelper;
 import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 
-// NOTE:  Consider using this command inline, rather than writing a subclass.  For more
-// information, see:
-// https://docs.wpilib.org/en/stable/docs/software/commandbased/convenience-features.html
-public class AutoWorldsHubSweep extends SequentialCommandGroup {
-  /** Creates a new AutoWorldsHubSweep. */
-  public AutoWorldsHubSweep() {
+public class AutoWorldsHubSweepRed extends SequentialCommandGroup {
+  public AutoWorldsHubSweepRed() {
     addCommands(
         new WaitCommand(3.75),
         Commands.defer(
@@ -27,7 +23,7 @@ public class AutoWorldsHubSweep extends SequentialCommandGroup {
             () -> RobotContainer.runTrajectory2Poses(
                 true,
                 RobotContainer.driveSubsystem.getPose(),
-                TrajectoryHelper.AutoDesiredPoses.BlueTrenchRight2),
+                TrajectoryHelper.AutoDesiredPoses.RedTrenchRight2),
             java.util.Set.of(RobotContainer.driveSubsystem)),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
             "BlueTrenchRight2_BlueNeutralHubRightMore",
