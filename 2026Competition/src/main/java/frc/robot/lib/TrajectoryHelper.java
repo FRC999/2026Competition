@@ -9,6 +9,8 @@ import com.pathplanner.lib.util.FlippingUtil;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import frc.robot.Constants.PathPlannerConstants;
 
 public class TrajectoryHelper {
@@ -28,7 +30,8 @@ public class TrajectoryHelper {
      * @return pose flipped around center of the field
      */
     public static Pose2d flipPoseRed(Pose2d pose) {
-        return (PathPlannerConstants.shouldFlipTrajectoryOnRed) ? 
+        return (PathPlannerConstants.shouldFlipTrajectoryOnRed
+                && DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red) ? 
             FlippingUtil.flipFieldPose(pose) :
             pose;
     }
