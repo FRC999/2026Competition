@@ -904,7 +904,7 @@ public final class Constants {
        * Driver omega deadband for allowing the stationary illegal-shot auto-turn
        * assist to take over.
        */
-      public static final double IDLE_SHOOTER_RPM = 0.0; // 2200
+      public static final double IDLE_SHOOTER_RPM = 2200.0; // 2200
       public static final double STATIONARY_ASSIST_OMEGA_DEADBAND = 0.30;
       /** Shooter enters recovery if actual RPM <= targetRPM * this fraction. */
       public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;

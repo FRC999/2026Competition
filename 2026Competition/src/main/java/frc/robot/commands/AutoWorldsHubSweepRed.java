@@ -33,21 +33,18 @@ public class AutoWorldsHubSweepRed extends SequentialCommandGroup {
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
             "BlueNeutralHubRightMore_BlueOffCenter",
             false,
-            false),
+            false)
+        .raceWith(new StartIntake()),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
             "BlueOffCenter_BlueNearTower",
             false,
             false),
-        new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
-            .alongWith(new PulseIntakeForBallSettle())
+        (new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+           // .alongWith(new PulseIntakeForBallSettle())
+           )
             .raceWith(new WaitCommand(3.75)),
-
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
-            "BlueNearTower_BlueDepot",
-            false,
-            false),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
-            "BlueDepot_BlueDepotThrough",
+            "BlueNearTower_BlueDepotThrough",
             false,
             false)
         .raceWith(new StartIntake()),
@@ -55,8 +52,9 @@ public class AutoWorldsHubSweepRed extends SequentialCommandGroup {
             "BlueDepotThrough_BlueLeftLine",
             false,
             false),
-        new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
-            .alongWith(new PulseIntakeForBallSettle())
+        (new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+            //.alongWith(new PulseIntakeForBallSettle())
+            )
             .raceWith(new WaitCommand(2)));
   }
 }

@@ -191,10 +191,10 @@ public class RobotContainer {
     // autoChooser.addOption("Auto Strategy Seven", new AutoStrategySeven());
     // autoChooser.addOption("Auto Strategy Eight", new AutoStrategyEight());
     // autoChooser.addOption("Auto Main One Left", new AutoMainOneLeft());
-     autoChooser.addOption("AutoMainOneRight", new AutoMainOneRight());
+    // autoChooser.addOption("AutoMainOneRight", new AutoMainOneRight());
      autoChooser.addOption("AutoMainOneRightBlue", new AutoMainOneRightBlue());
      autoChooser.addOption("AutoMainOneRightRed", new AutoMainOneRightRed());
-     autoChooser.addOption("AutoWorldsHubSweep", new AutoWorldsHubSweep());
+    //  autoChooser.addOption("AutoWorldsHubSweep", new AutoWorldsHubSweep());
      autoChooser.addOption("AutoWorldsHubSweepBlue", new AutoWorldsHubSweepBlue());
      autoChooser.addOption("AutoWorldsHubSweepRed", new AutoWorldsHubSweepRed());
     // autoChooser.addOption("AutoMainTwoDepotHubSide", new AutoMainTwoDepotHubSide());

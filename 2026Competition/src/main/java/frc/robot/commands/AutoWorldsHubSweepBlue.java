@@ -41,13 +41,8 @@ public class AutoWorldsHubSweepBlue extends SequentialCommandGroup {
         new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
             .alongWith(new PulseIntakeForBallSettle())
             .raceWith(new WaitCommand(3.75)),
-
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
-            "BlueNearTower_BlueDepot",
-            false,
-            false),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
-            "BlueDepot_BlueDepotThrough",
+            "BlueNearTower_BlueDepotThrough",
             false,
             false)
         .raceWith(new StartIntake()),
