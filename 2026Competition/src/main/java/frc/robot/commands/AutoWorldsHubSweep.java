@@ -27,7 +27,7 @@ public class AutoWorldsHubSweep extends SequentialCommandGroup {
             () -> RobotContainer.runTrajectory2Poses(
                 true,
                 RobotContainer.driveSubsystem.getPose(),
-                TrajectoryHelper.AutoDesiredPoses.BlueTrenchRight2),
+                TrajectoryHelper.flipPoseRed(TrajectoryHelper.AutoDesiredPoses.BlueTrenchRight2)),
             java.util.Set.of(RobotContainer.driveSubsystem)),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
             "BlueTrenchRight2_BlueNeutralHubRightMore",
