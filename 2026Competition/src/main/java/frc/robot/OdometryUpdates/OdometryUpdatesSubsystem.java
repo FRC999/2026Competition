@@ -144,6 +144,12 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       questLossHoldTimer.reset();
     }
 
+    // When Quest is primary, LL must not be able to inject delayed MT1 re-anchors
+    // back into robot odometry. LL-only recalibration remains available in LL states.
+    if (state == VisionState.CALIBRATED_Q) {
+      cancelDelayedMegaTag1Recalibration();
+    }
+
     if (DebugTelemetrySubsystems.odometry) {
       SmartDashboard.putString("Odometry/State", state.name());
       SmartDashboard.putString("Odometry/StateColor", ElasticHelpers.questStatesColors(state.name()));
@@ -264,15 +270,26 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         continue;
       }
 
-      Pose2d questPose = poseFrame.questPose3d().toPose2d();
-      Pose2d robotPose = questPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST.inverse());
+      Pose2d robotPose;
+      try {
+        Pose2d questPose = poseFrame.questPose3d().toPose2d();
+        robotPose = questPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST.inverse());
+      } catch (Throwable t) {
+        continue;
+      }
+
       if (!isReasonablePose(robotPose)) {
         continue;
       }
 
-      double measurementTimestamp = poseFrame.dataTimestamp() > 1.0
-          ? poseFrame.dataTimestamp()
-          : Timer.getFPGATimestamp();
+      double measurementTimestamp;
+      try {
+        measurementTimestamp = poseFrame.dataTimestamp() > 1.0
+            ? poseFrame.dataTimestamp()
+            : Timer.getFPGATimestamp();
+      } catch (Throwable t) {
+        continue;
+      }
 
       if (!gateMeasurement(robotPose, measurementTimestamp, false, speedNow, poseNow)) {
         continue;
@@ -428,7 +445,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       cancelDelayedMegaTag1Recalibration();
       requestReanchorFromLimelightAfterYawReset();
       if (DebugTelemetrySubsystems.odometry) {
-        System.out.println("Triggered delayed LL recalibration 5s after MegaTag1 anchor");
+        //System.out.println("Triggered delayed LL recalibration 5s after MegaTag1 anchor");
       }
     }
   }
@@ -564,7 +581,6 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
                 Math.max(0.0, OdometryConstants.QUEST_LOSS_HOLD_SEC - questLossHoldTimer.get()));
           }
         }
-        handleDelayedMegaTag1Recalibration();
       }
       case CALIBRATED_NO_Q -> {
         LimelightHelpers.PoseEstimate bestPoseEstimate = Constants.EnabledSubsystems.ll

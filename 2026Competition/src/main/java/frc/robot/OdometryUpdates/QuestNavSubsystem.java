@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -50,12 +51,66 @@ public class QuestNavSubsystem extends SubsystemBase {
   private int characterizationCounter = 0;
   private Pose2d characterizationStartPose = QuestNavConstants.NULL_POSE;
   private double savedQuestAngleDeg = 0.0;
+  private String lastFaultContext = "";
+  private double lastFaultReportTs = Double.NEGATIVE_INFINITY;
 
   public QuestNavSubsystem() {
-    questNav = new QuestNav();
-    if (EnabledSubsystems.questnav) {
-      resetToZeroPose();
+    QuestNav questNavInstance = null;
+    try {
+      questNavInstance = new QuestNav();
+      registerCallbacks(questNavInstance);
+      if (EnabledSubsystems.questnav) {
+        resetToZeroPose(questNavInstance);
+      }
+    } catch (Throwable t) {
+      reportQuestFault("constructor", t);
     }
+    questNav = questNavInstance;
+  }
+
+  private void registerCallbacks(QuestNav nav) {
+    nav.onConnected(() -> {
+      if (DebugTelemetrySubsystems.questnav) {
+        System.out.println("QuestNav connected");
+      }
+    });
+
+    nav.onDisconnected(() ->
+        DriverStation.reportWarning("QuestNav disconnected", false));
+
+    nav.onTrackingAcquired(() -> {
+      if (DebugTelemetrySubsystems.questnav) {
+        System.out.println("QuestNav tracking acquired");
+      }
+    });
+
+    nav.onTrackingLost(() ->
+        DriverStation.reportWarning("QuestNav tracking lost", false));
+
+    nav.onLowBattery(20, batteryLevel ->
+        DriverStation.reportWarning("QuestNav battery low: " + batteryLevel + "%", false));
+
+    nav.onCommandSuccess(response -> {
+      if (DebugTelemetrySubsystems.questnav) {
+        System.out.println("QuestNav command succeeded: " + response.getCommandId());
+      }
+    });
+
+    nav.onCommandFailure(response ->
+        DriverStation.reportError(
+            "QuestNav command failed: " + response.getErrorMessage(),
+            false));
+  }
+
+  private void reportQuestFault(String context, Throwable t) {
+    double now = Timer.getFPGATimestamp();
+    if (context.equals(lastFaultContext) && now - lastFaultReportTs < 1.0) {
+      return;
+    }
+
+    lastFaultContext = context;
+    lastFaultReportTs = now;
+    DriverStation.reportError("QuestNav fault in " + context + ": " + t.getMessage(), false);
   }
 
   public boolean isInitialPoseSet() {
@@ -67,8 +122,20 @@ public class QuestNavSubsystem extends SubsystemBase {
   }
 
   public void resetToZeroPose() {
+    resetToZeroPose(questNav);
+  }
+
+  private void resetToZeroPose(QuestNav nav) {
+    if (nav == null) {
+      return;
+    }
+
+    try {
     Pose3d questPose = QuestNavConstants.ROBOT_ZERO_POSE_3D.transformBy(QuestNavConstants.ROBOT_TO_QUEST_3D);
-    questNav.setPose(questPose);
+      nav.setPose(questPose);
+    } catch (Throwable t) {
+      reportQuestFault("resetToZeroPose", t);
+    }
   }
 
   public Pose2d getQuestRobotPose2d() {
@@ -76,10 +143,15 @@ public class QuestNavSubsystem extends SubsystemBase {
       return QuestNavConstants.NULL_POSE;
     }
 
-    return poseFrames[poseFrames.length - 1]
-        .questPose3d()
-        .toPose2d()
-        .transformBy(QuestNavConstants.ROBOT_TO_QUEST.inverse());
+    try {
+      return poseFrames[poseFrames.length - 1]
+          .questPose3d()
+          .toPose2d()
+          .transformBy(QuestNavConstants.ROBOT_TO_QUEST.inverse());
+    } catch (Throwable t) {
+      reportQuestFault("getQuestRobotPose2d", t);
+      return QuestNavConstants.NULL_POSE;
+    }
   }
 
   public Pose3d getQuestRobotPose3d() {
@@ -87,9 +159,14 @@ public class QuestNavSubsystem extends SubsystemBase {
       return QuestNavConstants.NULL_POSE_3D;
     }
 
-    return poseFrames[poseFrames.length - 1]
-        .questPose3d()
-        .transformBy(QuestNavConstants.ROBOT_TO_QUEST_3D.inverse());
+    try {
+      return poseFrames[poseFrames.length - 1]
+          .questPose3d()
+          .transformBy(QuestNavConstants.ROBOT_TO_QUEST_3D.inverse());
+    } catch (Throwable t) {
+      reportQuestFault("getQuestRobotPose3d", t);
+      return QuestNavConstants.NULL_POSE_3D;
+    }
   }
 
   public Pose2d getQuestPose2d() {
@@ -97,7 +174,12 @@ public class QuestNavSubsystem extends SubsystemBase {
       return QuestNavConstants.NULL_POSE;
     }
 
-    return poseFrames[poseFrames.length - 1].questPose3d().toPose2d();
+    try {
+      return poseFrames[poseFrames.length - 1].questPose3d().toPose2d();
+    } catch (Throwable t) {
+      reportQuestFault("getQuestPose2d", t);
+      return QuestNavConstants.NULL_POSE;
+    }
   }
 
   public Pose3d getQuestPose3d() {
@@ -105,7 +187,12 @@ public class QuestNavSubsystem extends SubsystemBase {
       return QuestNavConstants.NULL_POSE_3D;
     }
 
-    return poseFrames[poseFrames.length - 1].questPose3d();
+    try {
+      return poseFrames[poseFrames.length - 1].questPose3d();
+    } catch (Throwable t) {
+      reportQuestFault("getQuestPose3d", t);
+      return QuestNavConstants.NULL_POSE_3D;
+    }
   }
 
   public double getQuestRobotYaw() {
@@ -134,8 +221,9 @@ public class QuestNavSubsystem extends SubsystemBase {
 
   public boolean isTracking() {
     try {
-      return EnabledSubsystems.questnav && questNav.isTracking();
+      return EnabledSubsystems.questnav && questNav != null && questNav.isTracking();
     } catch (Throwable t) {
+      reportQuestFault("isTracking", t);
       return false;
     }
   }
@@ -154,11 +242,27 @@ public class QuestNavSubsystem extends SubsystemBase {
     }
 
     Pose2d newRobotPose = new Pose2d(currentRobotPose.getTranslation(), Rotation2d.fromDegrees(angleDeg));
-    questNav.setPose(new Pose3d(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST)));
+    if (questNav == null) {
+      return;
+    }
+
+    try {
+      questNav.setPose(new Pose3d(newRobotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST)));
+    } catch (Throwable t) {
+      reportQuestFault("resetQuestIMUToAngle", t);
+    }
   }
 
   public void resetQuestOdometry(Pose3d robotPose) {
-    questNav.setPose(robotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST_3D));
+    if (questNav == null) {
+      return;
+    }
+
+    try {
+      questNav.setPose(robotPose.transformBy(QuestNavConstants.ROBOT_TO_QUEST_3D));
+    } catch (Throwable t) {
+      reportQuestFault("resetQuestOdometry", t);
+    }
   }
 
   /**
@@ -217,7 +321,13 @@ public class QuestNavSubsystem extends SubsystemBase {
               characterizationCounter = 0;
               characterizationStartPose = QuestNavConstants.NULL_POSE;
               savedQuestAngleDeg = getQuestYaw();
-              questNav.setPose(new Pose3d(new Pose2d()));
+              if (questNav != null) {
+                try {
+                  questNav.setPose(new Pose3d(new Pose2d()));
+                } catch (Throwable t) {
+                  reportQuestFault("offsetAngleCharacterizationCommand/start", t);
+                }
+              }
             },
             RobotContainer.driveSubsystem),
         Commands.run(
@@ -242,7 +352,13 @@ public class QuestNavSubsystem extends SubsystemBase {
                 System.out.println("Quest angle characterization failed: " + e.getMessage());
               }
               RobotContainer.driveSubsystem.drive(0.0, 0.0, 0.0);
-              questNav.setPose(new Pose3d(new Pose2d(0.0, 0.0, Rotation2d.fromDegrees(savedQuestAngleDeg))));
+              if (questNav != null) {
+                try {
+                  questNav.setPose(new Pose3d(new Pose2d(0.0, 0.0, Rotation2d.fromDegrees(savedQuestAngleDeg))));
+                } catch (Throwable t) {
+                  reportQuestFault("offsetAngleCharacterizationCommand/end", t);
+                }
+              }
             }))
         .until(() -> false);
   }
@@ -267,12 +383,24 @@ public class QuestNavSubsystem extends SubsystemBase {
       return;
     }
 
-    questNav.commandPeriodic();
+    if (questNav == null) {
+      return;
+    }
 
-    PoseFrame[] unreadPoseFrames = questNav.getAllUnreadPoseFrames();
-    if (unreadPoseFrames != null && unreadPoseFrames.length > 0) {
-      poseFrames = unreadPoseFrames;
-      lastFreshFrameFpgaTs = Timer.getFPGATimestamp();
+    try {
+      questNav.commandPeriodic();
+
+      PoseFrame[] unreadPoseFrames = questNav.getAllUnreadPoseFrames();
+      if (unreadPoseFrames != null && unreadPoseFrames.length > 0) {
+        poseFrames = unreadPoseFrames;
+        lastFreshFrameFpgaTs = Timer.getFPGATimestamp();
+      }
+      questNav.getBatteryPercent().ifPresent(
+          batteryPercent -> SmartDashboard.putNumber("QuestNav/Battery%", batteryPercent));
+    } catch (Throwable t) {
+      poseFrames = new PoseFrame[0];
+      reportQuestFault("periodic", t);
+      return;
     }
 
     if (!DebugTelemetrySubsystems.questnav) {
@@ -285,21 +413,23 @@ public class QuestNavSubsystem extends SubsystemBase {
     }
     telemetryLoopCounter = 0;
 
-    SmartDashboard.putBoolean("QuestNav/Connected", questNav.isConnected());
-    SmartDashboard.putBoolean("QuestNav/Tracking", isTracking());
-    SmartDashboard.putBoolean("QuestNav/FreshTracking", hasFreshTracking());
-    SmartDashboard.putNumber("QuestNav/Latency", questNav.getLatency());
-    questNav.getBatteryPercent().ifPresent(
-        batteryPercent -> SmartDashboard.putNumber("QuestNav/Battery%", batteryPercent));
-    questNav.getTrackingLostCounter().ifPresent(
-        trackingLostCount -> SmartDashboard.putNumber("QuestNav/TrackingLostCount", trackingLostCount));
-    SmartDashboard.putNumber("QuestNav/LastFreshFrameAgeSec", getLastFreshFrameAgeSec());
-    SmartDashboard.putString("QuestNav/RobotPose/Translation", getQuestRobotPose3d().getTranslation().toString());
-    SmartDashboard.putNumber("QuestNav/RobotPose/YawDeg", getQuestRobotYaw());
-    SmartDashboard.putString("QuestNav/QuestPose/Translation", getQuestPose3d().getTranslation().toString());
-    SmartDashboard.putNumber("QuestNav/QuestPose/YawDeg", getQuestYaw());
-    SmartDashboard.putNumber("QuestNav/Timestamp/DataSec", getQTimeStamp());
-    SmartDashboard.putNumber("QuestNav/Timestamp/AppSec", getQAppTimeStamp());
-    SmartDashboard.putNumber("QuestNav/FramesCount", poseFrames != null ? poseFrames.length : 0);
+    try {
+      SmartDashboard.putBoolean("QuestNav/Connected", questNav.isConnected());
+      SmartDashboard.putBoolean("QuestNav/Tracking", isTracking());
+      SmartDashboard.putBoolean("QuestNav/FreshTracking", hasFreshTracking());
+      SmartDashboard.putNumber("QuestNav/Latency", questNav.getLatency());
+      questNav.getTrackingLostCounter().ifPresent(
+          trackingLostCount -> SmartDashboard.putNumber("QuestNav/TrackingLostCount", trackingLostCount));
+      SmartDashboard.putNumber("QuestNav/LastFreshFrameAgeSec", getLastFreshFrameAgeSec());
+      SmartDashboard.putString("QuestNav/RobotPose/Translation", getQuestRobotPose3d().getTranslation().toString());
+      SmartDashboard.putNumber("QuestNav/RobotPose/YawDeg", getQuestRobotYaw());
+      SmartDashboard.putString("QuestNav/QuestPose/Translation", getQuestPose3d().getTranslation().toString());
+      SmartDashboard.putNumber("QuestNav/QuestPose/YawDeg", getQuestYaw());
+      SmartDashboard.putNumber("QuestNav/Timestamp/DataSec", getQTimeStamp());
+      SmartDashboard.putNumber("QuestNav/Timestamp/AppSec", getQAppTimeStamp());
+      SmartDashboard.putNumber("QuestNav/FramesCount", poseFrames != null ? poseFrames.length : 0);
+    } catch (Throwable t) {
+      reportQuestFault("telemetry", t);
+    }
   }
 }

@@ -50,6 +50,7 @@ public class TrajectoryHelper {
         public static final Pose2d BlueTrenchRight = new Pose2d(3.5, 0.65, new Rotation2d());
         public static final Pose2d BlueTrenchLeft = new Pose2d(3.5, 7.45, new Rotation2d());
         public static final Pose2d BlueTrenchRight2 = new Pose2d(5.942, 0.677, new Rotation2d());
+        public static final Pose2d RedTrenchRight2 = new Pose2d(5.942, 0.677, new Rotation2d());
         public static final Pose2d BlueTrenchLeft2 = new Pose2d(5.647, 7.45, new Rotation2d());
     }
 }

@@ -129,17 +129,17 @@ public final class Constants {
     public static final boolean chassis = true;
     public static final boolean ll = false;
     public static final boolean llLight = false;
-    public static final boolean questnav = true;
+    public static final boolean questnav = false;
     public static final boolean perfLight = false;
-    public static final boolean intake = true;
-    public static final boolean shooter = true;
-    public static final boolean turret = true;
-    public static final boolean hood = true;
+    public static final boolean intake = false;
+    public static final boolean shooter = false;
+    public static final boolean turret = false;
+    public static final boolean hood = false;
     public static final boolean hopper = false;
-    public static final boolean spindexer = true;
-    public static final boolean transfer = true;
+    public static final boolean spindexer = false;
+    public static final boolean transfer = false;
     public static final boolean climber = false;
-    public static final boolean supervisor = true;
+    public static final boolean supervisor = false;
     // Task #12: Gate SmartDashboardSubsystem output (global dashboards only).
     public static final boolean smartDashboard = false;
 
@@ -904,7 +904,7 @@ public final class Constants {
        * Driver omega deadband for allowing the stationary illegal-shot auto-turn
        * assist to take over.
        */
-      public static final double IDLE_SHOOTER_RPM = 2000.0; // 2200
+      public static final double IDLE_SHOOTER_RPM = 2200.0; // 2200
       public static final double STATIONARY_ASSIST_OMEGA_DEADBAND = 0.30;
       /** Shooter enters recovery if actual RPM <= targetRPM * this fraction. */
       public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;
