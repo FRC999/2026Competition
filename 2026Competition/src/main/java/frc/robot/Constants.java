@@ -1268,6 +1268,12 @@ public final class Constants {
       public static final double PIVOT_SUPPLY_TIME_THRESHOLD_S = 0.10;
       public static final double PIVOT_STATOR_CURRENT_LIMIT_A = 80.0;
 
+      // Teleop-only pivot power boost for driver override button combos.
+      // POV down + A deploys with 30% higher pivot current limits.
+      public static final double TELEOP_DEPLOY_PIVOT_POWER_BOOST_PERCENT = 0.30;
+      // POV up + Y retracts with 30% higher pivot current limits.
+      public static final double TELEOP_RETRACT_PIVOT_POWER_BOOST_PERCENT = 0.30;
+
       public static final double PIVOT_MIN_DEG = 0; // retracted hard stop = 0 deg
       public static final double PIVOT_MAX_DEG = 53; // TODO: PLACEHOLDER - verify true max
 

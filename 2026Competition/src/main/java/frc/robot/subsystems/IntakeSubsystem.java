@@ -33,6 +33,7 @@ import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
@@ -635,6 +636,45 @@ public class IntakeSubsystem extends SubsystemBase {
     intakePivotFollowerMotor.getConfigurator().apply(currentLimits);
   }
 
+  private void restoreDefaultPivotCurrentLimits() {
+    applyPivotCurrentLimits(
+        IntakeConstants.PIVOT_SUPPLY_CURRENT_LIMIT_A,
+        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A,
+        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_TIME_S,
+        IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A);
+  }
+
+  private void enableTeleopPivotPowerBoost(double boostPercent) {
+    if (!DriverStation.isTeleopEnabled() || pivotCurrentBoostActive) {
+      return;
+    }
+
+    final double multiplier = 1.0 + boostPercent;
+    applyPivotCurrentLimits(
+        IntakeConstants.PIVOT_SUPPLY_CURRENT_LIMIT_A * multiplier,
+        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A * multiplier,
+        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_TIME_S,
+        IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A * multiplier);
+    pivotCurrentBoostActive = true;
+  }
+
+  public void enableTeleopDeployPivotPowerBoost() {
+    enableTeleopPivotPowerBoost(IntakeConstants.TELEOP_DEPLOY_PIVOT_POWER_BOOST_PERCENT);
+  }
+
+  public void enableTeleopRetractPivotPowerBoost() {
+    enableTeleopPivotPowerBoost(IntakeConstants.TELEOP_RETRACT_PIVOT_POWER_BOOST_PERCENT);
+  }
+
+  public void disableTeleopPivotPowerBoost() {
+    if (!pivotCurrentBoostActive) {
+      return;
+    }
+
+    restoreDefaultPivotCurrentLimits();
+    pivotCurrentBoostActive = false;
+  }
+
   public void enableInitialAutoDeployCurrentBoost() {
     if (pivotCurrentBoostActive) {
       return;
@@ -653,11 +693,7 @@ public class IntakeSubsystem extends SubsystemBase {
       return;
     }
 
-    applyPivotCurrentLimits(
-        IntakeConstants.PIVOT_SUPPLY_CURRENT_LIMIT_A,
-        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A,
-        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_TIME_S,
-        IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A);
+    restoreDefaultPivotCurrentLimits();
     pivotCurrentBoostActive = false;
   }
 

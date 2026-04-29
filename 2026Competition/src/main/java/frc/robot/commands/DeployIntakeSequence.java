@@ -8,14 +8,23 @@ import frc.robot.RobotContainer;
 
 public class DeployIntakeSequence extends Command {
   private final Timer timeoutTimer = new Timer();
+  private final boolean useTeleopPowerBoost;
 
   public DeployIntakeSequence() {
+    this(false);
+  }
+
+  public DeployIntakeSequence(boolean useTeleopPowerBoost) {
+    this.useTeleopPowerBoost = useTeleopPowerBoost;
     addRequirements(RobotContainer.intakeSubsystem);
   }
 
   @Override
   public void initialize() {
     timeoutTimer.restart();
+    if (useTeleopPowerBoost) {
+      RobotContainer.intakeSubsystem.enableTeleopDeployPivotPowerBoost();
+    }
     RobotContainer.intakeSubsystem.stopIntake();
     RobotContainer.intakeSubsystem.setIntakePositionWithAngle(IntakePositions.IntakeDeployedDeg);
   }
@@ -27,6 +36,9 @@ public class DeployIntakeSequence extends Command {
   @Override
   public void end(boolean interrupted) {
     timeoutTimer.stop();
+    if (useTeleopPowerBoost) {
+      RobotContainer.intakeSubsystem.disableTeleopPivotPowerBoost();
+    }
     if (!interrupted) {
       RobotContainer.intakeSubsystem.releaseDeployHoldToCoast();
     }

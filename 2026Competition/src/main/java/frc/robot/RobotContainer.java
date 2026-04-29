@@ -344,6 +344,10 @@ public class RobotContainer {
 
     Trigger panicStopTrigger = new Trigger(RobotContainer::isPanicSwitchActive);
     Trigger panicInactiveTrigger = new Trigger(() -> !RobotContainer.isPanicStopActive());
+    Trigger povUpTrigger = new POVButton(xboxDriveController, 0);
+    Trigger povDownTrigger = new POVButton(xboxDriveController, 180);
+    JoystickButton driverAButton = new JoystickButton(xboxDriveController, OIContants.XBOX_BUTTON_A);
+    JoystickButton driverYButton = new JoystickButton(xboxDriveController, 4);
 
     panicStopTrigger
         .onTrue(new InstantCommand(() -> {
@@ -365,17 +369,33 @@ public class RobotContainer {
                 : new RetractIntakeSequence(),
             Set.of(intakeSubsystem)));
 
-    new JoystickButton(xboxDriveController, OIContants.XBOX_BUTTON_A)
+    driverAButton
         .and(panicInactiveTrigger)
+        .and(new Trigger(() -> xboxDriveController.getPOV() != 180))
         .onTrue(new InstantCommand(
             () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(true),
             intakeSubsystem).andThen(new DeployIntakeSequence()));
 
-    new JoystickButton(xboxDriveController, 4) // Y
+    povDownTrigger
+        .and(driverAButton)
         .and(panicInactiveTrigger)
+        .onTrue(new InstantCommand(
+            () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(true),
+            intakeSubsystem).andThen(new DeployIntakeSequence(true)));
+
+    driverYButton // Y
+        .and(panicInactiveTrigger)
+        .and(new Trigger(() -> xboxDriveController.getPOV() != 0))
         .onTrue(new InstantCommand(
             () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(false),
             intakeSubsystem).andThen(new RetractIntakeSequence()));
+
+    povUpTrigger
+        .and(driverYButton)
+        .and(panicInactiveTrigger)
+        .onTrue(new InstantCommand(
+            () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(false),
+            intakeSubsystem).andThen(new RetractIntakeSequence(true)));
 
 
     // new JoystickButton(xboxDriveController, 3)
