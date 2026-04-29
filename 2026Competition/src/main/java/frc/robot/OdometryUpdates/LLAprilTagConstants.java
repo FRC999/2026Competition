@@ -10,7 +10,8 @@ import edu.wpi.first.math.util.Units;
 public class LLAprilTagConstants {
     public static final class LLVisionConstants {
 
-    public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2026RebuiltAndymark; // Field Layout - changes year-to-year
+    // public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2026RebuiltAndymark; // Field Layout - changes year-to-year
+    public static final AprilTagFields FIELD_LAYOUT = AprilTagFields.k2026RebuiltWelded; // Field Layout - changes year-to-year
 	
 	/** Seed LL4 internal IMU from robot yaw while waiting for first reliable field anchor. */
 	public static final int LL_IMU_MODE_SEED = 1;

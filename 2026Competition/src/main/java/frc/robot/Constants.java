@@ -56,10 +56,10 @@ public final class Constants {
    * HUB_RED_X/Y).
    */
   public static final class FieldTargets {
-    public static final double HUB_BLUE_X = 4.611624; // 4.611624
-    public static final double HUB_BLUE_Y = 4.021328; // 4.021328
-    public static final double HUB_RED_X = 11.901424; // 11.90142 | 12.02842
-    public static final double HUB_RED_Y = 4.021328; // 4.021328
+    public static final double HUB_BLUE_X = 4.6256448; // Welded field
+    public static final double HUB_BLUE_Y = 4.0346122; // Welded field
+    public static final double HUB_RED_X = 11.9154448; // Welded field
+    public static final double HUB_RED_Y = 4.0346122; // Welded field
 
     public static final double NEUTRAL_LOW_BLUE_X = 2.216; // TODO set
     public static final double NEUTRAL_LOW_BLUE_Y = 1.691; // TODO set
@@ -1130,7 +1130,7 @@ public final class Constants {
        * IMPORTANT: Set this to the official 2026 field length for your coordinate
        * frame.
        */
-      public static final double FIELD_LENGTH_METERS = 16.54;
+      public static final double FIELD_LENGTH_METERS = 16.541;
 
       /**
        * Teleop trench safety zones, defined in BLUE-alliance field coordinates
