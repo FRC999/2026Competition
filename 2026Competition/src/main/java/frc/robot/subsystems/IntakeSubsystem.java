@@ -66,6 +66,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private final VelocityVoltage rollerVelocityVoltage = new VelocityVoltage(0).withSlot(0);
   private static final int PIVOT_DEPLOYED_SLOT = MotionMagicDutyCycleConstants.slot;
   private static final int PIVOT_RETRACTED_SLOT = 1;
+  private static final int PIVOT_BOOSTED_SLOT = 2;
 
   private double intakePivotEncoderZero = 0;
   private double targetPivotDeg = 0.0;
@@ -87,6 +88,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private int activePivotClosedLoopSlot = PIVOT_DEPLOYED_SLOT;
   private NeutralModeValue pivotNeutralMode = NeutralModeValue.Brake;
   private boolean pivotCurrentBoostActive = false;
+  private boolean pivotClosedLoopBoostActive = false;
   private boolean stayDeployedAfterTriggerRelease =
       Constants.OperatorConstants.OIContants.INTAKE_STAY_OUT_AFTER_TRIGGER_RELEASE_DEFAULT;
 
@@ -398,6 +400,20 @@ public class IntakeSubsystem extends SubsystemBase {
   private void configureMotionMagicDutyCycle(TalonFXConfiguration config) {
     config.Feedback.SensorToMechanismRatio = IntakeConstants.PIVOT_MOTOR_TO_ARM_GEAR_RATIO;
 
+    applyPivotMotionMagicGains(config);
+
+    config.MotionMagic.MotionMagicCruiseVelocity = MotionMagicDutyCycleConstants.MotionMagicCruiseVelocity;
+    config.MotionMagic.MotionMagicAcceleration = MotionMagicDutyCycleConstants.motionMagicAcceleration;
+    config.MotionMagic.MotionMagicJerk = MotionMagicDutyCycleConstants.motionMagicJerk;
+
+    motionMagicVoltage.Slot = PIVOT_DEPLOYED_SLOT;
+
+    intakePivotMotor.getConfigurator().apply(config);
+    intakePivotFollowerMotor.getConfigurator().apply(config);
+    applyPivotFollowerControl();
+  }
+
+  private void applyPivotMotionMagicGains(TalonFXConfiguration config) {
     // Slot 0 keeps the existing deployed tuning unchanged.
     config.Slot0.kP = MotionMagicDutyCycleConstants.intake_kP_Deployed;
     config.Slot0.kI = MotionMagicDutyCycleConstants.intake_kI;
@@ -420,16 +436,20 @@ public class IntakeSubsystem extends SubsystemBase {
     config.Slot1.GravityType = GravityTypeValue.Arm_Cosine;
     config.Slot1.GravityArmPositionOffset = MotionMagicDutyCycleConstants.gravityArmPositionOffsetRot;
 
-    config.MotionMagic.MotionMagicCruiseVelocity = MotionMagicDutyCycleConstants.MotionMagicCruiseVelocity;
-    config.MotionMagic.MotionMagicAcceleration = MotionMagicDutyCycleConstants.motionMagicAcceleration;
-    config.MotionMagic.MotionMagicJerk = MotionMagicDutyCycleConstants.motionMagicJerk;
-
-    motionMagicVoltage.Slot = PIVOT_DEPLOYED_SLOT;
-
-    intakePivotMotor.getConfigurator().apply(config);
-    intakePivotFollowerMotor.getConfigurator().apply(config);
-    applyPivotFollowerControl();
-
+    double boostMultiplier = 1.0 + IntakeConstants.TELEOP_PIVOT_CLOSED_LOOP_BOOST_PERCENT;
+    config.Slot2.kP = Math.max(
+        MotionMagicDutyCycleConstants.intake_kP_Deployed,
+        MotionMagicDutyCycleConstants.intake_kP_Retracted) * boostMultiplier;
+    config.Slot2.kI = MotionMagicDutyCycleConstants.intake_kI;
+    config.Slot2.kD = Math.max(
+        MotionMagicDutyCycleConstants.intake_kD_Deployed,
+        MotionMagicDutyCycleConstants.intake_kD_Retracted) * boostMultiplier;
+    config.Slot2.kS = MotionMagicDutyCycleConstants.intake_kS * boostMultiplier;
+    config.Slot2.kV = MotionMagicDutyCycleConstants.intake_kV * boostMultiplier;
+    config.Slot2.kA = MotionMagicDutyCycleConstants.intake_kA * boostMultiplier;
+    config.Slot2.kG = 0.0;
+    config.Slot2.GravityType = GravityTypeValue.Arm_Cosine;
+    config.Slot2.GravityArmPositionOffset = MotionMagicDutyCycleConstants.gravityArmPositionOffsetRot;
   }
 
   private void applyPivotFollowerControl() {
@@ -442,6 +462,9 @@ public class IntakeSubsystem extends SubsystemBase {
   private int choosePivotClosedLoopSlot(double targetDeg) {
     double currentDeg = getPivotDeg();
     double deltaDeg = targetDeg - currentDeg;
+    if (pivotClosedLoopBoostActive && Math.abs(deltaDeg) > 1e-3) {
+      return PIVOT_BOOSTED_SLOT;
+    }
     if (deltaDeg > 1e-3) {
       return PIVOT_DEPLOYED_SLOT;
     }
@@ -531,6 +554,10 @@ public class IntakeSubsystem extends SubsystemBase {
   }
 
   public void setTargetPivotDeg(double armDeg) {
+    setTargetPivotDeg(armDeg, 0.0);
+  }
+
+  public void setTargetPivotDeg(double armDeg, double feedForwardVolts) {
     setPivotNeutralMode(NeutralModeValue.Brake);
     double clampedDeg = MathUtil.clamp(armDeg, IntakeConstants.PIVOT_MIN_DEG,
         IntakeConstants.PIVOT_MAX_DEG);
@@ -538,10 +565,18 @@ public class IntakeSubsystem extends SubsystemBase {
 
     double targetRot = intakePivotEncoderZero + mechanismRotFromArmDeg(clampedDeg);
     int desiredSlot = choosePivotClosedLoopSlot(clampedDeg);
-    if (Double.isFinite(lastPivotTargetRot) && Math.abs(lastPivotTargetRot - targetRot) < 1e-6) {
+    double clampedFeedForwardVolts = MathUtil.clamp(feedForwardVolts, -12.0, 12.0);
+    if (Double.isFinite(lastPivotTargetRot)
+        && Math.abs(lastPivotTargetRot - targetRot) < 1e-6
+        && activePivotClosedLoopSlot == desiredSlot
+        && Math.abs(motionMagicVoltage.FeedForward - clampedFeedForwardVolts) < 1e-6) {
       return;
     }
-    intakePivotMotor.setControl(motionMagicVoltage.withSlot(desiredSlot).withPosition(targetRot));
+    intakePivotMotor.setControl(
+        motionMagicVoltage
+            .withSlot(desiredSlot)
+            .withFeedForward(clampedFeedForwardVolts)
+            .withPosition(targetRot));
     activePivotClosedLoopSlot = desiredSlot;
     lastPivotTargetRot = targetRot;
     lastPivotDutyCommand = Double.NaN;
@@ -644,35 +679,28 @@ public class IntakeSubsystem extends SubsystemBase {
         IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A);
   }
 
-  private void enableTeleopPivotPowerBoost(double boostPercent) {
-    if (!DriverStation.isTeleopEnabled() || pivotCurrentBoostActive) {
+  private void enableTeleopPivotPowerBoost() {
+    if (!DriverStation.isTeleopEnabled() || pivotClosedLoopBoostActive) {
       return;
     }
 
-    final double multiplier = 1.0 + boostPercent;
-    applyPivotCurrentLimits(
-        IntakeConstants.PIVOT_SUPPLY_CURRENT_LIMIT_A * multiplier,
-        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_LIMIT_A * multiplier,
-        IntakeConstants.PIVOT_SUPPLY_CURRENT_LOWER_TIME_S,
-        IntakeConstants.PIVOT_STATOR_CURRENT_LIMIT_A * multiplier);
-    pivotCurrentBoostActive = true;
+    pivotClosedLoopBoostActive = true;
   }
 
   public void enableTeleopDeployPivotPowerBoost() {
-    enableTeleopPivotPowerBoost(IntakeConstants.TELEOP_DEPLOY_PIVOT_POWER_BOOST_PERCENT);
+    enableTeleopPivotPowerBoost();
   }
 
   public void enableTeleopRetractPivotPowerBoost() {
-    enableTeleopPivotPowerBoost(IntakeConstants.TELEOP_RETRACT_PIVOT_POWER_BOOST_PERCENT);
+    enableTeleopPivotPowerBoost();
   }
 
   public void disableTeleopPivotPowerBoost() {
-    if (!pivotCurrentBoostActive) {
+    if (!pivotClosedLoopBoostActive) {
       return;
     }
 
-    restoreDefaultPivotCurrentLimits();
-    pivotCurrentBoostActive = false;
+    pivotClosedLoopBoostActive = false;
   }
 
   public void enableInitialAutoDeployCurrentBoost() {
@@ -777,6 +805,7 @@ public class IntakeSubsystem extends SubsystemBase {
     driverReverseIntakeActive = false;
     pivotSeekingDeployed = false;
     driverMode = IntakeDriverMode.DEPLOYED_IDLE;
+    pivotClosedLoopBoostActive = false;
     disableInitialAutoDeployCurrentBoost();
     stopIntake();
     setPivotDutyCycle(0.0);
@@ -797,6 +826,10 @@ public class IntakeSubsystem extends SubsystemBase {
 
   public void setIntakePositionWithAngle(IntakePositions angle) {
     setTargetPivotDeg(angle.getPosition()); // now degrees
+  }
+
+  public void setIntakePositionWithAngle(IntakePositions angle, double feedForwardVolts) {
+    setTargetPivotDeg(angle.getPosition(), feedForwardVolts); // now degrees
   }
 
   public boolean isAtPosition(IntakePositions position) {

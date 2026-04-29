@@ -17,7 +17,9 @@ public class DeployAndRunIntakeWhileHeld extends Command {
     RobotContainer.intakeSubsystem.runIntakeNoPid(IntakeConstants.INTAKE_ROLLER_DUTY);
     waitingForDeployRelease = !RobotContainer.intakeSubsystem.isAtPosition(IntakePositions.IntakeDeployedDeg);
     if (waitingForDeployRelease) {
-      RobotContainer.intakeSubsystem.setIntakePositionWithAngle(IntakePositions.IntakeDeployedDeg);
+      RobotContainer.intakeSubsystem.setIntakePositionWithAngle(
+          IntakePositions.IntakeDeployedDeg,
+          IntakeConstants.LEFT_TRIGGER_DEPLOY_EXTRA_FEEDFORWARD_VOLTS);
       return;
     }
 

@@ -1269,10 +1269,11 @@ public final class Constants {
       public static final double PIVOT_STATOR_CURRENT_LIMIT_A = 80.0;
 
       // Teleop-only pivot power boost for driver override button combos.
-      // POV down + A deploys with 30% higher pivot current limits.
-      public static final double TELEOP_DEPLOY_PIVOT_POWER_BOOST_PERCENT = 0.30;
-      // POV up + Y retracts with 30% higher pivot current limits.
-      public static final double TELEOP_RETRACT_PIVOT_POWER_BOOST_PERCENT = 0.30;
+      // Runtime boost uses a preconfigured Motion Magic slot to avoid CAN config writes
+      // during the 20 ms loop. Current-limit boost values are kept for reference only.
+      public static final double TELEOP_DEPLOY_PIVOT_POWER_BOOST_PERCENT = 0.50;
+      public static final double TELEOP_RETRACT_PIVOT_POWER_BOOST_PERCENT = 0.80;
+      public static final double TELEOP_PIVOT_CLOSED_LOOP_BOOST_PERCENT = 0.30;
 
       public static final double PIVOT_MIN_DEG = 0; // retracted hard stop = 0 deg
       public static final double PIVOT_MAX_DEG = 53; // TODO: PLACEHOLDER - verify true max
@@ -1299,6 +1300,7 @@ public final class Constants {
       public static final double INTAKE_PIVOT_POSITION_COMMAND_TIMEOUT_SEC = 5.0;
       public static final double INTAKE_PIVOT_INITIAL_AUTO_RETRACT_TIMEOUT_SEC = 2.0;
       public static final double INTAKE_ROLLER_DUTY = 0.8;
+      public static final double LEFT_TRIGGER_DEPLOY_EXTRA_FEEDFORWARD_VOLTS = 0.5;
       public static final double INTAKE_PULSE_MID_DEG = 18.0;
       public static final double INTAKE_PULSE_STEP_TIMEOUT_SEC = 1.0;
 
