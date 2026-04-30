@@ -102,6 +102,9 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private double allTagsLostStartTs = Double.NaN;
   private boolean pendingReanchorOnVisionReturn = false;
   private boolean pendingManualMegaTag1Recalibration = false;
+  private Pose2d pendingManualMt1HeadingPose = null;
+  private int manualMt2SettleLoops = 0;
+  private static final int MANUAL_MT2_SETTLE_LOOPS_AFTER_MT1_HEADING = 2;
 
   private final Timer questLossHoldTimer = new Timer();
   private final Timer delayedMegaTag1RecalTimer = new Timer();
@@ -326,6 +329,15 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
   }
 
+  private void resetRobotPoseFromManualRecalibration(Pose2d robotPose) {
+    RobotContainer.driveSubsystem.resetChassisIMUToAngle(robotPose.getRotation().getDegrees());
+    RobotContainer.driveSubsystem.resetCTREPose(robotPose);
+    gatePassOverride = false;
+    initialVisionAnchorComplete = true;
+    clearVisionLossReanchorState();
+    cancelDelayedMegaTag1Recalibration();
+  }
+
   private void calibrateQuestFromLL(Pose2d robotPose) {
     RobotContainer.questNavSubsystem.resetQuestOdometry(new Pose3d(robotPose));
     RobotContainer.questNavSubsystem.setInitialPoseSet(true);
@@ -400,6 +412,8 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
 
     pendingManualMegaTag1Recalibration = true;
+    pendingManualMt1HeadingPose = null;
+    manualMt2SettleLoops = 0;
     gatePassOverride = true;
     clearVisionLossReanchorState();
     cancelDelayedMegaTag1Recalibration();
@@ -411,33 +425,86 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   }
 
   private void handleManualMegaTag1Recalibration() {
-    if (!pendingManualMegaTag1Recalibration || !Constants.EnabledSubsystems.ll) {
+    if (!pendingManualMegaTag1Recalibration) {
       return;
     }
 
-    LimelightHelpers.PoseEstimate mt1PoseEstimate =
-        RobotContainer.llAprilTagSubsystem.getInitialSeedPoseEstimateFromAllLL(false);
-    String cameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
-    if (mt1PoseEstimate == null || cameraName == null || shouldRejectInitialSeedPoseEstimate(mt1PoseEstimate)) {
+    if (!Constants.EnabledSubsystems.ll) {
+      pendingManualMegaTag1Recalibration = false;
+      pendingManualMt1HeadingPose = null;
+      manualMt2SettleLoops = 0;
       if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
-        SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "WAITING_FOR_VALID_MT1");
+        SmartDashboard.putBoolean("Odometry/ManualMT1RecalPending", false);
+        SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "CANCELED_LL_DISABLED");
       }
       return;
     }
 
-    resetRobotPoseFromVision(mt1PoseEstimate);
+    if (pendingManualMt1HeadingPose == null) {
+      LimelightHelpers.PoseEstimate mt1PoseEstimate =
+          RobotContainer.llAprilTagSubsystem.getInitialSeedPoseEstimateFromAllLL(false);
+      String mt1CameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
+      if (mt1PoseEstimate == null
+          || mt1CameraName == null
+          || shouldRejectInitialSeedPoseEstimate(mt1PoseEstimate)) {
+        if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
+          SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "WAITING_FOR_VALID_MT1_HEADING");
+        }
+        return;
+      }
+
+      pendingManualMt1HeadingPose = mt1PoseEstimate.pose;
+      manualMt2SettleLoops = MANUAL_MT2_SETTLE_LOOPS_AFTER_MT1_HEADING;
+      RobotContainer.driveSubsystem.resetChassisIMUToAngle(pendingManualMt1HeadingPose.getRotation().getDegrees());
+      RobotContainer.llAprilTagSubsystem.setLLOrientation(
+          pendingManualMt1HeadingPose.getRotation().getDegrees(),
+          RobotContainer.driveSubsystem.getTurnRate());
+
+      if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
+        SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "MT1_HEADING_SET_WAITING_FOR_MT2");
+      }
+      return;
+    }
+
+    RobotContainer.llAprilTagSubsystem.setLLOrientation(
+        pendingManualMt1HeadingPose.getRotation().getDegrees(),
+        RobotContainer.driveSubsystem.getTurnRate());
+
+    if (manualMt2SettleLoops > 0) {
+      manualMt2SettleLoops--;
+      if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
+        SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "WAITING_FOR_MT2_AFTER_MT1_HEADING");
+      }
+      return;
+    }
+
+    LimelightHelpers.PoseEstimate mt2PoseEstimate =
+        RobotContainer.llAprilTagSubsystem.getMegaTag2PoseEstimateFromAllLL();
+    String mt2CameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
+    if (mt2PoseEstimate == null || mt2CameraName == null || shouldRejectInitialSeedPoseEstimate(mt2PoseEstimate)) {
+      if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
+        SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "WAITING_FOR_VALID_MT2_TRANSLATION");
+      }
+      return;
+    }
+
+    Pose2d recalibratedPose = mt2PoseEstimate.pose;
+
+    resetRobotPoseFromManualRecalibration(recalibratedPose);
     if (EnabledSubsystems.questnav) {
-      calibrateQuestFromLL(mt1PoseEstimate.pose);
+      calibrateQuestFromLL(recalibratedPose);
     }
 
     pendingManualMegaTag1Recalibration = false;
+    pendingManualMt1HeadingPose = null;
+    manualMt2SettleLoops = 0;
     transitionTo(
         isQuestPrimaryAvailable() ? VisionState.CALIBRATED_Q : VisionState.CALIBRATED_NO_Q,
-        "Manual button-box MT1 LL/Quest recalibration");
+        "Manual button-box LL/Quest recalibration from MT2 after MT1 heading update");
 
     if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
       SmartDashboard.putBoolean("Odometry/ManualMT1RecalPending", false);
-      SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "APPLIED_" + cameraName);
+      SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "APPLIED_MT2_AFTER_MT1_HEADING_" + mt2CameraName);
     }
   }
 
@@ -543,6 +610,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
 
     handleManualMegaTag1Recalibration();
+    if (pendingManualMegaTag1Recalibration) {
+      recordPeriodicRuntime(DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
+      return;
+    }
     handleVisionLossReturnReanchor(now);
 
     if (DebugTelemetrySubsystems.odometry) {

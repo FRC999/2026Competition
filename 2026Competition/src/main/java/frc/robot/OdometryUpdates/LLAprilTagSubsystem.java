@@ -331,6 +331,38 @@ public class LLAprilTagSubsystem extends SubsystemBase {
     return selectedPose;
   }
 
+  public LimelightHelpers.PoseEstimate getMegaTag2PoseEstimateFromAllLL() {
+    long startNs = DebugTelemetrySubsystems.perfLight ? System.nanoTime() : 0L;
+    PoseEstimate bestMegaTag2 = null;
+    String bestMegaTag2Camera = null;
+    Comparator<LimelightHelpers.PoseEstimate> poseComparator =
+        Comparator.comparingInt((LimelightHelpers.PoseEstimate poseEstimate) -> poseEstimate.tagCount)
+            .thenComparingDouble(this::getPoseRankingScore);
+
+    for (LLCamera llcamera : APRILTAG_CAMERAS) {
+      String cameraName = llcamera.getCameraName();
+      PoseEstimate megaTag2 = getMegaTag2PoseEstimate(cameraName);
+
+      if (megaTag2 != null
+          && (bestMegaTag2 == null || poseComparator.compare(megaTag2, bestMegaTag2) > 0)) {
+        bestMegaTag2 = megaTag2;
+        bestMegaTag2Camera = cameraName;
+      }
+    }
+
+    lastBestPoseUsedMegaTag1 = false;
+    lastBestPoseCameraName = bestMegaTag2Camera;
+
+    if (DebugTelemetrySubsystems.llLight) {
+      SmartDashboard.putString("Vision/ManualRecalMT2/Camera", bestMegaTag2Camera != null ? bestMegaTag2Camera : "");
+      SmartDashboard.putNumber("Vision/ManualRecalMT2/TagCount", bestMegaTag2 != null ? bestMegaTag2.tagCount : 0);
+      SmartDashboard.putNumber("Vision/ManualRecalMT2/AvgTagDist", bestMegaTag2 != null ? bestMegaTag2.avgTagDist : 0.0);
+    }
+
+    recordBestPoseRuntime(DebugTelemetrySubsystems.perfLight ? System.nanoTime() - startNs : 0L);
+    return bestMegaTag2;
+  }
+
   private double getPoseRankingScore(LimelightHelpers.PoseEstimate pe) {
     if (pe == null || pe.rawFiducials == null || pe.rawFiducials.length == 0) {
       return Double.NEGATIVE_INFINITY;
