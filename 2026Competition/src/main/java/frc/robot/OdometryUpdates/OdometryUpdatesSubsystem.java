@@ -104,6 +104,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private boolean pendingManualMegaTag1Recalibration = false;
   private Pose2d pendingManualMt1HeadingPose = null;
   private int manualMt2SettleLoops = 0;
+  private boolean questDisabledOverride = false;
   private static final int MANUAL_MT2_SETTLE_LOOPS_AFTER_MT1_HEADING = 2;
 
   private final Timer questLossHoldTimer = new Timer();
@@ -132,6 +133,13 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   }
 
   private void transitionTo(VisionState newState, String reason) {
+    if (questDisabledOverride
+        && (newState == VisionState.SEEKING_TAGS_Q || newState == VisionState.CALIBRATED_Q)) {
+      newState = initialVisionAnchorComplete ? VisionState.CALIBRATED_NO_Q : VisionState.SEEKING_TAGS_NO_Q;
+      reason = (reason != null && !reason.isBlank() ? reason + "; " : "")
+          + "Quest disabled override active";
+    }
+
     if (newState == state) {
       return;
     }
@@ -342,6 +350,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   }
 
   private void calibrateQuestFromLL(Pose2d robotPose) {
+    if (!isQuestEnabled()) {
+      return;
+    }
+
     RobotContainer.questNavSubsystem.resetQuestOdometry(new Pose3d(robotPose));
     RobotContainer.questNavSubsystem.setInitialPoseSet(true);
   }
@@ -367,9 +379,13 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   }
 
   private boolean isQuestPrimaryAvailable() {
-    return EnabledSubsystems.questnav
+    return isQuestEnabled()
         && RobotContainer.questNavSubsystem.hasFreshTracking()
         && RobotContainer.questNavSubsystem.isInitialPoseSet();
+  }
+
+  private boolean isQuestEnabled() {
+    return EnabledSubsystems.questnav && !questDisabledOverride;
   }
 
   private int getDesiredLimelightImuMode() {
@@ -424,6 +440,22 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
       SmartDashboard.putBoolean("Odometry/ManualMT1RecalPending", true);
       SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "REQUESTED");
+    }
+  }
+
+  public void requestQuestDisabledOverride() {
+    questDisabledOverride = true;
+    pendingManualMegaTag1Recalibration = false;
+    pendingManualMt1HeadingPose = null;
+    manualMt2SettleLoops = 0;
+    RobotContainer.questNavSubsystem.setInitialPoseSet(false);
+    questLossHoldTimer.stop();
+    questLossHoldTimer.reset();
+
+    if (RobotContainer.driveSubsystem.hasFinishedSeeding()) {
+      transitionTo(
+          initialVisionAnchorComplete ? VisionState.CALIBRATED_NO_Q : VisionState.SEEKING_TAGS_NO_Q,
+          "Button-box Quest disabled override");
     }
   }
 
@@ -494,7 +526,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     Pose2d recalibratedPose = mt2PoseEstimate.pose;
 
     resetRobotPoseFromManualRecalibration(recalibratedPose);
-    if (EnabledSubsystems.questnav) {
+    if (isQuestEnabled()) {
       calibrateQuestFromLL(recalibratedPose);
     }
 
@@ -639,14 +671,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
 
     switch (state) {
       case INITIALIZE -> transitionTo(
-          EnabledSubsystems.questnav && RobotContainer.questNavSubsystem.hasFreshTracking()
+          isQuestEnabled() && RobotContainer.questNavSubsystem.hasFreshTracking()
               ? VisionState.SEEKING_TAGS_Q
               : VisionState.SEEKING_TAGS_NO_Q,
-          EnabledSubsystems.questnav && RobotContainer.questNavSubsystem.hasFreshTracking()
+          isQuestEnabled() && RobotContainer.questNavSubsystem.hasFreshTracking()
               ? "Initialized with Quest tracking available"
               : "Initialized LL fallback seeking");
       case SEEKING_TAGS_Q -> {
-        if (!EnabledSubsystems.questnav || !RobotContainer.questNavSubsystem.hasFreshTracking()) {
+        if (!isQuestEnabled() || !RobotContainer.questNavSubsystem.hasFreshTracking()) {
           transitionTo(VisionState.SEEKING_TAGS_NO_Q, "Quest unavailable during initial seek");
           break;
         }
@@ -668,7 +700,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         }
       }
       case SEEKING_TAGS_NO_Q -> {
-        if (EnabledSubsystems.questnav && RobotContainer.questNavSubsystem.hasFreshTracking()) {
+        if (isQuestEnabled() && RobotContainer.questNavSubsystem.hasFreshTracking()) {
           RobotContainer.questNavSubsystem.resetQuestIMUToAngle(
               RobotContainer.driveSubsystem.getPose().getRotation().getDegrees());
           transitionTo(VisionState.SEEKING_TAGS_Q, "Quest came online; switching to Quest-assisted seek");
@@ -718,7 +750,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
         if (bestPoseEstimate != null && bestCameraName != null) {
           fusePoseEstimate(bestPoseEstimate, bestCameraName, true);
 
-          if (EnabledSubsystems.questnav && RobotContainer.questNavSubsystem.hasFreshTracking()) {
+          if (isQuestEnabled() && RobotContainer.questNavSubsystem.hasFreshTracking()) {
             calibrateQuestFromLL(bestPoseEstimate.pose);
             RobotContainer.driveSubsystem.resetChassisIMUToAngle(bestPoseEstimate.pose.getRotation().getDegrees());
             RobotContainer.driveSubsystem.resetCTREPose(bestPoseEstimate.pose);

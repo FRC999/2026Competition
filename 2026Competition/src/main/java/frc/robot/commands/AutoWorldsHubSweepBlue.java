@@ -40,7 +40,7 @@ public class AutoWorldsHubSweepBlue extends SequentialCommandGroup {
             false,
             false),
         (new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
-           // .alongWith(new PulseIntakeForBallSettle())
+           .alongWith(new RepeatIntakeRetractDeploy())
            )
             .raceWith(new WaitCommand(3.75)),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
@@ -53,7 +53,7 @@ public class AutoWorldsHubSweepBlue extends SequentialCommandGroup {
             false,
             false),
         (new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
-            //.alongWith(new PulseIntakeForBallSettle())
+            .alongWith(new RepeatIntakeRetractDeploy())
             )
             .raceWith(new WaitCommand(2)));
   }

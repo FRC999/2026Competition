@@ -231,7 +231,12 @@ public final class Constants {
       public static final int BB_MANUAL_RPM_UP = 2;
       public static final int BB_MANUAL_RPM_DOWN = 3;
       public static final int BB_LL_QUEST_RECAL_BUTTON = 12;
+      public static final int BB_LL_QUEST_RECAL_AXIS = BB_PANIC_STOP_AXIS;
       public static final double BB_LL_QUEST_RECAL_AXIS_VALUE = -0.9;
+      public static final int BB_DISABLE_QUEST_BUTTON_A = 3;
+      public static final int BB_DISABLE_QUEST_BUTTON_B = 12;
+      public static final int BB_DISABLE_QUEST_AXIS = BB_PANIC_STOP_AXIS;
+      public static final double BB_DISABLE_QUEST_AXIS_VALUE = -0.9;
 
       // Xbox inputs used in competition bindings
       public static final int XBOX_BUTTON_A = 1;
@@ -1277,7 +1282,7 @@ public final class Constants {
       // Teleop-only pivot power boost for driver override button combos.
       // Runtime boost uses a preconfigured Motion Magic slot to avoid CAN config writes
       // during the 20 ms loop. Current-limit boost values are kept for reference only.
-      public static final double TELEOP_DEPLOY_PIVOT_POWER_BOOST_PERCENT = 0.50;
+      public static final double TELEOP_DEPLOY_PIVOT_POWER_BOOST_PERCENT = 0.80;
       public static final double TELEOP_RETRACT_PIVOT_POWER_BOOST_PERCENT = 0.80;
       public static final double TELEOP_PIVOT_CLOSED_LOOP_BOOST_PERCENT = 0.30;
 

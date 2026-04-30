@@ -307,8 +307,15 @@ public class RobotContainer {
   }
 
   private static boolean isLLQuestRecalAxisActive() {
-    return bb.getRawAxis(OIContants.BB_PANIC_STOP_AXIS)
+    return bb.getRawAxis(OIContants.BB_LL_QUEST_RECAL_AXIS)
         < OIContants.BB_LL_QUEST_RECAL_AXIS_VALUE;
+  }
+
+  private static boolean isDisableQuestChordActive() {
+    return bb.getRawButton(OIContants.BB_DISABLE_QUEST_BUTTON_A)
+        && bb.getRawButton(OIContants.BB_DISABLE_QUEST_BUTTON_B)
+        && bb.getRawAxis(OIContants.BB_DISABLE_QUEST_AXIS)
+            <= OIContants.BB_DISABLE_QUEST_AXIS_VALUE;
   }
 
   public static boolean isPanicStopActive() {
@@ -367,12 +374,21 @@ public class RobotContainer {
         }))
         .onFalse(new InstantCommand(() -> panicStopLatched = false));
 
+    Trigger disableQuestChordTrigger = new Trigger(RobotContainer::isDisableQuestChordActive);
+
+    disableQuestChordTrigger
+        .and(panicInactiveTrigger)
+        .onTrue(new InstantCommand(
+            () -> odometryUpdateSubsystem.requestQuestDisabledOverride(),
+            odometryUpdateSubsystem).ignoringDisable(true));
+
     new JoystickButton(bb, OIContants.BB_LL_QUEST_RECAL_BUTTON)
         .and(new Trigger(RobotContainer::isLLQuestRecalAxisActive))
+        .and(new Trigger(() -> !RobotContainer.isDisableQuestChordActive()))
         .and(panicInactiveTrigger)
         .onTrue(new InstantCommand(
             () -> odometryUpdateSubsystem.requestManualMegaTag1Recalibration(),
-            odometryUpdateSubsystem));
+            odometryUpdateSubsystem).ignoringDisable(true));
 
     
    new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
