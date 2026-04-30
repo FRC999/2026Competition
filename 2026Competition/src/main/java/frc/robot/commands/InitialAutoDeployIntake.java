@@ -10,8 +10,7 @@ import frc.robot.RobotContainer;
 public class InitialAutoDeployIntake extends SequentialCommandGroup {
   public InitialAutoDeployIntake() {
     addCommands(
-        new InitialAutoDeployShove(),
-        new RetractIntakeSequence());
+        new InitialAutoDeployShove());
   }
 
   private static final class InitialAutoDeployShove extends Command {

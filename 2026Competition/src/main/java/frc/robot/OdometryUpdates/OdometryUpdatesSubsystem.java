@@ -101,6 +101,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private boolean visionReady = false;
   private double allTagsLostStartTs = Double.NaN;
   private boolean pendingReanchorOnVisionReturn = false;
+  private boolean pendingManualMegaTag1Recalibration = false;
 
   private final Timer questLossHoldTimer = new Timer();
   private final Timer delayedMegaTag1RecalTimer = new Timer();
@@ -393,6 +394,53 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     requestReanchorFromLimelight("Driver yaw reset; re-seek LL");
   }
 
+  public void requestManualMegaTag1Recalibration() {
+    if (!RobotContainer.driveSubsystem.hasFinishedSeeding()) {
+      return;
+    }
+
+    pendingManualMegaTag1Recalibration = true;
+    gatePassOverride = true;
+    clearVisionLossReanchorState();
+    cancelDelayedMegaTag1Recalibration();
+
+    if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
+      SmartDashboard.putBoolean("Odometry/ManualMT1RecalPending", true);
+      SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "REQUESTED");
+    }
+  }
+
+  private void handleManualMegaTag1Recalibration() {
+    if (!pendingManualMegaTag1Recalibration || !Constants.EnabledSubsystems.ll) {
+      return;
+    }
+
+    LimelightHelpers.PoseEstimate mt1PoseEstimate =
+        RobotContainer.llAprilTagSubsystem.getInitialSeedPoseEstimateFromAllLL(false);
+    String cameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
+    if (mt1PoseEstimate == null || cameraName == null || shouldRejectInitialSeedPoseEstimate(mt1PoseEstimate)) {
+      if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
+        SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "WAITING_FOR_VALID_MT1");
+      }
+      return;
+    }
+
+    resetRobotPoseFromVision(mt1PoseEstimate);
+    if (EnabledSubsystems.questnav) {
+      calibrateQuestFromLL(mt1PoseEstimate.pose);
+    }
+
+    pendingManualMegaTag1Recalibration = false;
+    transitionTo(
+        isQuestPrimaryAvailable() ? VisionState.CALIBRATED_Q : VisionState.CALIBRATED_NO_Q,
+        "Manual button-box MT1 LL/Quest recalibration");
+
+    if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
+      SmartDashboard.putBoolean("Odometry/ManualMT1RecalPending", false);
+      SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "APPLIED_" + cameraName);
+    }
+  }
+
   private void handleVisionLossReturnReanchor(double now) {
     if (state != VisionState.CALIBRATED_NO_Q || !Constants.EnabledSubsystems.ll) {
       clearVisionLossReanchorState();
@@ -494,6 +542,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       }
     }
 
+    handleManualMegaTag1Recalibration();
     handleVisionLossReturnReanchor(now);
 
     if (DebugTelemetrySubsystems.odometry) {
@@ -506,6 +555,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           "Odometry/AllTagsLostForSec",
           Double.isFinite(allTagsLostStartTs) ? now - allTagsLostStartTs : 0.0);
       SmartDashboard.putBoolean("Odometry/PendingVisionReturnReanchor", pendingReanchorOnVisionReturn);
+      SmartDashboard.putBoolean("Odometry/ManualMT1RecalPending", pendingManualMegaTag1Recalibration);
       SmartDashboard.putBoolean("Odometry/QuestPrimaryAvailable", isQuestPrimaryAvailable());
     }
 

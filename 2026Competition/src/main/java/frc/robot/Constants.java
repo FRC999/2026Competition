@@ -226,6 +226,8 @@ public final class Constants {
       public static final int BB_MANUAL_SHOT_4M = 11;
       public static final int BB_MANUAL_RPM_UP = 2;
       public static final int BB_MANUAL_RPM_DOWN = 3;
+      public static final int BB_LL_QUEST_RECAL_BUTTON = 12;
+      public static final double BB_LL_QUEST_RECAL_AXIS_VALUE = -0.9;
 
       // Xbox inputs used in competition bindings
       public static final int XBOX_BUTTON_A = 1;

@@ -300,6 +300,11 @@ public class RobotContainer {
         > OIContants.BB_PANIC_STOP_THRESHOLD;
   }
 
+  private static boolean isLLQuestRecalAxisActive() {
+    return bb.getRawAxis(OIContants.BB_PANIC_STOP_AXIS)
+        < OIContants.BB_LL_QUEST_RECAL_AXIS_VALUE;
+  }
+
   public static boolean isPanicStopActive() {
     return panicStopLatched;
   }
@@ -355,6 +360,13 @@ public class RobotContainer {
           cancelAllCommandsForPanicStop();
         }))
         .onFalse(new InstantCommand(() -> panicStopLatched = false));
+
+    new JoystickButton(bb, OIContants.BB_LL_QUEST_RECAL_BUTTON)
+        .and(new Trigger(RobotContainer::isLLQuestRecalAxisActive))
+        .and(panicInactiveTrigger)
+        .onTrue(new InstantCommand(
+            () -> odometryUpdateSubsystem.requestManualMegaTag1Recalibration(),
+            odometryUpdateSubsystem));
 
     
    new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
