@@ -205,6 +205,30 @@ public class ShooterSubsystem extends SubsystemBase {
     shooterLeader.setControl(velocityRequest.withVelocity(targetRps));
   }
 
+  /** Temporarily run the shooter backward under velocity control. */
+  public void setReverseTargetRpm(double rpm) {
+    if (RobotContainer.isPanicStopActive()) {
+      stop();
+      return;
+    }
+
+    double newTargetRpm = -Math.abs(rpm);
+
+    if (Math.abs(newTargetRpm - targetRpm) <= 1.0) {
+      shooterLeader.setControl(velocityRequest.withVelocity(newTargetRpm / 60.0));
+      return;
+    }
+
+    targetRpm = newTargetRpm;
+    dipDetected = false;
+    readySince = 0.0;
+    wasReady = false;
+    readinessArmed = false;
+    resetReadinessStats();
+
+    shooterLeader.setControl(velocityRequest.withVelocity(targetRpm / 60.0));
+  }
+
   /** Open-loop duty-cycle (for quick tests). */
   public void setDutyCycle(double duty) {
     if (RobotContainer.isPanicStopActive()) {
