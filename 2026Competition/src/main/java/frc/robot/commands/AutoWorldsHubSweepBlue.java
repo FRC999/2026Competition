@@ -15,7 +15,7 @@ import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 public class AutoWorldsHubSweepBlue extends SequentialCommandGroup {
   public AutoWorldsHubSweepBlue() {
     addCommands(
-        new WaitCommand(3.75),
+        new WaitCommand(5),
         Commands.defer(
             InitialAutoDeployWhileHeld::new,
             java.util.Set.of(RobotContainer.intakeSubsystem)),
@@ -43,6 +43,8 @@ public class AutoWorldsHubSweepBlue extends SequentialCommandGroup {
            .alongWith(new RepeatIntakeRetractDeploy())
            )
             .raceWith(new WaitCommand(3.75)),
+        new DeployIntakeSequence().raceWith(new WaitCommand(1.5)),
+
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
             "BlueNearTower_BlueDepotThrough",
             false,
