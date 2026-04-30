@@ -731,6 +731,7 @@ public final class Constants {
 
       /** Setpoint logic. */
       public static final double DEFAULT_RPM = 2000.0;
+      public static final double REVERSE_CLEAR_RPM = 4000.0;
       public static final double RPM_STEP = 50.0;
       public static final double READY_MIN_TIME_S = 0.20;
       public static final double DIP_DETECT_DROP_RPM = 250.0;

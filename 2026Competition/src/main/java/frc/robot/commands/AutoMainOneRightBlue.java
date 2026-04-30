@@ -31,16 +31,18 @@ public class AutoMainOneRightBlue extends SequentialCommandGroup {
             .raceWith(new StartIntake()),
           (RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralRightMiddle_BlueNeutralHubRight", false, false))
             .raceWith(new StartIntake()),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueNearBump", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight_BlueNearBump", false, false)
+            .raceWith(new StartIntake()),
           ((new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false))
-            .alongWith(new PulseIntakeForBallSettle()))
+            .alongWith(new RepeatIntakeRetractDeploy()))
             .raceWith(RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNearBump_BlueTrenchRight", false, false)),
-          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueTrenchRight2", false, false),
+          RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight_BlueTrenchRight2", false, false)
+            .raceWith(new StartIntake()),
           (RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueTrenchRight2_BlueNeutralHubRight", false, false))
             .raceWith(new StartIntake()),
           RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueNeutralHubRight2_BlueNearBump", false, false),
           ((new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false))
-            .alongWith(new PulseIntakeForBallSettle()))
+            .alongWith(new RepeatIntakeRetractDeploy()))
             .raceWith(new WaitCommand(5))
     );
   }

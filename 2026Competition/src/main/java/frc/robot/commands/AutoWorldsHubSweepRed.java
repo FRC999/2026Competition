@@ -43,6 +43,7 @@ public class AutoWorldsHubSweepRed extends SequentialCommandGroup {
            .alongWith(new RepeatIntakeRetractDeploy())
            )
             .raceWith(new WaitCommand(3.75)),
+        new DeployIntakeSequence().raceWith(new WaitCommand(1.5)),
         RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
             "BlueNearTower_BlueDepotThrough",
             false,
