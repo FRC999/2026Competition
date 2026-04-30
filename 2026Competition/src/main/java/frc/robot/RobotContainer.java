@@ -123,8 +123,8 @@ public class RobotContainer {
   private static Controller xboxDriveController = new Controller(OIContants.XBOX_CONTROLLER);
   public static boolean isAllianceRed = false;
   public static boolean isReversingControllerAndIMUForRed = true;
-  private static final Joystick turretStick = new Joystick(0);
-  private static final Joystick turretStick2 = new Joystick(1);
+  private static Joystick turretStick = null;
+  private static Joystick turretStick2 = null;
   public static final Joystick bb = new Joystick(OIContants.BUTTON_BOX);
   private static boolean panicStopLatched = false;
 
@@ -270,9 +270,9 @@ public class RobotContainer {
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
+      questCalibration();
     }
     competitionXBOXButtonBindings();
-    questCalibration();
     //turretCalibration();
     //setYaws();
 
@@ -285,9 +285,15 @@ public class RobotContainer {
   }
 
  public static Joystick getTurretStick() {
+    if (turretStick == null) {
+      turretStick = new Joystick(OIContants.TEST_JOYSTICK_PORT);
+    }
     return turretStick;
   }
   public static Joystick getTurretStick2() {
+    if (turretStick2 == null) {
+      turretStick2 = new Joystick(OIContants.TEST_JOYSTICK_2_PORT);
+    }
     return turretStick2;
   }
   public static boolean isHubTrackingDisabledByButtonBox() {
@@ -542,49 +548,49 @@ public class RobotContainer {
   final double SUPPLY_STEP_RPS = 2.0;
 
   // Button 1: hold base mode
-//   new JoystickButton(turretStick, 1)
+//   new JoystickButton(getTurretStick(), 1)
 //       .whileTrue(new RunCommand(() -> spindexerSubsystem.runBaseCal(baseRpsSet[0]), spindexerSubsystem))
 //       .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
 
   // Button 2: hold supply mode
-  new JoystickButton(turretStick, 2)
+  new JoystickButton(getTurretStick(), 2)
       .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupplyCal(supplyRpsSet[0]), spindexerSubsystem))
       .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
 
   // Button 3: stop
-  new JoystickButton(turretStick, 3)
+  new JoystickButton(getTurretStick(), 3)
       .onTrue(new InstantCommand(() -> spindexerSubsystem.stopCal(), spindexerSubsystem));
 
   // Button 4: base RPS up
-  new JoystickButton(turretStick, 4)
+  new JoystickButton(getTurretStick(), 4)
       .onTrue(new InstantCommand(() -> baseRpsSet[0] += BASE_STEP_RPS));
 
   // Button 5: base RPS down
-  new JoystickButton(turretStick, 5)
+  new JoystickButton(getTurretStick(), 5)
       .onTrue(new InstantCommand(() -> baseRpsSet[0] = Math.max(0.0, baseRpsSet[0] - BASE_STEP_RPS)));
 
   // Button 6: supply RPS up
-  new JoystickButton(turretStick, 6)
+  new JoystickButton(getTurretStick(), 6)
       .onTrue(new InstantCommand(() -> supplyRpsSet[0] += SUPPLY_STEP_RPS));
 
   // Button 7: supply RPS down
-  new JoystickButton(turretStick, 7)
+  new JoystickButton(getTurretStick(), 7)
       .onTrue(new InstantCommand(() -> supplyRpsSet[0] = Math.max(0.0, supplyRpsSet[0] - SUPPLY_STEP_RPS)));
 }
 
   private void questCalibration() {
-    new JoystickButton(turretStick, 11)
+    new JoystickButton(getTurretStick(), 11)
         .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
         .onFalse(new StopRobot());
 
-    new JoystickButton(turretStick, 12)
+    new JoystickButton(getTurretStick(), 12)
         .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
         .onFalse(new StopRobot());
   }
 
   private void turretCalibration() {
 
-    // new JoystickButton(turretStick, 4)
+    // new JoystickButton(getTurretStick(), 4)
     //   .onTrue(new RunCommand(() -> transferSubsystem.runFeed(), transferSubsystem).alongWith(
     //     new RunCommand(() -> shooterSubsystem.setDutyCycle(0.5), shooterSubsystem)
     //   ));
@@ -599,13 +605,13 @@ public class RobotContainer {
     //     .whileTrue(new InstantCommand(() -> spindexerSubsystem.runBase()))
     //     .whileFalse(new InstantCommand(() -> spindexerSubsystem.stop()));
 
-    new JoystickButton(turretStick, 1)
+    new JoystickButton(getTurretStick(), 1)
         .onTrue(new TestTurretAngleCommand());
 
-    new JoystickButton(turretStick, 5)
+    new JoystickButton(getTurretStick(), 5)
     .onTrue(new PrintTurretShotDiagnosticsCommand());
 
-    //  new JoystickButton(turretStick, 7)
+    //  new JoystickButton(getTurretStick(), 7)
     //     .onTrue(new InstantCommand(() -> {
     //       // Toggle by checking current target
     //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
@@ -613,7 +619,7 @@ public class RobotContainer {
     //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
     //     }));
 
-    //      new JoystickButton(turretStick, 8)
+    //      new JoystickButton(getTurretStick(), 8)
     //     .onTrue(new InstantCommand(() -> {
     //       // Toggle by checking current target
     //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
@@ -621,7 +627,7 @@ public class RobotContainer {
     //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
     //     }));
 
-    //      new JoystickButton(turretStick, 9)
+    //      new JoystickButton(getTurretStick(), 9)
     //     .onTrue(new InstantCommand(() -> {
     //       // Toggle by checking current target
     //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
@@ -629,7 +635,7 @@ public class RobotContainer {
     //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
     //     }));
 
-    //      new JoystickButton(turretStick, 10)
+    //      new JoystickButton(getTurretStick(), 10)
     //     .onTrue(new InstantCommand(() -> {
     //       // Toggle by checking current target
     //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
@@ -637,7 +643,7 @@ public class RobotContainer {
     //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
     //     }));
 
-    //      new JoystickButton(turretStick, 12)
+    //      new JoystickButton(getTurretStick(), 12)
     //     .onTrue(new InstantCommand(() -> {
     //       // Toggle by checking current target
     //       double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
@@ -645,12 +651,12 @@ public class RobotContainer {
     //       hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
     //     }));
 
-        new JoystickButton(turretStick, 11)
+        new JoystickButton(getTurretStick(), 11)
         .whileTrue(new ShootWhileHeld(
             AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED,
             false));
 
-    new JoystickButton(turretStick, 12)
+    new JoystickButton(getTurretStick(), 12)
         .onTrue(new InstantCommand(() -> transferSubsystem.runFeed()))
         .onFalse(new InstantCommand(() -> transferSubsystem.stop()));
   }
@@ -682,37 +688,37 @@ public class RobotContainer {
     final double RPM_A = 1500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM A
 
     // Stage (hold)
-    // new JoystickButton(turretStick, 1)
+    // new JoystickButton(getTurretStick(), 1)
     //     .whileTrue(new RunCommand(() -> transferSubsystem.runStageCal(stageRpsSet[0], blockedStageRps), transferSubsystem))
     //     .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
     // // Feed (hold)
-    // new JoystickButton(turretStick, 2)
+    // new JoystickButton(getTurretStick(), 2)
     //     .whileTrue(new RunCommand(() -> transferSubsystem.runFeedCal(feedRpsSet[0]), transferSubsystem))
     //     .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
-    new JoystickButton(turretStick, 3)
+    new JoystickButton(getTurretStick(), 3)
         .whileTrue(new RunCommand(() -> transferSubsystem.runFeedMetered(), transferSubsystem))
         .onFalse(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
-    new JoystickButton(turretStick, 1)
+    new JoystickButton(getTurretStick(), 1)
         .whileTrue(new InstantCommand(() -> transferSubsystem.runFeed()))
         .onFalse(new InstantCommand(() -> transferSubsystem.stop()));
 
     // Stop (press)
-    // new JoystickButton(turretStick, 3)
+    // new JoystickButton(getTurretStick(), 3)
     //     .onTrue(new InstantCommand(() -> transferSubsystem.stopCal(), transferSubsystem));
 
     // Adjust stage setpoint
-    new JoystickButton(turretStick, 4)
+    new JoystickButton(getTurretStick(), 4)
         .onTrue(new InstantCommand(() -> stageRpsSet[0] += STAGE_STEP_RPS));
-    new JoystickButton(turretStick, 5)
+    new JoystickButton(getTurretStick(), 5)
         .onTrue(new InstantCommand(() -> stageRpsSet[0] = Math.max(0.0, stageRpsSet[0] - STAGE_STEP_RPS)));
 
     // Adjust feed setpoint
-    new JoystickButton(turretStick, 6)
+    new JoystickButton(getTurretStick(), 6)
         .onTrue(new InstantCommand(() -> feedRpsSet[0] += FEED_STEP_RPS));
-    new JoystickButton(turretStick, 7)
+    new JoystickButton(getTurretStick(), 7)
         .onTrue(new InstantCommand(() -> feedRpsSet[0] = Math.max(0.0, feedRpsSet[0] - FEED_STEP_RPS)));
   }
 
@@ -732,7 +738,7 @@ public class RobotContainer {
     final double RPM_B = 4500.0; // TODO: PLACEHOLDER - replace with your short-range shot RPM B
 
     // Set RPM A (press)
-    // new JoystickButton(turretStick, 1)
+    // new JoystickButton(getTurretStick(), 1)
     //     .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem))
     //     .onFalse(new InstantCommand(()-> shooterSubsystem.stop()));
 
@@ -746,33 +752,33 @@ public class RobotContainer {
     // Button 2: hold supply mode
 
     // Set RPM B (press)
-    // new JoystickButton(turretStick, 2)
+    // new JoystickButton(getTurretStick(), 2)
     //     .onTrue(new InstantCommand(() -> shooterSubsystem.setTargetRpm(RPM_B), shooterSubsystem));
 
     // Stop shooter (press)
-    // new JoystickButton(turretStick, 3)
+    // new JoystickButton(getTurretStick(), 3)
     //     .onTrue(new InstantCommand(() -> shooterSubsystem.stop(), shooterSubsystem));
 
     //TODO: for Intake test
-    new JoystickButton(turretStick, 6)
+    new JoystickButton(getTurretStick(), 6)
       .whileTrue(new RunCommand(
           () -> intakeSubsystem.runIntake(Constants.OperatorConstants.IntakeConstants.ROLLER_REVERSE_RPS),
           intakeSubsystem))
       .onFalse(new InstantCommand(() -> intakeSubsystem.stopIntake(), intakeSubsystem));
 
-    new JoystickButton(turretStick, 1)
+    new JoystickButton(getTurretStick(), 1)
         .whileTrue(new RunCommand(() -> shooterSubsystem.setTargetRpm(RPM_A), shooterSubsystem))
         .onFalse(new InstantCommand(() -> shooterSubsystem.stop()));
 
-    new JoystickButton(turretStick, 2)
+    new JoystickButton(getTurretStick(), 2)
         .whileTrue(new RunCommand(() -> transferSubsystem.runDuty(-0.9), transferSubsystem))
         .onFalse(new InstantCommand(() -> transferSubsystem.stop()));
 
-    new JoystickButton(turretStick, 3)
+    new JoystickButton(getTurretStick(), 3)
         .whileTrue(new RunCommand(() -> spindexerSubsystem.runSupply(), spindexerSubsystem))
         .onFalse(new InstantCommand(() -> spindexerSubsystem.stopCal()));
 
-    // new JoystickButton(turretStick, 6)
+    // new JoystickButton(getTurretStick(), 6)
     //     .onTrue(new InstantCommand(
     //         () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
     //             -44.667),
@@ -780,10 +786,10 @@ public class RobotContainer {
     //     .onFalse(new InstantCommand(
     //         () -> RobotContainer.turretSubsystem.stop()));
       
-    new JoystickButton(turretStick, 7)
+    new JoystickButton(getTurretStick(), 7)
         .onTrue(new InstantCommand(() -> turretSubsystem.zeroTurretAngle()));
 
-    new JoystickButton(turretStick, 8)
+    new JoystickButton(getTurretStick(), 8)
         .onTrue(new InstantCommand(() -> {
           // Toggle by checking current target
           double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
@@ -791,24 +797,24 @@ public class RobotContainer {
           hoodSubsystem.setTargetAngleRad(Math.toRadians(nextDeg));
         }));
 
-    new JoystickButton(turretStick, BTN_SHOOTER_CAL_BURST_A)
+    new JoystickButton(getTurretStick(), BTN_SHOOTER_CAL_BURST_A)
         .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_A));
 
-    new JoystickButton(turretStick, BTN_SHOOTER_CAL_BURST_B)
+    new JoystickButton(getTurretStick(), BTN_SHOOTER_CAL_BURST_B)
         .whileTrue(new ShootCalibrationBurstWhileHeld(RPM_B));
 
     // Auto shoot until empty (hold)
-    // new JoystickButton(turretStick, 4)
+    // new JoystickButton(getTurretStick(), 4)
     //     .whileTrue(new frc.robot.commands.AutoShootUntilEmpty());
 
     // // SysId routines (hold)
-    // new JoystickButton(turretStick, 5)
+    // new JoystickButton(getTurretStick(), 5)
     //     .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-    // new JoystickButton(turretStick, 6)
+    // new JoystickButton(getTurretStick(), 6)
     //     .whileTrue(shooterSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-    // new JoystickButton(turretStick, 7)
+    // new JoystickButton(getTurretStick(), 7)
     //     .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
-    // new JoystickButton(turretStick, 8)
+    // new JoystickButton(getTurretStick(), 8)
     //     .whileTrue(shooterSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
   }
 
@@ -836,34 +842,34 @@ private void configureIntakeCalibrationBindings() {
   final double ROLLER_LOW_RPS = 20.0;
   final double ROLLER_HIGH_RPS = Constants.OperatorConstants.IntakeConstants.ROLLER_INTAKE_RPS;
 
-//   new JoystickButton(turretStick, 1)
+//   new JoystickButton(getTurretStick(), 1)
 //       .onTrue(new InstantCommand(() -> intakeSubsystem.seedZeroFromRetractedHardStop()));
 
-  new JoystickButton(turretStick, 2)
+  new JoystickButton(getTurretStick(), 2)
       .whileTrue(new RunCommand(() -> intakeSubsystem.setPivotDutyCycle(+JOG_DUTY), intakeSubsystem))
       .onFalse(new InstantCommand(() -> intakeSubsystem.exitOpenLoopHold()));
 
-  new JoystickButton(turretStick, 3)
+  new JoystickButton(getTurretStick(), 3)
       .whileTrue(new RunCommand(() -> intakeSubsystem.setPivotDutyCycle(-JOG_DUTY), intakeSubsystem))
       .onFalse(new InstantCommand(() -> intakeSubsystem.exitOpenLoopHold()));
 
-  new JoystickButton(turretStick, 4)
+  new JoystickButton(getTurretStick(), 4)
       .onTrue(new InstantCommand(() -> {
         double current = intakeSubsystem.getTargetPivotDeg();
         intakeSubsystem.setTargetPivotDeg(STEP_LOW_DEG);
       }));
 
-  // new JoystickButton(turretStick, 5)
+  // new JoystickButton(getTurretStick(), 5)
   //     .whileTrue(new StartIntake())
   //     .onFalse(new StopIntake());
 
-  new JoystickButton(turretStick, 6)
+  new JoystickButton(getTurretStick(), 6)
       .whileTrue(new RunCommand(
           () -> intakeSubsystem.runIntake(Constants.OperatorConstants.IntakeConstants.ROLLER_REVERSE_RPS),
           intakeSubsystem))
       .onFalse(new InstantCommand(() -> intakeSubsystem.stopIntake(), intakeSubsystem));
 
-  new JoystickButton(turretStick, 7)
+  new JoystickButton(getTurretStick(), 7)
       .onTrue(new InstantCommand(() -> {
         double current = intakeSubsystem.getRollerTargetRps();
         double mid = (ROLLER_LOW_RPS + ROLLER_HIGH_RPS) * 0.5;
@@ -871,28 +877,28 @@ private void configureIntakeCalibrationBindings() {
         intakeSubsystem.runIntake(next);
       }));
 
-  new JoystickButton(turretStick, 8)
+  new JoystickButton(getTurretStick(), 8)
       .onTrue(new InstantCommand(() -> intakeSubsystem.stopIntake(), intakeSubsystem));
 
-  new JoystickButton(turretStick, 9)
+  new JoystickButton(getTurretStick(), 9)
       .onTrue(new DeployIntakeSequence())
       .onFalse(new RetractIntakeSequence());
 
-  new JoystickButton(turretStick, 10)
+  new JoystickButton(getTurretStick(), 10)
       .onTrue(new RetractIntakeSequence());
 
-       new JoystickButton(turretStick, 1)
+       new JoystickButton(getTurretStick(), 1)
       .onTrue(new IntakeRezeroFromRetractedHardStop());
 
 
 
-  // new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_FWD)
+  // new JoystickButton(getTurretStick(), BTN_INTAKE_SYSID_QS_FWD)
   //     .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kForward));
-  // new JoystickButton(turretStick, BTN_INTAKE_SYSID_QS_REV)
+  // new JoystickButton(getTurretStick(), BTN_INTAKE_SYSID_QS_REV)
   //     .whileTrue(intakeSubsystem.sysIdPivotQuasistatic(SysIdRoutine.Direction.kReverse));
-  // new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_FWD)
+  // new JoystickButton(getTurretStick(), BTN_INTAKE_SYSID_DYN_FWD)
   //     .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kForward));
-  // new JoystickButton(turretStick, BTN_INTAKE_SYSID_DYN_REV)
+  // new JoystickButton(getTurretStick(), BTN_INTAKE_SYSID_DYN_REV)
   //     .whileTrue(intakeSubsystem.sysIdPivotDynamic(SysIdRoutine.Direction.kReverse));
 }
 
@@ -919,21 +925,21 @@ private void configureIntakeCalibrationBindings() {
     final double STEP_VERY_LOW_DEG = 1.0;
 
     // Seed zero (press)
-    new JoystickButton(turretStick, 7)
+    new JoystickButton(getTurretStick(), 7)
         .onTrue(new InstantCommand(() -> hoodSubsystem.seedZeroFromDownHardStop()));
 // 51, 14, 13, 12, 11, 41, 42, 43, 44
     // Jog UP (hold)
-    new JoystickButton(turretStick, 6)
+    new JoystickButton(getTurretStick(), 6)
         .whileTrue(new RunCommand(() -> hoodSubsystem.setCalibrationDutyCycle(+JOG_DUTY), hoodSubsystem))
         .onFalse(new InstantCommand(() -> hoodSubsystem.stop()));
 
     // Jog DOWN (hold)
-    new JoystickButton(turretStick, 5)
+    new JoystickButton(getTurretStick(), 5)
         .whileTrue(new RunCommand(() -> hoodSubsystem.setCalibrationDutyCycle(-JOG_DUTY), hoodSubsystem))
         .onFalse(new InstantCommand(() -> hoodSubsystem.stop()));
 
     // Step test toggle (press): alternates between two angles
-    new JoystickButton(turretStick, 8)
+    new JoystickButton(getTurretStick(), 8)
         .onTrue(new InstantCommand(() -> {
           // Toggle by checking current target
           double currentDeg = Math.toDegrees(hoodSubsystem.getTargetAngleRad());
@@ -942,13 +948,13 @@ private void configureIntakeCalibrationBindings() {
         }));
 
     // SysId routines (hold)
-    new JoystickButton(turretStick, 9)
+    new JoystickButton(getTurretStick(), 9)
         .whileTrue(hoodSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-    new JoystickButton(turretStick, 10)
+    new JoystickButton(getTurretStick(), 10)
         .whileTrue(hoodSubsystem.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-    new JoystickButton(turretStick, 11)
+    new JoystickButton(getTurretStick(), 11)
         .whileTrue(hoodSubsystem.sysIdDynamic(SysIdRoutine.Direction.kForward));
-    new JoystickButton(turretStick, 12)
+    new JoystickButton(getTurretStick(), 12)
         .whileTrue(hoodSubsystem.sysIdDynamic(SysIdRoutine.Direction.kReverse));
   }
 
@@ -1108,34 +1114,34 @@ private void configureIntakeCalibrationBindings() {
   }
 
   public static void testTurretShooter() {
-    // new JoystickButton(turretStick, 1)
+    // new JoystickButton(getTurretStick(), 1)
     // .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem,
     // Constants.OperatorConstants.Shooter.RPM_STEP));
 
-    // new JoystickButton(turretStick, 2)
+    // new JoystickButton(getTurretStick(), 2)
     // .onTrue(new ShooterAdjustRpmCommand(shooterSubsystem,
     // -Constants.OperatorConstants.Shooter.RPM_STEP));
 
-    // new JoystickButton(turretStick, 3).whileTrue(new
+    // new JoystickButton(getTurretStick(), 3).whileTrue(new
     // ShooterEnableCommand(shooterSubsystem));
 
-    // new JoystickButton(turretStick, 5).whileTrue(new
+    // new JoystickButton(getTurretStick(), 5).whileTrue(new
     // TurretJogCommand(turretSubsystem, -0.25));
-    // new JoystickButton(turretStick, 6).whileTrue(new
+    // new JoystickButton(getTurretStick(), 6).whileTrue(new
     // TurretJogCommand(turretSubsystem, 0.25));
 
     // =============================
     // Turret Manual Jog (Simulation)
     // =============================
 
-    // new JoystickButton(turretStick, 3)
+    // new JoystickButton(getTurretStick(), 3)
     // .whileTrue(Commands.startEnd(
     // () -> m_kraken.setDutyCycle(1.0),
     // () -> m_kraken.stop(),
     // m_kraken
     // ));
     // Hold A → rotate turret left
-    // new JoystickButton(turretStick, 3).whileTrue(
+    // new JoystickButton(getTurretStick(), 3).whileTrue(
     // Commands.runEnd(
     // () -> turretSubsystem.setVoltageVolts(-12),
     // () -> turretSubsystem.stop(),
@@ -1144,7 +1150,7 @@ private void configureIntakeCalibrationBindings() {
     // );
 
     // // Hold B → rotate turret right
-    // new JoystickButton(turretStick, 4).whileTrue(
+    // new JoystickButton(getTurretStick(), 4).whileTrue(
     // Commands.runEnd(
     // () -> turretSubsystem.setVoltageVolts(12),
     // () -> turretSubsystem.stop(),
@@ -1152,21 +1158,21 @@ private void configureIntakeCalibrationBindings() {
     // )
     // );
 
-    // new JoystickButton(turretStick, 3).whileTrue(
+    // new JoystickButton(getTurretStick(), 3).whileTrue(
     // Commands.runEnd(
     // () -> hopperSubsystem.setStageDuty(1.0),
     // () -> hopperSubsystem.stop(),
     // hopperSubsystem)
     // );
 
-    // new JoystickButton(turretStick, 4).whileTrue(
+    // new JoystickButton(getTurretStick(), 4).whileTrue(
     // Commands.runEnd(
     // () -> hopperSubsystem.setStageDuty(-1.0),
     // () -> hopperSubsystem.stop(),
     // hopperSubsystem)
     // );
 
-    // new JoystickButton(turretStick, 5).whileTrue(
+    // new JoystickButton(getTurretStick(), 5).whileTrue(
     // Commands.runEnd(
     // () -> hopperSubsystem.setStageDuty(0.5),
     // () -> hopperSubsystem.stop(),
@@ -1206,14 +1212,14 @@ private void configureIntakeCalibrationBindings() {
   private void 
   configureTurretCalibrationBindings() {
     // 1-2: hold-to-jog (open loop)
-    new JoystickButton(turretStick, 1)
+    new JoystickButton(getTurretStick(), 1)
         .whileTrue(new TurretCalibrationJogCommand(-Constants.OperatorConstants.Turret.CAL_JOG_MAX_DUTY));
 
-    new JoystickButton(turretStick, 2)
+    new JoystickButton(getTurretStick(), 2)
         .whileTrue(new TurretCalibrationJogCommand(Constants.OperatorConstants.Turret.CAL_JOG_MAX_DUTY));
 
     // 3: reseed integrated from absolute now
-    new JoystickButton(turretStick, 3)
+    new JoystickButton(getTurretStick(), 3)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationReseedIntegratedFromAbsoluteNow(),
             RobotContainer.turretSubsystem));
@@ -1221,18 +1227,18 @@ private void configureIntakeCalibrationBindings() {
     
 
     // 4: capture absolute ticks candidate (copy into ABS_FORWARD_TICKS manually)
-    JoystickButton capture = new JoystickButton(turretStick, 4);
+    JoystickButton capture = new JoystickButton(getTurretStick(), 4);
     capture.onTrue(new InstantCommand(
         () -> RobotContainer.turretSubsystem.calibrationCaptureAbsZeroTicksCandidate(),
         RobotContainer.turretSubsystem));
 
     // 5-9: Motion Magic step targets
-    new JoystickButton(turretStick, 5)
+    new JoystickButton(getTurretStick(), 5)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(0.0),
             RobotContainer.turretSubsystem));
 
-    new JoystickButton(turretStick, 6)
+    new JoystickButton(getTurretStick(), 6)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
               30),
@@ -1240,7 +1246,7 @@ private void configureIntakeCalibrationBindings() {
         .onFalse(new InstantCommand(
             () -> RobotContainer.turretSubsystem.stop()));
 
-    new JoystickButton(turretStick, 7)
+    new JoystickButton(getTurretStick(), 7)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
                 -Constants.OperatorConstants.Turret.CAL_STEP_SMALL_DEG),
@@ -1248,7 +1254,7 @@ private void configureIntakeCalibrationBindings() {
         .onFalse(new InstantCommand(
             () -> RobotContainer.turretSubsystem.stop()));
 
-    new JoystickButton(turretStick, 8)
+    new JoystickButton(getTurretStick(), 8)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
                 Constants.OperatorConstants.Turret.CAL_STEP_LARGE_DEG),
@@ -1256,7 +1262,7 @@ private void configureIntakeCalibrationBindings() {
         .onFalse(new InstantCommand(
             () -> RobotContainer.turretSubsystem.stop()));;
 
-    new JoystickButton(turretStick, 9)
+    new JoystickButton(getTurretStick(), 9)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationGoToAngleDeg(
                 -Constants.OperatorConstants.Turret.CAL_STEP_LARGE_DEG),
@@ -1266,33 +1272,33 @@ private void configureIntakeCalibrationBindings() {
 
     // 10: toggle sweep (sweep motion runs from TurretSubsystem.periodic while
     // enabled)
-    new JoystickButton(turretStick, 10)
+    new JoystickButton(getTurretStick(), 10)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationToggleSweep(),
             RobotContainer.turretSubsystem));
 
 
     // 11/12: +kP / -kP
-    new JoystickButton(turretStick, 11)
+    new JoystickButton(getTurretStick(), 11)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationAdjustKp(
                 Constants.OperatorConstants.Turret.CAL_KP_STEP),
             RobotContainer.turretSubsystem));
 
-    new JoystickButton(turretStick, 12)
+    new JoystickButton(getTurretStick(), 12)
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationAdjustKp(
                 -Constants.OperatorConstants.Turret.CAL_KP_STEP),
             RobotContainer.turretSubsystem));
 
     // Modifier: hold button 4 while tapping 11/12 adjusts kD instead
-    capture.and(new JoystickButton(turretStick, 11))
+    capture.and(new JoystickButton(getTurretStick(), 11))
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationAdjustKd(
                 Constants.OperatorConstants.Turret.CAL_KD_STEP),
             RobotContainer.turretSubsystem));
 
-    capture.and(new JoystickButton(turretStick, 12))
+    capture.and(new JoystickButton(getTurretStick(), 12))
         .onTrue(new InstantCommand(
             () -> RobotContainer.turretSubsystem.calibrationAdjustKd(
                 -Constants.OperatorConstants.Turret.CAL_KD_STEP),

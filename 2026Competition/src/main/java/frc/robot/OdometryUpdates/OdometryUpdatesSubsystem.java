@@ -154,8 +154,11 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       cancelDelayedMegaTag1Recalibration();
     }
 
-    if (DebugTelemetrySubsystems.odometry) {
+    if (DebugTelemetrySubsystems.odometryState || DebugTelemetrySubsystems.odometry) {
       SmartDashboard.putString("Odometry/State", state.name());
+    }
+
+    if (DebugTelemetrySubsystems.odometry) {
       SmartDashboard.putString("Odometry/StateColor", ElasticHelpers.questStatesColors(state.name()));
       SmartDashboard.putString("Odometry/LastTransition", lastTransition);
       SmartDashboard.putNumber("Odometry/TransitionSeq", transitionSeq);
@@ -615,6 +618,10 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       return;
     }
     handleVisionLossReturnReanchor(now);
+
+    if (DebugTelemetrySubsystems.odometryState || DebugTelemetrySubsystems.odometry) {
+      SmartDashboard.putString("Odometry/State", state.name());
+    }
 
     if (DebugTelemetrySubsystems.odometry) {
       SmartDashboard.putString("Odometry/UpdatesState", state.name());

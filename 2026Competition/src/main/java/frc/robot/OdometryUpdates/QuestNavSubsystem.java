@@ -47,6 +47,7 @@ public class QuestNavSubsystem extends SubsystemBase {
   private PoseFrame[] poseFrames = new PoseFrame[0];
   private boolean initialPoseSet = false;
   private double lastFreshFrameFpgaTs = Double.NEGATIVE_INFINITY;
+  private int batteryTelemetryLoopCounter = 0;
   private int telemetryLoopCounter = 0;
   private int characterizationCounter = 0;
   private Pose2d characterizationStartPose = QuestNavConstants.NULL_POSE;
@@ -395,8 +396,12 @@ public class QuestNavSubsystem extends SubsystemBase {
         poseFrames = unreadPoseFrames;
         lastFreshFrameFpgaTs = Timer.getFPGATimestamp();
       }
-      questNav.getBatteryPercent().ifPresent(
-          batteryPercent -> SmartDashboard.putNumber("QuestNav/Battery%", batteryPercent));
+      batteryTelemetryLoopCounter++;
+      if (DebugTelemetrySubsystems.questnav && batteryTelemetryLoopCounter >= 50) {
+        batteryTelemetryLoopCounter = 0;
+        questNav.getBatteryPercent().ifPresent(
+            batteryPercent -> SmartDashboard.putNumber("QuestNav/Battery%", batteryPercent));
+      }
     } catch (Throwable t) {
       poseFrames = new PoseFrame[0];
       reportQuestFault("periodic", t);

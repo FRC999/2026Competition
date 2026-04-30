@@ -124,9 +124,11 @@ public final class Constants {
   }
 
   public static final class DebugTelemetrySubsystems {
-    public static final boolean odometry = true;
-    public static final boolean imu = true;
-    public static final boolean chassis = true;
+    public static final boolean drivePose = true;
+    public static final boolean odometryState = true;
+    public static final boolean odometry = false;
+    public static final boolean imu = false;
+    public static final boolean chassis = false;
     public static final boolean ll = false;
     public static final boolean llLight = false;
     public static final boolean questnav = false;
@@ -203,6 +205,8 @@ public final class Constants {
           false);
 
       public static final int BUTTON_BOX = 4;
+      public static final int TEST_JOYSTICK_PORT = 0;
+      public static final int TEST_JOYSTICK_2_PORT = 1;
 
       // Button Box Inputs
       // TODO: Verify on the real button box that the panic toggle is on axis 0,
@@ -1301,7 +1305,7 @@ public final class Constants {
       public static final double INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_STATOR_CURRENT_LIMIT_A = 100.0;
       public static final double INTAKE_PIVOT_POSITION_COMMAND_TIMEOUT_SEC = 5.0;
       public static final double INTAKE_PIVOT_INITIAL_AUTO_RETRACT_TIMEOUT_SEC = 2.0;
-      public static final double INTAKE_ROLLER_DUTY = 0.8;
+      public static final double INTAKE_ROLLER_DUTY = 0.9;
       public static final double LEFT_TRIGGER_DEPLOY_EXTRA_FEEDFORWARD_VOLTS = 0.5;
       public static final double INTAKE_PULSE_MID_DEG = 18.0;
       public static final double INTAKE_PULSE_STEP_TIMEOUT_SEC = 1.0;

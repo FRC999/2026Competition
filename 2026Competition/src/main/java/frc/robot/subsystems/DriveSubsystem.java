@@ -626,12 +626,16 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             });
         }
 
-        if(DebugTelemetrySubsystems.chassis){
-            SmartDashboard.putString("Drive/Pose", this.getState().Pose.toString());
-            SmartDashboard.putNumber("Drive/PoseYawDeg", this.getState().Pose.getRotation().getDegrees());
-            SmartDashboard.putNumber("Drive/IMUYawDeg", this.getPigeon2().getYaw().getValueAsDouble());
-            SmartDashboard.putNumber("Drive/vxRobot", this.getState().Speeds.vxMetersPerSecond);
-            SmartDashboard.putNumber("Drive/vyRobot", this.getState().Speeds.vyMetersPerSecond);
+        if (DebugTelemetrySubsystems.drivePose || DebugTelemetrySubsystems.chassis) {
+            var state = this.getState();
+            SmartDashboard.putString("Drive/Pose", state.Pose.toString());
+
+            if (DebugTelemetrySubsystems.chassis) {
+                SmartDashboard.putNumber("Drive/PoseYawDeg", state.Pose.getRotation().getDegrees());
+                SmartDashboard.putNumber("Drive/IMUYawDeg", this.getPigeon2().getYaw().getValueAsDouble());
+                SmartDashboard.putNumber("Drive/vxRobot", state.Speeds.vxMetersPerSecond);
+                SmartDashboard.putNumber("Drive/vyRobot", state.Speeds.vyMetersPerSecond);
+            }
         }
 
         
