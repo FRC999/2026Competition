@@ -17,23 +17,21 @@ public class RepeatIntakeRetractDeploy extends SequentialCommandGroup {
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
       new RetractIntakeSequence()
-      .raceWith(new WaitCommand(0.2)),
+      .raceWith(new WaitCommand(1)),
       new DeployIntakeSequence()
-      .raceWith(new WaitCommand(0.1)),
+      .raceWith(new WaitCommand(0.5)),
       new RetractIntakeSequence()
-      .raceWith(new WaitCommand(0.2)),
+      .raceWith(new WaitCommand(1)),
       new DeployIntakeSequence()
-      .raceWith(new WaitCommand(0.1)),
+      .raceWith(new WaitCommand(0.5)),
       new RetractIntakeSequence()
-      .raceWith(new WaitCommand(0.2)),
+      .raceWith(new WaitCommand(1)),
       new DeployIntakeSequence()
-      .raceWith(new WaitCommand(0.1)),
+      .raceWith(new WaitCommand(0.5)),
       new RetractIntakeSequence()
-      .raceWith(new WaitCommand(0.2)),
+      .raceWith(new WaitCommand(1)),
       new DeployIntakeSequence()
-      .raceWith(new WaitCommand(0.1)),
-      new RetractIntakeSequence()
-      .raceWith(new WaitCommand(0.2))
+      .raceWith(new WaitCommand(0.5))
     );
   }
 }
