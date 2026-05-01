@@ -78,7 +78,11 @@ import gg.questnav.questnav.PoseFrame;
  */
 public class OdometryUpdatesSubsystem extends SubsystemBase {
   private static final int PERF_PUBLISH_EVERY_LOOPS = 25;
-  private static final double INITIAL_MT1_SEED_WAIT_BEFORE_MT2_FALLBACK_SEC = 5.0;
+  private static final double INITIAL_MT1_IMU_TO_MT2_SETTLE_SEC = 2.0;
+  private static final int INITIAL_SEED_MIN_TAGS = 2;
+  private static final double MAX_RELAXED_INITIAL_SEED_CAMERA_TO_TARGET_DISTANCE = 6.0;
+  private static final double INITIAL_SEED_MT2_MT1_MAX_TRANSLATION_DELTA_METERS = 0.5;
+  private static final double INITIAL_SEED_MT2_MT1_MAX_ROTATION_DELTA_DEG = 10.0;
 
   private enum VisionState {
     INITIALIZE,
@@ -105,6 +109,12 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
   private Pose2d pendingManualMt1HeadingPose = null;
   private int manualMt2SettleLoops = 0;
   private boolean questDisabledOverride = false;
+  private LimelightHelpers.PoseEstimate pendingInitialMt1ImuPoseEstimate = null;
+  private String pendingInitialMt1ImuCameraName = null;
+  private double pendingInitialMt1ImuSetTs = Double.NaN;
+  private String initialSeedStatus = "NOT_STARTED";
+  private String initialSeedCameraName = null;
+  private boolean initialSeedSelectedMegaTag2 = false;
   private static final int MANUAL_MT2_SETTLE_LOOPS_AFTER_MT1_HEADING = 2;
 
   private final Timer questLossHoldTimer = new Timer();
@@ -227,9 +237,153 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
 
     double ambiguity = MathUtil.clamp(poseEstimate.rawFiducials[0].ambiguity, 0.0, 1.0);
-    return (poseEstimate.tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity)
+    return poseEstimate.tagCount < INITIAL_SEED_MIN_TAGS
+        || (poseEstimate.tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity)
         || poseEstimate.rawFiducials[0].distToCamera > LLVisionConstants.kMaxInitialSeedCameraToTargetDistance
         || !isReasonablePose(poseEstimate.pose);
+  }
+
+  private boolean shouldRejectRelaxedInitialSeedPoseEstimate(LimelightHelpers.PoseEstimate poseEstimate) {
+    if (poseEstimate == null || poseEstimate.tagCount <= 0 || poseEstimate.rawFiducials == null
+        || poseEstimate.rawFiducials.length == 0) {
+      return true;
+    }
+
+    return poseEstimate.tagCount < INITIAL_SEED_MIN_TAGS
+        || poseEstimate.rawFiducials[0].distToCamera > MAX_RELAXED_INITIAL_SEED_CAMERA_TO_TARGET_DISTANCE
+        || !isReasonablePose(poseEstimate.pose);
+  }
+
+  private String getInitialSeedPoseStatus(
+      LimelightHelpers.PoseEstimate poseEstimate,
+      String cameraName,
+      boolean relaxed) {
+    if (cameraName == null) {
+      return "NO_CAMERA";
+    }
+
+    if (poseEstimate == null) {
+      return "NO_POSE_ESTIMATE";
+    }
+
+    if (poseEstimate.tagCount <= 0 || poseEstimate.rawFiducials == null || poseEstimate.rawFiducials.length == 0) {
+      return "NO_FIDUCIALS";
+    }
+
+    if (!isReasonablePose(poseEstimate.pose)) {
+      return "UNREASONABLE_POSE";
+    }
+
+    if (poseEstimate.tagCount < INITIAL_SEED_MIN_TAGS) {
+      return "REJECT_TAG_COUNT";
+    }
+
+    double ambiguity = MathUtil.clamp(poseEstimate.rawFiducials[0].ambiguity, 0.0, 1.0);
+    if (!relaxed && poseEstimate.tagCount == 1 && ambiguity > LLVisionConstants.kMaxSingleTagAmbiguity) {
+      return "REJECT_SINGLE_TAG_AMBIGUITY";
+    }
+
+    double maxDistance = relaxed
+        ? MAX_RELAXED_INITIAL_SEED_CAMERA_TO_TARGET_DISTANCE
+        : LLVisionConstants.kMaxInitialSeedCameraToTargetDistance;
+    if (poseEstimate.rawFiducials[0].distToCamera > maxDistance) {
+      return "REJECT_TAG_DISTANCE";
+    }
+
+    return relaxed ? "ACCEPTED_RELAXED" : "ACCEPTED_STRICT";
+  }
+
+  private void clearInitialMt1ImuSeedState() {
+    pendingInitialMt1ImuPoseEstimate = null;
+    pendingInitialMt1ImuCameraName = null;
+    pendingInitialMt1ImuSetTs = Double.NaN;
+    initialSeedStatus = "NOT_STARTED";
+    initialSeedCameraName = null;
+    initialSeedSelectedMegaTag2 = false;
+  }
+
+  private boolean areInitialSeedPosesClose(Pose2d mt1Pose, Pose2d mt2Pose) {
+    if (mt1Pose == null || mt2Pose == null) {
+      return false;
+    }
+
+    double translationDeltaMeters = mt1Pose.getTranslation().getDistance(mt2Pose.getTranslation());
+    double rotationDeltaDeg = Math.abs(mt1Pose.getRotation().minus(mt2Pose.getRotation()).getDegrees());
+    if (rotationDeltaDeg > 180.0) {
+      rotationDeltaDeg = 360.0 - rotationDeltaDeg;
+    }
+
+    return translationDeltaMeters <= INITIAL_SEED_MT2_MT1_MAX_TRANSLATION_DELTA_METERS
+        && rotationDeltaDeg <= INITIAL_SEED_MT2_MT1_MAX_ROTATION_DELTA_DEG;
+  }
+
+  private LimelightHelpers.PoseEstimate selectInitialSeedPoseFromMt1ImuThenMt2(double now) {
+    initialSeedSelectedMegaTag2 = false;
+
+    if (!Constants.EnabledSubsystems.ll) {
+      initialSeedStatus = "LL_DISABLED";
+      initialSeedCameraName = null;
+      return null;
+    }
+
+    if (pendingInitialMt1ImuPoseEstimate == null) {
+      LimelightHelpers.PoseEstimate mt1PoseEstimate =
+          RobotContainer.llAprilTagSubsystem.getInitialSeedPoseEstimateFromAllLL(false);
+      String mt1CameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
+      if (mt1PoseEstimate == null
+          || mt1CameraName == null
+          || shouldRejectRelaxedInitialSeedPoseEstimate(mt1PoseEstimate)) {
+        initialSeedStatus = "WAITING_FOR_MT1_IMU_"
+            + getInitialSeedPoseStatus(mt1PoseEstimate, mt1CameraName, true);
+        initialSeedCameraName = mt1CameraName;
+        return null;
+      }
+
+      pendingInitialMt1ImuPoseEstimate = mt1PoseEstimate;
+      pendingInitialMt1ImuCameraName = mt1CameraName;
+      pendingInitialMt1ImuSetTs = now;
+
+      RobotContainer.driveSubsystem.resetChassisIMUToAngle(mt1PoseEstimate.pose.getRotation().getDegrees());
+      RobotContainer.llAprilTagSubsystem.setLLOrientation(
+          mt1PoseEstimate.pose.getRotation().getDegrees(),
+          RobotContainer.driveSubsystem.getTurnRate());
+
+      initialSeedStatus = "MT1_IMU_SET_WAITING_FOR_MT2_SETTLE";
+      initialSeedCameraName = mt1CameraName;
+      return null;
+    }
+
+    RobotContainer.llAprilTagSubsystem.setLLOrientation(
+        pendingInitialMt1ImuPoseEstimate.pose.getRotation().getDegrees(),
+        RobotContainer.driveSubsystem.getTurnRate());
+
+    double settleElapsedSec = now - pendingInitialMt1ImuSetTs;
+    if (settleElapsedSec < INITIAL_MT1_IMU_TO_MT2_SETTLE_SEC) {
+      initialSeedStatus = "WAITING_FOR_MT2_SETTLE";
+      initialSeedCameraName = pendingInitialMt1ImuCameraName;
+      return null;
+    }
+
+    LimelightHelpers.PoseEstimate mt2PoseEstimate =
+        RobotContainer.llAprilTagSubsystem.getMegaTag2PoseEstimateFromAllLL();
+    String mt2CameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
+    boolean mt2Valid = mt2PoseEstimate != null
+        && mt2CameraName != null
+        && !shouldRejectRelaxedInitialSeedPoseEstimate(mt2PoseEstimate);
+    if (mt2Valid
+        && areInitialSeedPosesClose(pendingInitialMt1ImuPoseEstimate.pose, mt2PoseEstimate.pose)) {
+      initialSeedStatus = "ACCEPTED_MT2_MATCHED_MT1";
+      initialSeedCameraName = mt2CameraName;
+      initialSeedSelectedMegaTag2 = true;
+      return mt2PoseEstimate;
+    }
+
+    String mt2Status = getInitialSeedPoseStatus(mt2PoseEstimate, mt2CameraName, true);
+    initialSeedStatus = mt2Valid
+        ? "ACCEPTED_MT1_FALLBACK_MT2_MISMATCH"
+        : "ACCEPTED_MT1_FALLBACK_MT2_" + mt2Status;
+    initialSeedCameraName = pendingInitialMt1ImuCameraName;
+    return pendingInitialMt1ImuPoseEstimate;
   }
 
   private boolean fusePoseEstimate(LimelightHelpers.PoseEstimate poseEstimate, String cameraName, boolean strict) {
@@ -326,14 +480,15 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     gatePassOverride = gatePassOverrideIntermediate;
   }
 
-  private void resetRobotPoseFromVision(LimelightHelpers.PoseEstimate poseEstimate) {
+  private void resetRobotPoseFromVision(LimelightHelpers.PoseEstimate poseEstimate, boolean usedMegaTag1) {
     RobotContainer.driveSubsystem.resetChassisIMUToAngle(poseEstimate.pose.getRotation().getDegrees());
     RobotContainer.driveSubsystem.resetCTREPose(poseEstimate.pose);
     gatePassOverride = false;
     initialVisionAnchorComplete = true;
+    clearInitialMt1ImuSeedState();
     clearVisionLossReanchorState();
 
-    if (RobotContainer.llAprilTagSubsystem.wasLastBestPoseMegaTag1()) {
+    if (usedMegaTag1) {
       scheduleDelayedMegaTag1Recalibration();
     } else {
       cancelDelayedMegaTag1Recalibration();
@@ -345,6 +500,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     RobotContainer.driveSubsystem.resetCTREPose(robotPose);
     gatePassOverride = false;
     initialVisionAnchorComplete = true;
+    clearInitialMt1ImuSeedState();
     clearVisionLossReanchorState();
     cancelDelayedMegaTag1Recalibration();
   }
@@ -408,6 +564,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     }
 
     gatePassOverride = true;
+    clearInitialMt1ImuSeedState();
     clearVisionLossReanchorState();
     cancelDelayedMegaTag1Recalibration();
 
@@ -434,6 +591,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     pendingManualMt1HeadingPose = null;
     manualMt2SettleLoops = 0;
     gatePassOverride = true;
+    clearInitialMt1ImuSeedState();
     clearVisionLossReanchorState();
     cancelDelayedMegaTag1Recalibration();
 
@@ -448,6 +606,7 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     pendingManualMegaTag1Recalibration = false;
     pendingManualMt1HeadingPose = null;
     manualMt2SettleLoops = 0;
+    clearInitialMt1ImuSeedState();
     RobotContainer.questNavSubsystem.setInitialPoseSet(false);
     questLossHoldTimer.stop();
     questLossHoldTimer.reset();
@@ -481,9 +640,12 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
       String mt1CameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
       if (mt1PoseEstimate == null
           || mt1CameraName == null
-          || shouldRejectInitialSeedPoseEstimate(mt1PoseEstimate)) {
+          || shouldRejectRelaxedInitialSeedPoseEstimate(mt1PoseEstimate)) {
         if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
-          SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "WAITING_FOR_VALID_MT1_HEADING");
+          SmartDashboard.putString(
+              "Odometry/ManualMT1RecalStatus",
+              "WAITING_FOR_VALID_MT1_HEADING_"
+                  + getInitialSeedPoseStatus(mt1PoseEstimate, mt1CameraName, true));
         }
         return;
       }
@@ -516,9 +678,14 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
     LimelightHelpers.PoseEstimate mt2PoseEstimate =
         RobotContainer.llAprilTagSubsystem.getMegaTag2PoseEstimateFromAllLL();
     String mt2CameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
-    if (mt2PoseEstimate == null || mt2CameraName == null || shouldRejectInitialSeedPoseEstimate(mt2PoseEstimate)) {
+    if (mt2PoseEstimate == null
+        || mt2CameraName == null
+        || shouldRejectRelaxedInitialSeedPoseEstimate(mt2PoseEstimate)) {
       if (DebugTelemetrySubsystems.odometry || DebugTelemetrySubsystems.llLight) {
-        SmartDashboard.putString("Odometry/ManualMT1RecalStatus", "WAITING_FOR_VALID_MT2_TRANSLATION");
+        SmartDashboard.putString(
+            "Odometry/ManualMT1RecalStatus",
+            "WAITING_FOR_VALID_MT2_TRANSLATION_"
+                + getInitialSeedPoseStatus(mt2PoseEstimate, mt2CameraName, true));
       }
       return;
     }
@@ -683,20 +850,23 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           break;
         }
 
-        boolean allowMegaTag2SeedFallback =
-            initialVisionAnchorComplete
-                || Timer.getFPGATimestamp() - lastTransitionTime
-                    >= INITIAL_MT1_SEED_WAIT_BEFORE_MT2_FALLBACK_SEC;
-        LimelightHelpers.PoseEstimate seedPoseEstimate = Constants.EnabledSubsystems.ll
-            ? RobotContainer.llAprilTagSubsystem.getInitialSeedPoseEstimateFromAllLL(allowMegaTag2SeedFallback)
-            : null;
-        String seedCameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
-        if (seedPoseEstimate != null
-            && seedCameraName != null
-            && !shouldRejectInitialSeedPoseEstimate(seedPoseEstimate)) {
-          resetRobotPoseFromVision(seedPoseEstimate);
+        LimelightHelpers.PoseEstimate seedPoseEstimate = selectInitialSeedPoseFromMt1ImuThenMt2(now);
+        if (DebugTelemetrySubsystems.odometryState
+            || DebugTelemetrySubsystems.odometry
+            || DebugTelemetrySubsystems.llLight) {
+          SmartDashboard.putString("Odometry/InitialSeedStatus", initialSeedStatus);
+          SmartDashboard.putString("Odometry/InitialSeedCamera", initialSeedCameraName != null ? initialSeedCameraName : "");
+          SmartDashboard.putBoolean("Odometry/InitialSeedSelectedMegaTag2", initialSeedSelectedMegaTag2);
+        }
+        if (seedPoseEstimate != null && initialSeedCameraName != null) {
+          boolean selectedMegaTag2 = initialSeedSelectedMegaTag2;
+          resetRobotPoseFromVision(seedPoseEstimate, !selectedMegaTag2);
           calibrateQuestFromLL(seedPoseEstimate.pose);
-          transitionTo(VisionState.CALIBRATED_Q, "Good LL fix; Quest anchored to field");
+          transitionTo(
+              VisionState.CALIBRATED_Q,
+              selectedMegaTag2
+                  ? "MT2 LL fix after MT1 IMU seed; Quest anchored to field"
+                  : "MT1 fallback LL fix after MT2 disagreement; Quest anchored to field");
         }
       }
       case SEEKING_TAGS_NO_Q -> {
@@ -707,19 +877,22 @@ public class OdometryUpdatesSubsystem extends SubsystemBase {
           break;
         }
 
-        boolean allowMegaTag2SeedFallback =
-            initialVisionAnchorComplete
-                || Timer.getFPGATimestamp() - lastTransitionTime
-                    >= INITIAL_MT1_SEED_WAIT_BEFORE_MT2_FALLBACK_SEC;
-        LimelightHelpers.PoseEstimate seedPoseEstimate = Constants.EnabledSubsystems.ll
-            ? RobotContainer.llAprilTagSubsystem.getInitialSeedPoseEstimateFromAllLL(allowMegaTag2SeedFallback)
-            : null;
-        String seedCameraName = RobotContainer.llAprilTagSubsystem.getLastBestPoseCameraName();
-        if (seedPoseEstimate != null
-            && seedCameraName != null
-            && !shouldRejectInitialSeedPoseEstimate(seedPoseEstimate)) {
-          resetRobotPoseFromVision(seedPoseEstimate);
-          transitionTo(VisionState.CALIBRATED_NO_Q, "Good LL fix; LL fallback anchored");
+        LimelightHelpers.PoseEstimate seedPoseEstimate = selectInitialSeedPoseFromMt1ImuThenMt2(now);
+        if (DebugTelemetrySubsystems.odometryState
+            || DebugTelemetrySubsystems.odometry
+            || DebugTelemetrySubsystems.llLight) {
+          SmartDashboard.putString("Odometry/InitialSeedStatus", initialSeedStatus);
+          SmartDashboard.putString("Odometry/InitialSeedCamera", initialSeedCameraName != null ? initialSeedCameraName : "");
+          SmartDashboard.putBoolean("Odometry/InitialSeedSelectedMegaTag2", initialSeedSelectedMegaTag2);
+        }
+        if (seedPoseEstimate != null && initialSeedCameraName != null) {
+          boolean selectedMegaTag2 = initialSeedSelectedMegaTag2;
+          resetRobotPoseFromVision(seedPoseEstimate, !selectedMegaTag2);
+          transitionTo(
+              VisionState.CALIBRATED_NO_Q,
+              selectedMegaTag2
+                  ? "MT2 LL fix after MT1 IMU seed; LL fallback anchored"
+                  : "MT1 fallback LL fix after MT2 disagreement; LL fallback anchored");
         }
       }
       case CALIBRATED_Q -> {
