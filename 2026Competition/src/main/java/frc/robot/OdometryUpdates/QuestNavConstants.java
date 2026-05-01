@@ -17,7 +17,7 @@ public final class QuestNavConstants {
   public static final Transform2d ROBOT_TO_QUEST =
       new Transform2d(-0.24564804169163998, 0.25, Rotation2d.fromDegrees(90.0)); // old y = 0.2700725937828539
   public static final Transform3d ROBOT_TO_QUEST_3D =
-      new Transform3d(-0.24564804169163998, 0.25, 0.24, new Rotation3d(0.0, 0.0, Math.toRadians(90.0)));
+      new Transform3d(-0.24564804169163998, 0.25, 0.2273, new Rotation3d(0.0, 0.0, Math.toRadians(90.0)));
 
 //   public static final Transform2d ROBOT_TO_QUEST =
 //     new Transform2d(0.0, 0.0, Rotation2d.fromDegrees(0.0));

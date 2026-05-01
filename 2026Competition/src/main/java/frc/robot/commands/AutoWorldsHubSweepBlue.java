@@ -15,7 +15,7 @@ import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 public class AutoWorldsHubSweepBlue extends SequentialCommandGroup {
   public AutoWorldsHubSweepBlue() {
     addCommands(
-        new WaitCommand(3.5),
+        new WaitCommand(1),
         Commands.defer(
             InitialAutoDeployWhileHeld::new,
             java.util.Set.of(RobotContainer.intakeSubsystem)),
