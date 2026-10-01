@@ -11,6 +11,9 @@ do not establish centimeter accuracy, shot percentage, or a safe mechanism envel
 
 ## Student/operator sequence
 
+Start with [How our robot software works](team-overview.md) for a visual introduction to localization,
+shooting permission, interruption, autonomous stops and simulation. No programming background is needed.
+
 1. [Install and focus the cameras](installation.md). Start with one rear camera on each Orange Pi 5 Plus.
 2. [Calibrate intrinsics and all six mount offsets](calibration.md). Prepare the survey area once;
    the recurring workflow targets less than 30 minutes per camera.
@@ -25,6 +28,8 @@ do not establish centimeter accuracy, shot percentage, or a safe mechanism envel
 
 Read the [code guide](code-guide.md) for architecture, coordinate/unit contracts, interruption rules,
 configuration, logging and API documentation generation.
+Use the [programming decision diagrams](programming-diagrams.md) for exact branches, feed-block priority,
+command lifetimes and source links. Both visual guides include rendered images and editable Mermaid.
 
 Robot project: `2026Competition/`. Documentation, calibration tools, session records and skills are
 outside that project's `src/` tree. Its Gradle build archives `src/` in the JAR, so do not move these

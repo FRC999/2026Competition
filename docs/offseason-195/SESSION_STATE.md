@@ -235,3 +235,23 @@ Autonomous strategy choice remains open.
 Documentation delivered in `5cedfe0`; the refreshed change-count report is pinned to that exact source
 revision. Subsequent report/receipt commits do not alter robot behavior. Refresh again after the pending
 autonomous strategy implementation.
+
+### Visual documentation follow-up — complete
+
+The mentor requested Markdown diagrams for the whole team and a more detailed programming reference.
+Added `team-overview.md` (7 diagrams) and `programming-diagrams.md` (17 diagrams), checked against source
+revision `d22e7a2` (same runtime as `5cedfe0`). They cover localization, reference trust, shot planning
+and exact feed-gate priority, command interruption, mode/input gating, path frames/endpoints, intake
+cleanup, SysId and simulation boundaries. Both clearly distinguish implemented behavior from pending
+calibration and autonomous strategy. README, code guide and both relevant skill pairs link them.
+
+All 24 editable Mermaid blocks have adjacent rendered SVGs with accessible descriptions. The renderer
+`tools/render_diagrams.mjs` is outside robot src; its local dependencies/previews are ignored under
+artifacts. Mermaid 11.12.2 parsing/rendering and deterministic SVG checks pass; no text overflows the
+SVG bounds. Reviewed rendered layouts. All local links/anchors in the guides/index/code guide pass;
+six skills validate and three mirror pairs match. Robot source/configuration did not change, so the
+previous 117 Java + robotSmoke result remains the behavioral receipt rather than claiming a new run.
+The source-count snapshot remains valid; this is Markdown/SVG/documentation tooling only.
+
+This request does not select the pending autonomous strategy or authorize physical operation. Delivery
+branch remains OffSeason-195; use Git history and origin tracking for the documentation receipt.

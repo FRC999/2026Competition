@@ -8,6 +8,9 @@ Read [session state](../../../docs/offseason-195/SESSION_STATE.md) and the relev
 `2026Competition/`; the historical QuestVibeGPT project is not the target.
 The [code guide](../../../docs/offseason-195/code-guide.md) maps the current runtime contracts and
 logging. Update it and source/package comments when those contracts change; verify `gradlew javadoc`.
+Keep the [visual programming guide](../../../docs/offseason-195/programming-diagrams.md) and
+[team overview](../../../docs/offseason-195/team-overview.md) aligned with changed decisions; regenerate
+their SVGs from the editable Mermaid blocks using `tools/render_diagrams.mjs`.
 
 - Preserve 2026 hardware constants. Prototype source `d20594a` uses another chassis; its measured
   camera offsets/noise and focus-dependent intrinsics are not transferable.

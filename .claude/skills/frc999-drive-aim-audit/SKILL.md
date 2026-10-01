@@ -9,6 +9,10 @@ Use session state for the exact code/calibration under test. Separate verified c
 simulation evidence and physical robot evidence in the result.
 Use the [code guide](../../../docs/offseason-195/code-guide.md) for units, frames, ownership and API
 contracts. Keep Java/package comments current; `gradlew javadoc` validates rendered API documentation.
+The [team overview](../../../docs/offseason-195/team-overview.md) and
+[programming diagrams](../../../docs/offseason-195/programming-diagrams.md) visualize these decisions.
+When a diagrammed contract changes, update its Mermaid block and regenerate the adjacent SVG with
+`node tools/render_diagrams.mjs`; keep source and rendering together.
 
 - Preserve the measured/retained 2026 drivetrain and turret pivot geometry. Do not transplant
   prototype chassis or camera constants while porting algorithms.

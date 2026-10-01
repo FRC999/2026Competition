@@ -104,3 +104,7 @@ Make sure the new code is committed into the new branch with proper comments.
 ## 2026-10-01 — code documentation (verbatim)
 
 Also make sure the code is properly documented
+
+## 2026-10-01 — visual team and programmer guides (verbatim)
+
+Now that you have done all that, I want you to produce MD documents that visualize the work of the code via diagrams that show decision trees and conditions, as well as give the team the idea what we do, how and how it's all working together. If you want, you can make one high-level one for non-programmers, and one more detailed one for the programming team.

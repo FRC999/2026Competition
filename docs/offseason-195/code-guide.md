@@ -4,6 +4,8 @@ This describes the active 2026 robot code. Start with [README.md](README.md) for
 [testing.md](testing.md) for acceptance, and [SESSION_STATE.md](SESSION_STATE.md) for delivery/open work.
 The [full audit](full-refactor-audit.md) and [second audit](second-pass-audit.md) explain why it changed.
 This guide describes current contracts; those audits preserve historical problems and evidence.
+For diagrams, read the [team overview](team-overview.md) or the
+[programming decision reference](programming-diagrams.md), which links each flow to its implementation.
 
 ## Responsibilities and flow
 
