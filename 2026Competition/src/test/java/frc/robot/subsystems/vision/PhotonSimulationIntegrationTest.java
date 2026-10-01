@@ -34,7 +34,7 @@ class PhotonSimulationIntegrationTest {
       assertTrue(decoded >= 3, "Expected multiple production-decoded MultiTag frames, got " + decoded);
       assertTrue(minError < .10, "Synthetic pose error: " + minError);
     } finally {
-      io.camera.close();
+      io.close();
       SimHooks.resumeTiming();
       VisionConstants.configure(OffseasonVisionConfig.load(Path.of("src/main/deploy/vision/cameras.json")));
     }

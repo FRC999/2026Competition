@@ -23,14 +23,11 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
@@ -86,14 +83,8 @@ public class ClimbSubsystem extends SubsystemBase {
 
   // ---------------- Simulation ----------------
   private final boolean isSim = RobotBase.isSimulation();
-  private final FlywheelSim climbSim =
-      new FlywheelSim(
-          LinearSystemId.createFlywheelSystem(
-              DCMotor.getKrakenX60(2),
-              Constants.OperatorConstants.ClimbConstants.SIM_GEAR_RATIO,
-              Constants.OperatorConstants.ClimbConstants.SIM_J_KGM2),
-          DCMotor.getKrakenX60(2));
-  private double simPosRot = 0.0;
+  private final frc.robot.simulation.RotaryMotorSim climbSim = RobotBase.isSimulation()
+      ? new frc.robot.simulation.RotaryMotorSim(2, Constants.OperatorConstants.ClimbConstants.SIM_J_KGM2, Constants.OperatorConstants.ClimbConstants.SIM_GEAR_RATIO) : null;
 
   // Only for dashboard readability; Phoenix 6 position is already rotations.
   private static final double TICKS_PER_ROT = 2048.0;
@@ -355,18 +346,14 @@ public class ClimbSubsystem extends SubsystemBase {
 
   /** SysId: quasistatic routine (only runs if SysId gates are enabled). */
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return Commands.none();
-    }
-    return sysIdRoutine.quasistatic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.quasistatic(direction),
+        this::isSysIdEnabled, this::stopMotors);
   }
 
   /** SysId: dynamic routine (only runs if SysId gates are enabled). */
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return Commands.none();
-    }
-    return sysIdRoutine.dynamic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.dynamic(direction),
+        this::isSysIdEnabled, this::stopMotors);
   }
 
   private void sysIdVoltageDrive(Voltage volts) {
@@ -447,33 +434,17 @@ public class ClimbSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
-    if (!EnabledSubsystems.climber) {
-      return;
-    }
-    if (!isSim) {
-      return;
-    }
-
-    var leftSim = climbMotorLeft.getSimState();
-    var rightSim = climbMotorRight.getSimState();
-
-    double supplyV = RoboRioSim.getVInVoltage();
-    leftSim.setSupplyVoltage(supplyV);
-    rightSim.setSupplyVoltage(supplyV);
-
-    // Drive the mechanism model from the leader motor's commanded voltage.
-    climbSim.setInputVoltage(leftSim.getMotorVoltage());
-    climbSim.update(0.020);
-
-    double velRps = climbSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-    simPosRot += velRps * 0.020;
-
-    leftSim.setRotorVelocity(velRps);
-    leftSim.setRawRotorPosition(simPosRot);
-
-    // Right motor follows left; in current code it is configured as Opposed.
-    rightSim.setRotorVelocity(-velRps);
-    rightSim.setRawRotorPosition(-simPosRot);
-
+    if (!isSim || !EnabledSubsystems.climber) return;
+    var simState = climbMotorLeft.getSimState();
+    simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
+    climbSim.update(simState.getMotorVoltage(), .020);
+    simState.setRawRotorPosition(climbSim.rotorPositionRotations());
+    simState.setRotorVelocity(climbSim.rotorVelocityRps());
+    // Shared load; synthetic follower direction follows the configured alignment.
+    var followerSim = climbMotorRight.getSimState();
+    followerSim.setSupplyVoltage(RoboRioSim.getVInVoltage());
+    double followerSign = SmartDashboard.getBoolean("Climb/FollowerOpposeMaster", false) ? -1 : 1;
+    followerSim.setRawRotorPosition(followerSign * climbSim.rotorPositionRotations());
+    followerSim.setRotorVelocity(followerSign * climbSim.rotorVelocityRps());
   }
 }

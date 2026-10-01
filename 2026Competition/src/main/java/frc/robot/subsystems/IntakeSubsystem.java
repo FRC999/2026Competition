@@ -21,8 +21,6 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -31,7 +29,6 @@ import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
@@ -125,22 +122,12 @@ public class IntakeSubsystem extends SubsystemBase {
   // ---------------- Simulation ----------------
   private final boolean isSim = RobotBase.isSimulation();
 
-  private final FlywheelSim rollerSim = new FlywheelSim(
-      LinearSystemId.createFlywheelSystem(
-          DCMotor.getKrakenX60(1),
-          IntakeConstants.SIM_ROLLER_GEAR_RATIO,
-          IntakeConstants.SIM_ROLLER_J_KGM2),
-      DCMotor.getKrakenX60(1));
+  private final frc.robot.simulation.RotaryMotorSim rollerSim = RobotBase.isSimulation()
+      ? new frc.robot.simulation.RotaryMotorSim(2, IntakeConstants.SIM_ROLLER_J_KGM2, IntakeConstants.SIM_ROLLER_GEAR_RATIO) : null;
 
-  private final FlywheelSim pivotSim = new FlywheelSim(
-      LinearSystemId.createFlywheelSystem(
-          DCMotor.getKrakenX60(1),
-          IntakeConstants.SIM_PIVOT_GEAR_RATIO,
-          IntakeConstants.SIM_PIVOT_J_KGM2),
-      DCMotor.getKrakenX60(1));
+  private final frc.robot.simulation.RotaryMotorSim pivotSim = RobotBase.isSimulation()
+      ? new frc.robot.simulation.RotaryMotorSim(2, IntakeConstants.SIM_PIVOT_J_KGM2, IntakeConstants.SIM_PIVOT_GEAR_RATIO) : null;
 
-  private double simRollerPosRot = 0.0;
-  private double simPivotPosRot = 0.0;
   TalonFXConfiguration pidPivotConfigOg = new TalonFXConfiguration();
 
   /** Creates a new IntakeSubsystem. */
@@ -404,7 +391,9 @@ public class IntakeSubsystem extends SubsystemBase {
     if (deltaDeg < -1e-3) {
       return PIVOT_RETRACTED_SLOT;
     }
-    return activePivotClosedLoopSlot;
+    return activePivotClosedLoopSlot == PIVOT_BOOSTED_SLOT
+        ? (targetDeg <= getPivotPositionToleranceDeg() ? PIVOT_RETRACTED_SLOT : PIVOT_DEPLOYED_SLOT)
+        : activePivotClosedLoopSlot;
   }
 
   private static double mechanismRotFromArmDeg(double armDeg) {
@@ -588,6 +577,7 @@ public class IntakeSubsystem extends SubsystemBase {
       double supplyCurrentLowerLimitAmps,
       double supplyCurrentLowerTimeSec,
       double statorCurrentLimitAmps) {
+    if (!EnabledSubsystems.intake || intakePivotMotor == null || intakePivotFollowerMotor == null) return;
     final var currentLimits = new CurrentLimitsConfigs();
     currentLimits.SupplyCurrentLimitEnable = true;
     currentLimits.SupplyCurrentLimit = supplyCurrentLimitAmps;
@@ -596,8 +586,8 @@ public class IntakeSubsystem extends SubsystemBase {
     currentLimits.StatorCurrentLimitEnable = true;
     currentLimits.StatorCurrentLimit = statorCurrentLimitAmps;
 
-    intakePivotMotor.getConfigurator().apply(currentLimits);
-    intakePivotFollowerMotor.getConfigurator().apply(currentLimits);
+    hardwareConfigured &= intakePivotMotor.getConfigurator().apply(currentLimits).isOK();
+    hardwareConfigured &= intakePivotFollowerMotor.getConfigurator().apply(currentLimits).isOK();
   }
 
   private void restoreDefaultPivotCurrentLimits() {
@@ -630,10 +620,13 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     pivotClosedLoopBoostActive = false;
+    // A completed retract intentionally holds position. Change its active hardware slot too;
+    // clearing only the Java flag leaves the boosted slot applied until the next move.
+    if (Double.isFinite(lastPivotTargetRot)) setTargetPivotDeg(targetPivotDeg, motionMagicVoltage.FeedForward);
   }
 
   public void enableInitialAutoDeployCurrentBoost() {
-    if (pivotCurrentBoostActive) {
+    if (!EnabledSubsystems.intake || !hardwareConfigured || pivotCurrentBoostActive) {
       return;
     }
 
@@ -748,37 +741,29 @@ public class IntakeSubsystem extends SubsystemBase {
 
   // ---------------- SysId factory commands ----------------
   public Command sysIdRollerQuasistatic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return new InstantCommand();
-    }
-    return rollerSysIdRoutine.quasistatic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(rollerSysIdRoutine.quasistatic(direction),
+        this::isSysIdEnabled, this::stopIntake);
   }
 
   public Command sysIdRollerDynamic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return new InstantCommand();
-    }
-    return rollerSysIdRoutine.dynamic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(rollerSysIdRoutine.dynamic(direction),
+        this::isSysIdEnabled, this::stopIntake);
   }
 
   public Command sysIdPivotQuasistatic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return new InstantCommand();
-    }
-    return pivotSysIdRoutine.quasistatic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(pivotSysIdRoutine.quasistatic(direction),
+        this::isSysIdEnabled, this::stopPivotInBrake);
   }
 
   public Command sysIdPivotDynamic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return new InstantCommand();
-    }
-    return pivotSysIdRoutine.dynamic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(pivotSysIdRoutine.dynamic(direction),
+        this::isSysIdEnabled, this::stopPivotInBrake);
   }
 
   // ---------------- SysId callbacks ----------------
   private void sysIdRollerVoltageDrive(edu.wpi.first.units.measure.Voltage volts) {
     if (!isSysIdEnabled()) {
-      return;
+      stopIntake(); return;
     }
     double duty = volts.in(Units.Volts) / RobotController.getBatteryVoltage();
     duty = MathUtil.clamp(duty, -1.0, 1.0);
@@ -798,7 +783,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
   private void sysIdPivotVoltageDrive(edu.wpi.first.units.measure.Voltage volts) {
     if (!isSysIdEnabled()) {
-      return;
+      stopPivotInBrake(); return;
     }
     double duty = volts.in(Units.Volts) / RobotController.getBatteryVoltage();
     duty = MathUtil.clamp(duty, -1.0, 1.0);
@@ -846,6 +831,8 @@ public class IntakeSubsystem extends SubsystemBase {
     org.littletonrobotics.junction.Logger.recordOutput("Intake/TargetDegrees", targetPivotDeg);
     org.littletonrobotics.junction.Logger.recordOutput("Intake/RollerMode", rollerDesiredMode.toString());
     org.littletonrobotics.junction.Logger.recordOutput("Intake/RollerDuty", lastRollerDutyCommand);
+    org.littletonrobotics.junction.Logger.recordOutput("Intake/PivotCurrentBoost", pivotCurrentBoostActive);
+    org.littletonrobotics.junction.Logger.recordOutput("Intake/PivotClosedLoopBoost", pivotClosedLoopBoostActive);
 
     if (DebugTelemetrySubsystems.intake) {
       SmartDashboard.putNumber(
@@ -884,42 +871,27 @@ public class IntakeSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
-    if (!isSim) {
-      return;
-    }
-    if (!EnabledSubsystems.intake) {
-      return;
-    }
-
-    final double dt = 0.02;
-
-    TalonFXSimState rollerSimState = intakeRollerMotor.getSimState();
-    TalonFXSimState pivotSimState = intakePivotMotor.getSimState();
-
-    rollerSimState.setSupplyVoltage(RoboRioSim.getVInVoltage());
-    pivotSimState.setSupplyVoltage(RoboRioSim.getVInVoltage());
-
-    double rollerAppliedV = rollerSimState.getMotorVoltage();
-    double pivotAppliedV = pivotSimState.getMotorVoltage();
-
-    rollerSim.setInputVoltage(rollerAppliedV);
-    pivotSim.setInputVoltage(pivotAppliedV);
-
-    rollerSim.update(dt);
-    pivotSim.update(dt);
-
-    double rollerRps = rollerSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-    double pivotRps = pivotSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-
-    simRollerPosRot += rollerRps * dt;
-    simPivotPosRot += pivotRps * dt;
-
-    rollerSimState.setRawRotorPosition(simRollerPosRot);
-    rollerSimState.setRotorVelocity(rollerRps);
-
-    pivotSimState.setRawRotorPosition(simPivotPosRot);
-    pivotSimState.setRotorVelocity(pivotRps);
-
+    if (!isSim || !EnabledSubsystems.intake) return;
+    var rollerState = intakeRollerMotor.getSimState();
+    var pivotState = intakePivotMotor.getSimState();
+    rollerState.setSupplyVoltage(RoboRioSim.getVInVoltage());
+    pivotState.setSupplyVoltage(RoboRioSim.getVInVoltage());
+    rollerSim.update(rollerState.getMotorVoltage(), .020);
+    pivotSim.update(pivotState.getMotorVoltage(), .020);
+    rollerState.setRawRotorPosition(rollerSim.rotorPositionRotations());
+    rollerState.setRotorVelocity(rollerSim.rotorVelocityRps());
+    pivotState.setRawRotorPosition(pivotSim.rotorPositionRotations());
+    pivotState.setRotorVelocity(pivotSim.rotorVelocityRps());
+    var rollerFollower = intakeRollerFollowerMotor.getSimState();
+    var pivotFollower = intakePivotFollowerMotor.getSimState();
+    rollerFollower.setSupplyVoltage(RoboRioSim.getVInVoltage());
+    pivotFollower.setSupplyVoltage(RoboRioSim.getVInVoltage());
+    double rollerSign = IntakeConstants.intakeRollerFollowerOpposeLeader ? -1 : 1;
+    double pivotSign = IntakeConstants.intakePivotFollowerOpposeLeader ? -1 : 1;
+    rollerFollower.setRawRotorPosition(rollerSign * rollerSim.rotorPositionRotations());
+    rollerFollower.setRotorVelocity(rollerSign * rollerSim.rotorVelocityRps());
+    pivotFollower.setRawRotorPosition(pivotSign * pivotSim.rotorPositionRotations());
+    pivotFollower.setRotorVelocity(pivotSign * pivotSim.rotorVelocityRps());
   }
 
 }

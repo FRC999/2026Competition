@@ -15,8 +15,6 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -24,7 +22,6 @@ import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
@@ -123,14 +120,8 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   // ---------------- Simulation ----------------
   private final boolean isSim = RobotBase.isSimulation();
-  private final FlywheelSim spindexerSim =
-      new FlywheelSim(
-          LinearSystemId.createFlywheelSystem(
-              DCMotor.getKrakenX60(1),
-              Constants.OperatorConstants.Spindexer.SIM_GEAR_RATIO,
-              Constants.OperatorConstants.Spindexer.SIM_J_KGM2),
-          DCMotor.getKrakenX60(1));
-  private double simPosRot = 0.0;
+  private final frc.robot.simulation.RotaryMotorSim spindexerSim = RobotBase.isSimulation()
+      ? new frc.robot.simulation.RotaryMotorSim(1, Constants.OperatorConstants.Spindexer.SIM_J_KGM2, Constants.OperatorConstants.Spindexer.SIM_GEAR_RATIO) : null;
 
   public SpindexerSubsystem() {
     if (!EnabledSubsystems.spindexer) {
@@ -359,17 +350,13 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   // ---------------- SysId factory commands ----------------
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
-    }
-    return sysIdRoutine.quasistatic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.quasistatic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
-    }
-    return sysIdRoutine.dynamic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.dynamic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   // ---------------- SysId callbacks ----------------
@@ -589,23 +576,11 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
-    if (!isSim || !EnabledSubsystems.spindexer) {
-      return;
-    }
-
-    final double dt = 0.02;
-
+    if (!isSim || !EnabledSubsystems.spindexer) return;
     var simState = motor.getSimState();
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
-
-    double appliedV = simState.getMotorVoltage();
-    spindexerSim.setInputVoltage(appliedV);
-    spindexerSim.update(dt);
-
-    double rps = spindexerSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-
-    simPosRot += rps * dt;
-    simState.setRawRotorPosition(simPosRot);
-    simState.setRotorVelocity(rps);
+    spindexerSim.update(simState.getMotorVoltage(), .020);
+    simState.setRawRotorPosition(spindexerSim.rotorPositionRotations());
+    simState.setRotorVelocity(spindexerSim.rotorVelocityRps());
   }
 }

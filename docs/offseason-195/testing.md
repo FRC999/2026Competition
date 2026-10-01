@@ -185,3 +185,34 @@ For suspected aim error, compare surveyed field heading, camera-derived pose, ac
 raw requested angle and filtered command before adjusting a trim. The behind/right pivot signs are
 correct for +X forward/+Y left; see the cardinal-heading table and error examples in
 [the full refactor audit](full-refactor-audit.md#aiming-math-the-pivot-signs-are-correct).
+
+## Second-pass interruption, rules and simulation acceptance
+
+Read [second-pass-audit.md](second-pass-audit.md) first. Competition route stops use brake-only
+qualification; strict precision motion is retained for explicit alignment tests. Verify these separately.
+The complete original Main/Worlds plans are over budget; finalize the pending strategy decision and
+time each selected routine with realistic start placement before match use.
+
+- Try cancel, panic and mode exit during every intake phase, shot, jam clear and path segment.
+  Confirm feed/rollers stop, pivot requests stop, temporary current limits and gain slots restore,
+  and held controls do not restart until released/repressed. Verify software panic and the field E-stop
+  as distinct controls. Never operate physical hardware solely because a desktop test passed.
+- In desktop simulation, press/release controls during AUTO and verify they cannot steal requirements.
+  Test allowed/denied/revoked SysId with simulated IO before any supervised Test-mode hardware work.
+- Verify hub-zone feeding from surveyed positions, both alliances, stationary and moving out of the zone.
+  Confirm `AutoShoot/ManualZoneConfirmationRequired` during the authorized manual localization fallback.
+- Measure the complete robot/hood/turret envelope and hood lowering time. Validate trench structure
+  coordinates, the provisional 0.45 m pad and 0.35 s anticipation against that evidence. A neutral hood
+  command is not proof of passing under the trench. Check all four locations and all relevant headings.
+- Check starting bumper overlap and mechanism extension physically; software center checks do not
+  measure bumpers or certify construction rules. Confirm the actual event’s rules/manual revision.
+- Rotary simulation tests cover reduction, inertia and positive load; Photon simulation traverses real
+  ingestion; full robot simulation checks command ownership and independent truth. Collision, fuel
+  transport, gravity, hard stops and calibrated shot flight remain outside predictive coverage.
+
+`AutoRouteAuditTest` writes a nominal timing report under `build/reports/`. The source-count script
+asserts its sums equal Git numstat and emits a reviewable CSV; run it from the repository root:
+
+```powershell
+python tools/change_audit.py --base 6c4ecb4 --target HEAD
+```

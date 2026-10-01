@@ -56,7 +56,8 @@ import frc.robot.subsystems.vision.VisionPolicy.SingleTagStrategy;
  *       {@link CovarianceModel#ISOTROPIC} until coefficients are fitted from robot logs.
  * </ul>
  */
-public class Vision extends SubsystemBase {
+public class Vision extends SubsystemBase implements AutoCloseable {
+  @Override public void close() { for (var camera : io) camera.close(); }
   /** Sink for accepted observations. {@code RobotContainer} wires this to CTRE's estimator. */
   @FunctionalInterface
   public static interface VisionConsumer {

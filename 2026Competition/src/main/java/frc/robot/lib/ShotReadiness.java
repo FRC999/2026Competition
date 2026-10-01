@@ -4,16 +4,17 @@ package frc.robot.lib;
 public final class ShotReadiness {
   private ShotReadiness() {}
 
-  public enum Reason { READY, IDLE, NO_SOLUTION, POSE_UNREADY, PATH_FAILED, TRENCH_LOCKED,
+  public enum Reason { READY, IDLE, NO_SOLUTION, POSE_UNREADY, PATH_FAILED, HUB_ZONE_UNCONFIRMED, TRENCH_LOCKED,
     TURRET_UNTRUSTED, TURRET_NOT_AIMED, RPM_UNREADY, HOOD_UNREADY, MOVING_IN_STATIC_MODE, COOLDOWN }
   public record Inputs(boolean requested, boolean solution, boolean pose, boolean path,
       boolean trenchLocked, boolean turretTrusted, boolean turretAimed, boolean rpm,
-      boolean hood, boolean motion, boolean coolingDown) {}
+      boolean hood, boolean motion, boolean coolingDown, boolean fieldZone) {}
   public static Reason evaluate(Inputs in) {
     if (!in.requested()) return Reason.IDLE;
     if (in.trenchLocked()) return Reason.TRENCH_LOCKED;
     if (!in.pose()) return Reason.POSE_UNREADY;
     if (!in.path()) return Reason.PATH_FAILED;
+    if (!in.fieldZone()) return Reason.HUB_ZONE_UNCONFIRMED;
     if (!in.solution()) return Reason.NO_SOLUTION;
     if (!in.turretTrusted()) return Reason.TURRET_UNTRUSTED;
     if (!in.turretAimed()) return Reason.TURRET_NOT_AIMED;

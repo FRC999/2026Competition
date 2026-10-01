@@ -94,6 +94,16 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     }
     /** A new motion owner clears the previous precision hold. */
     public void applyMotionRequest(SwerveRequest request) {
+        if (DriverStation.isAutonomousEnabled() && !hasFieldReference()) {
+            latchAutonomousPrecisionFailure();
+        }
+        if (frc.robot.RobotContainer.isPanicStopActive()
+            || (DriverStation.isAutonomousEnabled() && autonomousPrecisionFailure)) {
+            stop(); return;
+        }
+        if (!DriverStation.isEnabled()) {
+            setControl(getIdle()); return;
+        }
         precisionAngleHold = null;
         setControl(request);
     }
@@ -129,7 +139,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     public Pose2d getSimulationTruthPose() { return simulationTruth; }
     public edu.wpi.first.math.kinematics.SwerveModuleState[] getModuleStates() { return getState().ModuleStates; }
     /** Placement changes simulation truth only; estimator resets never move the simulated world. */
-    public void placeSimulationRobot(Pose2d pose) {
+    public synchronized void placeSimulationRobot(Pose2d pose) {
         if (!Utils.isSimulation()) throw new IllegalStateException("Simulation only");
         simulationTruth = pose;
         getPigeon2().getSimState().setRawYaw(pose.getRotation().getDegrees());
@@ -203,7 +213,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     //state -> SignalLogger.writeString("SysIdTranslation_State", state.toString())
                     ),
             new SysIdRoutine.Mechanism(
-                    output -> applyMotionRequest(translationCharacterization.withVolts(output)),
+                    output -> applySysIdRequest(translationCharacterization.withVolts(output)),
                     null,
                     this));
 
@@ -220,7 +230,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     //state -> SignalLogger.writeString("SysIdSteer_State", state.toString())
                     ),
             new SysIdRoutine.Mechanism(
-                    volts -> applyMotionRequest(steerCharacterization.withVolts(volts)),
+                    volts -> applySysIdRequest(steerCharacterization.withVolts(volts)),
                     null,
                     this));
 
@@ -243,7 +253,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             new SysIdRoutine.Mechanism(
                     output -> {
                         /* output is actually radians per second, but SysId only supports "volts" */
-                        applyMotionRequest(rotationCharacterization.withRotationalRate(output.in(Volts)));
+                        applySysIdRequest(rotationCharacterization.withRotationalRate(output.in(Volts)));
                         /* also log the requested output for SysId */
                         //SignalLogger.writeDouble("Rotational_Rate", output.in(Volts));
                     },
@@ -448,8 +458,19 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      * @param direction Direction of the SysId Quasistatic test
      * @return Command to run
      */
+    private boolean isSysIdEnabled() {
+        return DriverStation.isTestEnabled() && !frc.robot.RobotContainer.isPanicStopActive()
+            && frc.robot.Constants.OperatorConstants.SysId.ENABLE_SYSID
+            && SmartDashboard.getBoolean(frc.robot.Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
+    }
+
+    private void applySysIdRequest(SwerveRequest request) {
+        if (isSysIdEnabled()) applyMotionRequest(request); else stop();
+    }
+
     public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-        return sysIdRoutineToApply.quasistatic(direction);
+        return frc.robot.commands.GuardedSysId.wrap(sysIdRoutineToApply.quasistatic(direction),
+            this::isSysIdEnabled, this::stop);
     }
 
     /**
@@ -460,7 +481,8 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      * @return Command to run
      */
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-        return sysIdRoutineToApply.dynamic(direction);
+        return frc.robot.commands.GuardedSysId.wrap(sysIdRoutineToApply.dynamic(direction),
+            this::isSysIdEnabled, this::stop);
     }
 
     public com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric getDrive() {
@@ -662,7 +684,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 private void startSimThread() {
   lastSimTime = Utils.getCurrentTimeSeconds();
 
-  simNotifier = new Notifier(() -> {
+  simNotifier = new Notifier(() -> { synchronized (this) {
     final double currentTime = Utils.getCurrentTimeSeconds();
     double dt = currentTime - lastSimTime;
     lastSimTime = currentTime;
@@ -677,15 +699,24 @@ private void startSimThread() {
         speeds.vxMetersPerSecond * dt, speeds.vyMetersPerSecond * dt,
         speeds.omegaRadiansPerSecond * dt));
 
-  });
+  }});
 
   simNotifier.startPeriodic(kSimLoopPeriod); // 0.005
 }
 
-    @Override
-    public void simulationPeriodic() {
-        // Advance CTRE swerve simulation so getState().Pose updates in sim
-        //updateSimState(0.02, RobotController.getBatteryVoltage());
+    public double getSimCurrentDrawAmps() {
+        if (!Utils.isSimulation()) return 0;
+        double amps = 0;
+        for (int i = 0; i < getState().ModuleStates.length; i++) {
+            amps += Math.max(0, getModule(i).getDriveMotor().getSimState().getSupplyCurrent());
+            amps += Math.max(0, getModule(i).getSteerMotor().getSimState().getSupplyCurrent());
+        }
+        return amps;
+    }
+
+    @Override public void close() {
+        if (simNotifier != null) { simNotifier.close(); simNotifier = null; }
+        super.close();
     }
 
 }

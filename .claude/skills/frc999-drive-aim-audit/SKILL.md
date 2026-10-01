@@ -3,15 +3,18 @@ name: frc999-drive-aim-audit
 description: Review or tune FRC999 2026 precision path completion, turret tracking, moving-shot lead and feeding gates using logs and independent physical measurements.
 ---
 
-Read the [full audit](../../../docs/offseason-195/full-refactor-audit.md) and [test plan](../../../docs/offseason-195/testing.md).
+Read the [second-pass audit](../../../docs/offseason-195/second-pass-audit.md),
+[full audit](../../../docs/offseason-195/full-refactor-audit.md) and [test plan](../../../docs/offseason-195/testing.md).
 Use session state for the exact code/calibration under test. Separate verified code behavior,
 simulation evidence and physical robot evidence in the result.
 
 - Preserve the measured/retained 2026 drivetrain and turret pivot geometry. Do not transplant
   prototype chassis or camera constants while porting algorithms.
 - Resolve path alliance once without mutating cached paths. Preserve route events and intentional
-  nonzero pass-through velocity. For stopping goals require position, gyro/module motion and fresh
-  vision qualification; timeout is not arrival. Preserve failure hold and autonomous feed inhibition.
+  nonzero pass-through velocity only when position, velocity direction and holonomic heading agree.
+  Competition route stops brake and qualify without corrective jitter (ROUTE_STOP, <=0.50 s);
+  strict PRECISION_ALIGNMENT is an explicit precision-test/caller choice. Both require position,
+  gyro/module motion and fresh vision; timeout is not arrival. Preserve failure hold and feed inhibition.
   Check ALLIANCE/FORCE_RED/ABSOLUTE and source preventFlipping independently; never reset/flip twice.
   Derive opening approaches from the actual resolved path start and verify path-join continuity.
   Check enclosing race/deadline/timeout groups against REBUILT's 20 s budget, not a generic 15 s
@@ -27,6 +30,9 @@ simulation evidence and physical robot evidence in the result.
   modes, and shooter follower mode must resume after stop. Share a pure planner with diagnostics;
   telemetry must never mutate decisions. Jam clearing has explicit ownership and never restores an
   old shoot request. Trench exit requires a fresh request; no rearm while inside.
+  Include nominal full trench structures and approach lookahead; guard padding/time are provisional,
+  not measured robot clearance. G407 hub feeding requires a confirmed alliance zone; manual fallback
+  without localization remains driver-confirmed per mentor, with its dashboard indication visible.
 - Moving lead uses release heading and omega-cross-pivot velocity. Flight-time rows must be measured;
   distinguish retained empirical lead from calibrated timing. A distance-only table may be inadequate
   when RPM/hood choices vary. Do not claim dynamic accuracy during aggressive acceleration.
@@ -37,6 +43,10 @@ simulation evidence and physical robot evidence in the result.
 
 Intake homing timeout is failure, never zero evidence. Position resets revoke trust; command
 cancellation/timeout stops motion. Check panic transitions while disabled as well as enabled.
+Operator controls must not schedule/cancel AUTO. Check release cleanup before scheduling required
+commands, and require release/repress across mode/panic gates. Jam clear is one owner. Reset boost
+hardware slots/current limits in cleanup; honor bounded boost time. SysId permission is evaluated at
+schedule time and throughout execution, never only during construction.
 Climb stays disabled until its physical home, limits and follower direction are validated.
 
 Use pure-model and controller integration tests for behavioral changes, then the complete desktop

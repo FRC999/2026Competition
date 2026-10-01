@@ -17,6 +17,7 @@ import frc.robot.Constants.OperatorConstants.Turret;
 import frc.robot.RobotContainer;
 import frc.robot.lib.AimGeometry;
 import frc.robot.lib.FieldTargeting;
+import frc.robot.lib.FieldRules;
 import frc.robot.lib.ShotFlightTimeTable;
 import frc.robot.lib.ShotIntent;
 import frc.robot.lib.ShotPlanner;
@@ -106,8 +107,10 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
         RobotContainer.driveSubsystem.getGyroYawRateRadiansPerSecond());
   }
   private boolean inKnownTrench() {
+    var drive = RobotContainer.driveSubsystem.getState();
     return RobotContainer.vision.hasCompetitionAimFrame() && RobotContainer.driveSubsystem.hasFieldReference()
-        && FieldTargeting.inTrench(RobotContainer.driveSubsystem.getPose());
+        && FieldTargeting.trenchInhibit(drive.Pose,
+            ChassisSpeeds.fromRobotRelativeSpeeds(drive.Speeds, drive.Pose.getRotation()));
   }
   private void stopFeed() {
     RobotContainer.transferSubsystem.stop(); RobotContainer.spindexerSubsystem.stop();
@@ -151,6 +154,15 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     boolean manualAim = shotMode != Mode.MOVING_AUTO && RobotContainer.isHubTrackingDisabledByButtonBox();
     targetKind = FieldTargeting.select(drive.Pose, red, shotMode == Mode.MOVING_AUTO, targetKind);
     var target = FieldTargeting.target(targetKind, red);
+    // Mentor-authorized manual fallback: driver confirms G407 position when localization is lost.
+    boolean manualZoneConfirmation = manualAim && !poseReady;
+    boolean fieldZoneAllowed = targetKind != AimTarget.HUB || manualZoneConfirmation
+        || (poseReady && FieldRules.hubZoneConfirmed(drive.Pose,
+            ChassisSpeeds.fromRobotRelativeSpeeds(speeds, drive.Pose.getRotation()), red,
+            AutoShoot.DT_RELEASE_SEC));
+    SmartDashboard.putBoolean("AutoShoot/ManualZoneConfirmationRequired", manualZoneConfirmation);
+    Logger.recordOutput("AutoShoot/ManualZoneConfirmationRequired", manualZoneConfirmation);
+    Logger.recordOutput("AutoShoot/FieldZoneAllowed", fieldZoneAllowed);
     boolean active = intent.requested() && !intent.trenchLocked();
     solution = active ? planner.solve(shotMode, drive.Pose, speeds, target, targetKind,
         RobotContainer.shooterSubsystem.getTargetRpm(), manualThrottle(), AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT)
@@ -197,12 +209,12 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
     boolean pathReady = !DriverStation.isAutonomousEnabled() || !RobotContainer.driveSubsystem.hasAutonomousPrecisionFailure();
     var reason = ShotReadiness.evaluate(new ShotReadiness.Inputs(intent.requested(), solution.valid(),
         poseReady || manualAim, pathReady, intent.trenchLocked(), RobotContainer.turretSubsystem.isPositionTrusted(),
-        turretReady, rpmReady, hoodReady, motionAllowed, now < cooldownUntil));
+        turretReady, rpmReady, hoodReady, motionAllowed, now < cooldownUntil, fieldZoneAllowed));
     feedReason = reason.toString();
     state = switch (reason) {
       case READY -> VolleyState.FIRING;
       case IDLE -> VolleyState.IDLE;
-      case NO_SOLUTION, POSE_UNREADY, PATH_FAILED -> VolleyState.NO_SOLUTION;
+      case NO_SOLUTION, POSE_UNREADY, PATH_FAILED, HUB_ZONE_UNCONFIRMED -> VolleyState.NO_SOLUTION;
       case RPM_UNREADY, HOOD_UNREADY, COOLDOWN -> VolleyState.RECOVERING;
       default -> VolleyState.ARMING;
     };
@@ -221,6 +233,9 @@ public class AutoShootSupervisorSubsystem extends SubsystemBase {
   }
 
   private void resetOutputsForLog(String reason, VolleyState nextState) {
+    SmartDashboard.putBoolean("AutoShoot/ManualZoneConfirmationRequired", false);
+    Logger.recordOutput("AutoShoot/ManualZoneConfirmationRequired", false);
+    Logger.recordOutput("AutoShoot/FieldZoneAllowed", false);
     state = nextState; validity = SolutionValidity.GLOBAL_INVALID;
     solution = Solution.invalid(reason); rawTurret = commandedTurret = Double.NaN;
     filterInitialized = false; feedReason = reason; publish();

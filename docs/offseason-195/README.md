@@ -16,7 +16,10 @@ do not establish centimeter accuracy, shot percentage, or a safe mechanism envel
    the recurring workflow targets less than 30 minutes per camera.
 3. [Restore and verify the competition field](calibration.md#return-to-the-competition-field).
 4. [Run the acceptance tests](testing.md), beginning with disabled checks and low-speed motion.
-5. [Read the full issue/fix ledger](full-refactor-audit.md) and [initial audit](audit.md) before tuning or enabling match autos.
+5. Read the [second-pass concurrency/auto/simulation audit](second-pass-audit.md),
+   [full issue/fix ledger](full-refactor-audit.md) and [initial audit](audit.md) before enabling match autos.
+   The original full Main/Worlds sequences exceed the usable AUTO budget; strategy selection is pending.
+6. See the reproducible [Houston line-change comparison](change-counts.md).
 
 ## Developers
 
@@ -45,9 +48,8 @@ From repository root, `python -m unittest discover -s tools -v` checks the offli
 See [testing.md](testing.md) for reports, limitations and reproducible field tests.
 
 The selected base is `Houston---afternoon-Friday` (`6c4ecb4`, May 1, 2026), the latest robot-code
-commit among the requested Houston/Worlds candidates. The other Houston branch has a later
-documentation commit. This establishes a sensible Worlds-era source base; it does **not** prove
-which binary was actually deployed at Worlds. The prototype source is pinned to `d20594a` in
+commit among the requested Houston/Worlds candidates. The mentor explicitly confirmed this revision
+as the Worlds comparison baseline. The prototype source is pinned to `d20594a` in
 `FRC999/2027Prototyping`; its chassis measurements and camera calibrations were not copied.
 
 For AI continuation, read [SESSION_STATE.md](SESSION_STATE.md), [PROMPTS.md](PROMPTS.md), and the

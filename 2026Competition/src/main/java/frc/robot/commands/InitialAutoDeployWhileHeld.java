@@ -24,7 +24,8 @@ public class InitialAutoDeployWhileHeld extends Command {
 
   @Override
   public void execute() {
-    RobotContainer.intakeSubsystem.enableInitialAutoDeployCurrentBoost();
+    if (timeoutTimer.hasElapsed(IntakeConstants.INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_BOOST_MAX_SEC))
+      RobotContainer.intakeSubsystem.disableInitialAutoDeployCurrentBoost();
     RobotContainer.intakeSubsystem.setPivotDutyCycle(IntakeConstants.INTAKE_PIVOT_INITIAL_AUTO_DEPLOY_DUTY);
   }
 

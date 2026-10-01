@@ -44,6 +44,8 @@ public class VisionIOPhotonVision implements VisionIO {
     this.robotToCamera = robotToCamera;
   }
 
+  @Override public void close() { camera.close(); }
+
   @Override
   public void updateInputs(VisionIOInputs inputs) {
     inputs.connected = camera.isConnected();

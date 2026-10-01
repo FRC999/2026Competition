@@ -20,6 +20,12 @@ public class Robot extends LoggedRobot {
 
   private final RobotContainer m_robotContainer;
 
+  @Override public void close() {
+    RobotContainer.vision.close();
+    RobotContainer.driveSubsystem.close();
+    super.close();
+  }
+
   public Robot() {
     Logger.recordMetadata("Project", "2026Competition/OffSeason-195");
     try (var in = Robot.class.getResourceAsStream("/build-info.properties")) {
@@ -52,6 +58,7 @@ public class Robot extends LoggedRobot {
 
 @Override
   public void autonomousInit() {
+    CommandScheduler.getInstance().cancelAll();
     RobotContainer.driveSubsystem.clearAutonomousPrecisionFailure();
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
@@ -74,7 +81,9 @@ public class Robot extends LoggedRobot {
   }
 
 @Override
-  public void teleopExit() {}
+  public void teleopExit() {
+    CommandScheduler.getInstance().cancelAll();
+  }
 
   @Override
   public void testInit() {
@@ -82,14 +91,18 @@ public class Robot extends LoggedRobot {
   }
 
 @Override
-  public void testExit() {}
+  public void testExit() {
+    CommandScheduler.getInstance().cancelAll();
+  }
 
   @Override
   public void simulationPeriodic() {
+    if (!isSimulation()) return;
     // One shared battery voltage for the whole robot simulation.
     // Each subsystem should set its motor controller SimState supply voltage from RoboRioSim.getVInVoltage().
 
     double totalCurrentAmps = 0.0;
+    totalCurrentAmps += RobotContainer.driveSubsystem.getSimCurrentDrawAmps();
 
     // Sum current draw from subsystems that simulate loads.
     // (Each subsystem returns 0 if disabled or not sim.)
@@ -104,6 +117,8 @@ public class Robot extends LoggedRobot {
 
     // Convert current draw -> loaded battery voltage and apply to RoboRIO (shared for all devices).
     RoboRioSim.setVInVoltage(BatterySim.calculateDefaultBatteryLoadedVoltage(totalCurrentAmps));
+    Logger.recordOutput("Simulation/TotalCurrentAmps", totalCurrentAmps);
+    Logger.recordOutput("Simulation/BatteryVoltage", RoboRioSim.getVInVoltage());
   }
 
 }

@@ -14,15 +14,12 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -115,13 +112,8 @@ public class TransferSubsystem extends SubsystemBase {
 
   // ---------------- Simulation ----------------
   private final boolean isSim = RobotBase.isSimulation();
-  private final FlywheelSim transferSim = new FlywheelSim(
-      LinearSystemId.createFlywheelSystem(
-          DCMotor.getKrakenX60(1),
-          Constants.OperatorConstants.Transfer.SIM_GEAR_RATIO,
-          Constants.OperatorConstants.Transfer.SIM_J_KGM2),
-      DCMotor.getKrakenX60(1));
-  private double simPosRot = 0.0;
+  private final frc.robot.simulation.RotaryMotorSim transferSim = RobotBase.isSimulation()
+      ? new frc.robot.simulation.RotaryMotorSim(1, Constants.OperatorConstants.Transfer.SIM_J_KGM2, Constants.OperatorConstants.Transfer.SIM_GEAR_RATIO) : null;
 
   public TransferSubsystem() {
     if (!EnabledSubsystems.transfer) {
@@ -298,17 +290,13 @@ public class TransferSubsystem extends SubsystemBase {
 
   // ---------------- SysId factory commands ----------------
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
-    }
-    return sysIdRoutine.quasistatic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.quasistatic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled()) {
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
-    }
-    return sysIdRoutine.dynamic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.dynamic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   // ---------------- SysId callbacks ----------------
@@ -418,29 +406,12 @@ public class TransferSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
-    if (!isSim) {
-      return;
-    }
-    if (!EnabledSubsystems.transfer) {
-      return;
-    }
-
-    final double dt = 0.02;
-
+    if (!isSim || !EnabledSubsystems.transfer) return;
     var simState = motor.getSimState();
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
-
-    double appliedV = simState.getMotorVoltage();
-
-    transferSim.setInputVoltage(appliedV);
-    transferSim.update(dt);
-
-    double rps = transferSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-    simPosRot += rps * dt;
-
-    simState.setRawRotorPosition(simPosRot);
-    simState.setRotorVelocity(rps);
-
+    transferSim.update(simState.getMotorVoltage(), .020);
+    simState.setRawRotorPosition(transferSim.rotorPositionRotations());
+    simState.setRotorVelocity(transferSim.rotorVelocityRps());
   }
 
 }

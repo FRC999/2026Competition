@@ -2,13 +2,16 @@
 
 ## Status — October 1, 2026
 
-Initial implementation delivered at 5a3e431. The user-requested full active-robot refactor is complete;
-see full-refactor-audit.md for 40 findings, old locations, replacements, verification and physical gaps.
+Initial implementation delivered at 5a3e431 and the first full refactor at 80acda9.
+The second audit's independent fixes are verified; autonomous strategy selection remains pending.
+Read second-pass-audit.md for current interruption, rules, route-stop and simulation behavior;
+full-refactor-audit.md retains the preceding 40 findings and their evidence.
 The user explicitly confirmed robot-frame turret offsets: +X forward, +Y left; negative X is behind
 and negative Y is right. The cardinal-heading math is correct; no pivot sign reversal was justified.
 Delivery branch is OffSeason-195; use Git history and its origin tracking status for delivery receipts.
 No physical robot operation or deployment has occurred. User authorized commits/push to this branch;
-no PR requested. Remaining validation requires the team's measured calibration and physical testing.
+no PR requested. Remaining work is the mentor's auto strategy choice, its implementation/final count
+refresh, and the team's measured calibration and physical testing.
 
 ## Locations and pinned sources
 
@@ -157,3 +160,44 @@ The report must give old locations, high-level effects, replacement code and ver
 
 Remaining work is operator-led calibration and physical acceptance, not unfinished desktop refactoring.
 Use Git history and origin tracking for the delivered follow-up commit. No deployment occurred.
+
+## Second audit — verified independent changes, strategy decision pending
+
+The preceding refactor was delivered as 80acda9. A new mentor request authorizes a detailed second
+review of interruption/concurrency, 2026 rules and auto stop/timing behavior, simulation isolation,
+and a reproducible change-count comparison against Worlds (with vision/simulation/other attribution).
+Previous completion text refers only to the preceding delivery. All independent corrections are now
+implemented and tested. Do not mark the new task complete while the strategy decision remains open.
+
+- Mentor confirmed **Houston 6c4ecb4** as the Worlds comparison baseline and **manual fallback with
+  driver-confirmed position** when localization is unavailable. Both answers are in PROMPTS.md.
+- Teleop-only bindings, pre-scheduling release guards and FreshPress prevent AUTO cancellation and
+  held-input revival across mode/panic changes. One command owns all three jam-clear mechanisms.
+  Mode exits cancel commands; interrupted PathPlanner followers stop. SysId gates evaluate at schedule
+  time and revoke during execution. Intake gain/current boosts roll back; initial boost is <=0.75 s;
+  held LT pivot deployment is bounded. Gyro-reference loss inhibits new auto motion requests.
+- Automatic hub feed checks a conservative own-alliance-zone center boundary now and at release.
+  Manual localization fallback remains mentor-authorized and indicated. Trench guards now cover full
+  nominal structures and a swept approach segment with provisional 0.45 m padding/0.35 s lookahead.
+  Physical envelopes, hood lowering time and starting bumper overlap remain operator validation.
+- Competition path stops use brake-only ROUTE_STOP (0.06 s calm qualification, <=0.50 s timeout),
+  never strict corrective precision jitter. Failed stops hold the sequence and inhibit feed. Explicit
+  precision tests retain stricter alignment. Five physically discontinuous moving path joins now stop;
+  the valid 0.5 m/s Main handoff retains continuous velocity and heading.
+- Corrected seven rotary simulations' inertia/gearing order, rotor conversion, motor count and follower
+  signals; guarded sim construction/writes; included drivetrain battery load; fixed synthetic camera
+  world lifecycle and 5 ms truth/placement synchronization; closed notifier/camera resources.
+- **Open question already sent to mentor:** first collection then shoot for the remainder, or later pickup
+  only with sufficient time reserved for return/shooting. Main's named paths alone total 20.829 s.
+  Worlds Blue/Red have 13.282/11.652 s of named paths plus waits/shots that already exceed 20 s before
+  opening/deploy/stop checks. Do not silently choose a new strategy. Original full sequences remain
+  deadline-bounded and documented as over budget; default remains Do nothing.
+- `tools/change_audit.py` produces a Git-numstat-checked production Java accounting and per-line CSV
+  against 6c4ecb4, with separate vision/simulation/other/shared attribution. Shared integration is not
+  a precise causal split. Refresh after the auto strategy implementation; generated counts are snapshots.
+- Latest verification: **117 normal Java tests + 1 expanded robotSmoke**, all passing; full
+  `gradlew test robotSmoke build` passes. Seven Python tests, six skill validations and three mirror
+  pairs pass. The smoke test confirms the actual CTRE request leaves boosted slot 2 and held LT does
+  not restart across modes. Desktop CAN/joystick/loop-overrun warnings persist; no hardware claim.
+- No deployment or physical operation. Independent audit changes can be reviewed on OffSeason-195;
+  check Git/origin for receipt. Final strategy work and final summary/counts remain outstanding.

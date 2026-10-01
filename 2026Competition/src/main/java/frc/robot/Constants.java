@@ -1037,25 +1037,19 @@ public final class Constants {
       public static final double FIELD_LENGTH_METERS = 16.541;
 
       /**
-       * Teleop trench safety zones, defined in BLUE-alliance field coordinates
-       * (meters).
-       *
-       * These are axis-aligned rectangles (min/max X/Y). For RED alliance, the pose X
-       * is
-       * mirrored using FIELD_LENGTH_METERS.
-       *
-       * IMPORTANT: You MUST set these numbers; leaving them at 0 will make the zone
-       * detection wrong.
+       * Nominal full trench structures, BLUE field origin; 2026 manual section 5.6.
+       * These are inhibit regions, not surveyed navigable corridors or robot clearance.
+       * FieldTargeting also checks the opposite end and anticipates motion into them.
        */
-      public static final double BLUE_TRENCH_ZONE1_MIN_X_METERS = 4.060;
-      public static final double BLUE_TRENCH_ZONE1_MAX_X_METERS = 5.200;
-      public static final double BLUE_TRENCH_ZONE1_MIN_Y_METERS = 7.270;
-      public static final double BLUE_TRENCH_ZONE1_MAX_Y_METERS = 7.585;
+      public static final double BLUE_TRENCH_ZONE1_MIN_X_METERS = 158.6 * .0254;
+      public static final double BLUE_TRENCH_ZONE1_MAX_X_METERS = (158.6 + 47.0) * .0254;
+      public static final double BLUE_TRENCH_ZONE1_MIN_Y_METERS = (317.7 - 65.65) * .0254;
+      public static final double BLUE_TRENCH_ZONE1_MAX_Y_METERS = 317.7 * .0254;
 
-      public static final double BLUE_TRENCH_ZONE2_MIN_X_METERS = 4.060;
-      public static final double BLUE_TRENCH_ZONE2_MAX_X_METERS = 5.200;
-      public static final double BLUE_TRENCH_ZONE2_MIN_Y_METERS = 0.500;
-      public static final double BLUE_TRENCH_ZONE2_MAX_Y_METERS = 0.785;
+      public static final double BLUE_TRENCH_ZONE2_MIN_X_METERS = BLUE_TRENCH_ZONE1_MIN_X_METERS;
+      public static final double BLUE_TRENCH_ZONE2_MAX_X_METERS = BLUE_TRENCH_ZONE1_MAX_X_METERS;
+      public static final double BLUE_TRENCH_ZONE2_MIN_Y_METERS = 0;
+      public static final double BLUE_TRENCH_ZONE2_MAX_Y_METERS = 65.65 * .0254;
     }
 
     /** Turret geometry needed by the solver. */

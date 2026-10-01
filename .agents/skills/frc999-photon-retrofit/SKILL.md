@@ -25,6 +25,13 @@ Read [session state](../../../docs/offseason-195/SESSION_STATE.md) and the relev
   Distinguish complete robot replay from vision IO logging; the former is not currently implemented.
 - Put documentation, prompts, skills and evidence outside robot `src/`, because Gradle archives that
   tree. Runtime field JSON and camera/shot configuration belong in `src/main/deploy`.
+- Simulation constructors and sensor writes are guarded; model inertia precedes gearing and raw
+  rotor units include the reduction. Keep simulated truth independent of estimator resets, include
+  follower/load effects, avoid static camera worlds, and close notifiers/cameras. See the
+  [second-pass audit](../../../docs/offseason-195/second-pass-audit.md) for model limitations.
+- Reproduce Worlds comparisons against mentor-confirmed Houston `6c4ecb4` with
+  `tools/change_audit.py`; keep shared integration explicit and added/deleted churn separate from
+  unique edited lines. Do not inflate 'just vision' by assigning all shared behavioral edits to it.
 
 Use [installation](../../../docs/offseason-195/installation.md) for board/image/network changes and
 [calibration](../../../docs/offseason-195/calibration.md) for measured transforms. Run the relevant

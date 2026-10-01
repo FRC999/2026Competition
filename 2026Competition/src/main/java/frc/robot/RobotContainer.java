@@ -22,7 +22,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
-import edu.wpi.first.wpilibj2.command.button.POVButton;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.AutoConstants;
@@ -42,8 +41,6 @@ import frc.robot.commands.InitialAutoDeployWhileHeld;
 import frc.robot.commands.IntakeRezeroFromRetractedHardStop;
 import frc.robot.commands.ReverseIntake;
 import frc.robot.commands.ReverseShooterTemporary;
-import frc.robot.commands.ReverseSpindexer;
-import frc.robot.commands.ReverseTransfer;
 import frc.robot.commands.ShootWhileHeld;
 import frc.robot.commands.StopIntake;
 import frc.robot.commands.TurretGoToZeroCommand;
@@ -119,15 +116,15 @@ public class RobotContainer {
     }, java.util.Set.of(driveSubsystem)));
     SmartDashboard.putData("Diagnostics/Shot plan", new PrintTurretShotDiagnosticsCommand().ignoringDisable(true));
     SmartDashboard.putData("Vision/Seed pose (disabled)",
-        Commands.runOnce(RobotContainer::seedPoseFromPhotonVision, driveSubsystem).ignoringDisable(true));
+        Commands.runOnce(RobotContainer::seedPoseFromPhotonVision).ignoringDisable(true));
     SmartDashboard.putData("Vision/Capture camera jitter (disabled)",
         Commands.runOnce(vision::startCameraJitterCapture).ignoringDisable(true));
     SmartDashboard.putData("Vision/Stop camera jitter capture",
         Commands.runOnce(vision::stopCameraJitterCapture).ignoringDisable(true));
     SmartDashboard.putData("Calibration/Reseed turret ONLY when physically stowed (disabled)",
-        Commands.runOnce(turretSubsystem::reseedIntegratedFromAbsoluteNow, turretSubsystem).ignoringDisable(true));
+        Commands.runOnce(turretSubsystem::reseedIntegratedFromAbsoluteNow).ignoringDisable(true));
     SmartDashboard.putData("Calibration/Zero hood ONLY when fully down (disabled)",
-        Commands.runOnce(hoodSubsystem::seedZeroFromDownHardStop, hoodSubsystem).ignoringDisable(true));
+        Commands.runOnce(hoodSubsystem::seedZeroFromDownHardStop).ignoringDisable(true));
     if (RobotBase.isSimulation()) {
       configureSimulation();
     }
@@ -170,7 +167,7 @@ public class RobotContainer {
   }
 
   public static boolean isHubTrackingDisabledByButtonBox() {
-    return bb.getRawAxis(OIContants.BB_HUB_TRACKING_DISABLE_AXIS)
+    return DriverStation.isTeleopEnabled() && bb.getRawAxis(OIContants.BB_HUB_TRACKING_DISABLE_AXIS)
         < OIContants.BB_HUB_TRACKING_DISABLE_THRESHOLD;
   }
 
@@ -221,6 +218,21 @@ public class RobotContainer {
     applyPanicStop();
   }
 
+  private static Trigger operatorControl(java.util.function.BooleanSupplier pressed) {
+    var gate = new frc.robot.lib.FreshPress();
+    return new Trigger(() -> gate.update(isTeleopControlAllowed(), pressed.getAsBoolean()));
+  }
+
+  private static boolean isTeleopControlAllowed() {
+    return DriverStation.isTeleopEnabled() && !isPanicStopActive();
+  }
+
+  /** A mode/panic transition is also a falling edge. It must not schedule a cleanup move. */
+  private static Command onTeleopRelease(Command release) {
+    // Check before scheduling: onlyIf on a command with requirements would still cancel auto.
+    return Commands.runOnce(() -> { if (isTeleopControlAllowed()) CommandScheduler.getInstance().schedule(release); });
+  }
+
   private void competitionXBOXButtonBindings() {
     panicStopLatched = isPanicSwitchActive();
     if (panicStopLatched) {
@@ -228,11 +240,11 @@ public class RobotContainer {
     }
 
     Trigger panicStopTrigger = new Trigger(RobotContainer::isPanicSwitchActive);
-    Trigger panicInactiveTrigger = new Trigger(() -> !RobotContainer.isPanicStopActive());
-    Trigger povUpTrigger = new POVButton(xboxDriveController, 0);
-    Trigger povDownTrigger = new POVButton(xboxDriveController, 180);
-    JoystickButton driverAButton = new JoystickButton(xboxDriveController, OIContants.XBOX_BUTTON_A);
-    JoystickButton driverYButton = new JoystickButton(xboxDriveController, 4);
+    Trigger teleopControls = new Trigger(RobotContainer::isTeleopControlAllowed);
+    Trigger povUpTrigger = operatorControl(() -> xboxDriveController.getPOV() == 0);
+    Trigger povDownTrigger = operatorControl(() -> xboxDriveController.getPOV() == 180);
+    Trigger driverAButton = operatorControl(() -> xboxDriveController.getRawButton(OIContants.XBOX_BUTTON_A));
+    Trigger driverYButton = operatorControl(() -> xboxDriveController.getRawButton(4));
 
     panicStopTrigger
         .onTrue(new InstantCommand(() -> {
@@ -244,24 +256,24 @@ public class RobotContainer {
     new JoystickButton(bb, OIContants.BB_VISION_SEED_BUTTON)
         .and(new Trigger(RobotContainer::isVisionSeedAxisActive))
         .and(new Trigger(DriverStation::isDisabled))
-        .and(panicInactiveTrigger)
+        .and(() -> !isPanicStopActive())
         .onTrue(Commands.runOnce(RobotContainer::seedPoseFromPhotonVision, driveSubsystem)
             .ignoringDisable(true));
 
-   new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
+   operatorControl(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
         > OIContants.XBOX_TRIGGER_ACTIVE_THRESHOLD)
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .whileTrue(Commands.defer(
             DeployAndRunIntakeWhileHeld::new,
             Set.of(intakeSubsystem)))
-        .onFalse(Commands.defer(
+        .onFalse(onTeleopRelease(Commands.defer(
             () -> intakeSubsystem.shouldStayDeployedAfterTriggerRelease()
                 ? new StopIntake()
                 : new RetractIntakeSequence(),
-            Set.of(intakeSubsystem)));
+            Set.of(intakeSubsystem))));
 
     driverAButton
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .and(new Trigger(() -> xboxDriveController.getPOV() != 180))
         .onTrue(new InstantCommand(
             () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(true),
@@ -269,13 +281,13 @@ public class RobotContainer {
 
     povDownTrigger
         .and(driverAButton)
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .onTrue(new InstantCommand(
             () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(true),
             intakeSubsystem).andThen(new DeployIntakeSequence(true)));
 
     driverYButton // Y
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .and(new Trigger(() -> xboxDriveController.getPOV() != 0))
         .onTrue(new InstantCommand(
             () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(false),
@@ -283,104 +295,101 @@ public class RobotContainer {
 
     povUpTrigger
         .and(driverYButton)
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .onTrue(new InstantCommand(
             () -> intakeSubsystem.setStayDeployedAfterTriggerRelease(false),
             intakeSubsystem).andThen(new RetractIntakeSequence(true)));
 
-    new JoystickButton(xboxDriveController, 2)
+    operatorControl(() -> xboxDriveController.getRawButton(2))
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .whileTrue(new ShootWhileHeld(
             frc.robot.lib.ShotPlanner.Mode.MANUAL_PRESET_3M,
             false));
 
-    new JoystickButton(bb, OIContants.BB_MANUAL_RPM_UP)
+    operatorControl(() -> bb.getRawButton(OIContants.BB_MANUAL_RPM_UP))
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .onTrue(new InstantCommand(
             () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT +=
                 Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_PERCENT));
 
-    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_3M)
-        .and(panicInactiveTrigger)
+    operatorControl(() -> bb.getRawButton(OIContants.BB_MANUAL_SHOT_3M))
+        .and(teleopControls)
         .onTrue(new InstantCommand(
             () -> Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG += 1.0));
 
-    new JoystickButton(xboxDriveController, 3)
+    operatorControl(() -> xboxDriveController.getRawButton(3))
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .whileTrue(new ShootWhileHeld(
             frc.robot.lib.ShotPlanner.Mode.MANUAL_PRESET_4M,
             false));
 
-    new JoystickButton(bb, OIContants.BB_MANUAL_SHOT_4M)
-        .and(panicInactiveTrigger)
+    operatorControl(() -> bb.getRawButton(OIContants.BB_MANUAL_SHOT_4M))
+        .and(teleopControls)
         .onTrue(new InstantCommand(
             () -> Constants.OperatorConstants.Turret.AUTO_AIM_TRIM_DEG -= 1.0));
 
-    new JoystickButton(bb, OIContants.BB_INTAKE_INIT_DEPLOY_6)
-        .and(panicInactiveTrigger)
+    operatorControl(() -> bb.getRawButton(OIContants.BB_INTAKE_INIT_DEPLOY_6))
+        .and(teleopControls)
         .whileTrue(Commands.defer(
             InitialAutoDeployWhileHeld::new,
             Set.of(intakeSubsystem)))
-        .onFalse(Commands.defer(
+        .onFalse(onTeleopRelease(Commands.defer(
             RetractIntakeSequence::new,
-            Set.of(intakeSubsystem)));
+            Set.of(intakeSubsystem))));
 
-    new JoystickButton(bb, OIContants.BB_MANUAL_RPM_DOWN)
+    operatorControl(() -> bb.getRawButton(OIContants.BB_MANUAL_RPM_DOWN))
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .onTrue(new InstantCommand(
             () -> Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_PERCENT -=
                 Constants.OperatorConstants.AutoShoot.MANUAL_SHOT_RPM_TRIM_STEP_PERCENT));
 
-    new JoystickButton(xboxDriveController, 5) // LB
-        .and(panicInactiveTrigger)
+    operatorControl(() -> xboxDriveController.getRawButton(5)) // LB
+        .and(teleopControls)
         .whileTrue(new ReverseIntake());
 
-    new JoystickButton(xboxDriveController, 6) // RB
-        .and(panicInactiveTrigger)
-        .whileTrue(new ReverseTransfer()
-            .alongWith(new ReverseSpindexer())
-            .alongWith(new ReverseShooterTemporary()))
-        .onFalse(new StopIntake());
+    operatorControl(() -> xboxDriveController.getRawButton(6)) // RB
+        .and(teleopControls)
+        .whileTrue(new ReverseShooterTemporary());
 
-    new JoystickButton(xboxDriveController, 8)
+    operatorControl(() -> xboxDriveController.getRawButton(8))
         .and(new Trigger(DriverStation::isTeleopEnabled))
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .onTrue(Commands.runOnce(driveSubsystem::orientDriverForwardToCurrentHeading, driveSubsystem));
 
-    new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3) // RT
-        .and(panicInactiveTrigger)
+    operatorControl(() -> xboxDriveController.getRawAxis(3) > 0.3) // RT
+        .and(teleopControls)
         .whileTrue(new ShootWhileHeld(
             frc.robot.lib.ShotPlanner.Mode.MOVING_AUTO,
             false));
 
-    new JoystickButton(xboxDriveController, 2) // B
+    operatorControl(() -> xboxDriveController.getRawButton(2)) // B
         .and(new Trigger(() -> !RobotContainer.isHubTrackingDisabledByButtonBox()))
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .whileTrue(new ShootWhileHeld(
             frc.robot.lib.ShotPlanner.Mode.STATIC_TOWER_BASE,
             true));
 
-    new POVButton(xboxDriveController, 90)
+    operatorControl(() -> xboxDriveController.getPOV() == 90)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .whileTrue(new TurretJogCommand(turretSubsystem, 0.18));
 
-    new POVButton(xboxDriveController, 270)
+    operatorControl(() -> xboxDriveController.getPOV() == 270)
         .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-        .and(panicInactiveTrigger)
+        .and(teleopControls)
         .whileTrue(new TurretJogCommand(turretSubsystem, -0.18));
 
-    new JoystickButton(bb, OIContants.BB_INTAKE_REZERO)
-      .and(panicInactiveTrigger)
+    operatorControl(() -> bb.getRawButton(OIContants.BB_INTAKE_REZERO))
+      .and(teleopControls)
       .onTrue(new IntakeRezeroFromRetractedHardStop());
 
-    new JoystickButton(bb, OIContants.BB_TURRET_ZERO)
+    operatorControl(() -> bb.getRawButton(OIContants.BB_TURRET_ZERO))
       .and(new Trigger(RobotContainer::isHubTrackingDisabledByButtonBox))
-      .and(panicInactiveTrigger)
+      .and(teleopControls)
       .onTrue(new TurretGoToZeroCommand());
 
   }
@@ -408,9 +417,21 @@ public class RobotContainer {
         PathPlannerPath path = frc.robot.commands.PrecisionPathCommands.inFieldFrame(
             PathPlannerPath.fromPathFile(name), frame,
             DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Red);
+        boolean red = DriverStation.getAlliance().orElseThrow() == DriverStation.Alliance.Red;
+        if (path.getAllPathPoints().stream().anyMatch(point -> !frc.robot.lib.FieldRules.onOwnAutoHalf(
+            new Pose2d(point.position, Rotation2d.kZero), red))) {
+          return frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
+              "Auto path crosses the conservative G403 center boundary: " + name);
+        }
+        if (!resetToStart && driveSubsystem.getPose().getTranslation().getDistance(
+            path.getStartingHolonomicPose().orElseThrow().getTranslation()) > .35) {
+          return frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
+              "Robot is too far from the start of path " + name);
+        }
         ElasticHelpers.setAutoPathSingle(path);
         return frc.robot.commands.PrecisionPathCommands.followResolved(driveSubsystem, path,
-            resetToStart, vision::isLocalizationReady);
+            resetToStart, vision::isLocalizationReady,
+            frc.robot.commands.PrecisionPathCommands.FinishPolicy.ROUTE_STOP);
       } catch (Exception ex) {
         return frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
             "Cannot execute path " + name + ": " + ex.getMessage());
@@ -429,7 +450,18 @@ public class RobotContainer {
         var path = frc.robot.commands.PrecisionPathCommands.inFieldFrame(
             PathPlannerPath.fromPathFile(name), frc.robot.commands.PrecisionPathCommands.FieldFrame.ALLIANCE,
             DriverStation.getAlliance().orElseThrow() == DriverStation.Alliance.Red);
-        return runTrajectory2Poses(driveSubsystem.getPose(), path.getStartingHolonomicPose().orElseThrow());
+        Pose2d start = driveSubsystem.getPose();
+        Pose2d end = path.getStartingHolonomicPose().orElseThrow();
+        boolean red = DriverStation.getAlliance().orElseThrow() == DriverStation.Alliance.Red;
+        // This opening approach is the straight trench corridor, not arbitrary pathfinding.
+        if (Math.abs(start.getY() - end.getY()) > .25
+            || start.getTranslation().getDistance(end.getTranslation()) > 3.0
+            || frc.robot.lib.FieldRules.allianceX(start, red) > frc.robot.lib.FieldRules.ALLIANCE_ZONE_DEPTH_METERS) {
+          return frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
+              "Opening auto requires placement in its starting trench corridor");
+        }
+        return runTrajectory2Poses(start, end,
+            frc.robot.commands.PrecisionPathCommands.FinishPolicy.ROUTE_STOP);
       } catch (Exception ex) {
         return frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
             "Cannot approach path " + name + ": " + ex.getMessage());
@@ -438,9 +470,15 @@ public class RobotContainer {
   }
 
   public static Command runTrajectory2Poses(Pose2d startPose, Pose2d endPose) {
+    return runTrajectory2Poses(startPose, endPose,
+        frc.robot.commands.PrecisionPathCommands.FinishPolicy.PRECISION_ALIGNMENT);
+  }
+
+  private static Command runTrajectory2Poses(Pose2d startPose, Pose2d endPose,
+      frc.robot.commands.PrecisionPathCommands.FinishPolicy policy) {
     if (startPose.getTranslation().getDistance(endPose.getTranslation()) < 0.01) {
       Command finish = frc.robot.commands.PrecisionPathCommands.finishAt(driveSubsystem, endPose,
-          vision::isLocalizationReady);
+          vision::isLocalizationReady, policy);
       return Commands.either(finish, frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
           "Generated move requires a referenced pose"), vision::isLocalizationReady);
     }
@@ -452,7 +490,7 @@ public class RobotContainer {
           new IdealStartingState(0, startPose.getRotation()), new GoalEndState(0, endPose.getRotation()));
       path.preventFlipping = true; // Caller supplied absolute field coordinates.
       return frc.robot.commands.PrecisionPathCommands.followResolved(driveSubsystem, path,
-          false, vision::isLocalizationReady);
+          false, vision::isLocalizationReady, policy);
     } catch (Exception ex) {
       return frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
           "Cannot generate two-pose path: " + ex.getMessage());

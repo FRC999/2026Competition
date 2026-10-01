@@ -31,15 +31,12 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 // Simulation
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -145,17 +142,8 @@ private final double forwardDeg =
   private MechanismLigament2d turretArm;
 
   // Sim model used only in simulationPeriodic().
-  private final DCMotorSim turretSim =
-    new DCMotorSim(
-        LinearSystemId.createDCMotorSystem(
-            DCMotor.getKrakenX60(1),
-            Constants.OperatorConstants.Turret.SIM_TURRET_J_KGM2,
-            Constants.OperatorConstants.Turret.SIM_GEAR_RATIO),
-        DCMotor.getKrakenX60(1));
-
-  // Integrated simulated position in rotations.
-  private double simPosRot = 0.0;
-  private static final double SIM_MOTOR_RESISTANCE_OHMS = 0.002;
+  private final frc.robot.simulation.RotaryMotorSim turretSim = RobotBase.isSimulation()
+      ? new frc.robot.simulation.RotaryMotorSim(1, Turret.SIM_TURRET_J_KGM2, Turret.SIM_GEAR_RATIO) : null;
 
   // ---------------- SysId Characterization ----------------
 
@@ -196,6 +184,11 @@ private final double forwardDeg =
     // CAN signal update rates (reduces bus load but keeps control inputs fresh).
     configureStatusSignals();
 
+    if (isSim) {
+      // Synthetic physical stow; production still obtains the actual pinion reading.
+      throughboreCANcoder.getSimState().setRawPosition(
+          Turret.ABS_ZERO_ROTATIONS - Turret.CANCODER_MAGNET_OFFSET_ROT);
+    }
     // Seed continuous angle from absolute on boot.
     seedFromAbsoluteAtBoot();
     turret.hasResetOccurred(); // Consume startup reset; later motor resets require disabled reseeding.
@@ -724,19 +717,13 @@ private final double forwardDeg =
   // ---------------- SysId commands ----------------
 
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-    // If not enabled, return a no-op command so nothing moves.
-    if (!isSysIdEnabled()) return new edu.wpi.first.wpilibj2.command.InstantCommand();
-
-    // Otherwise run SysId's quasistatic ramp.
-    return sysIdRoutine.quasistatic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.quasistatic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-    // If not enabled, return a no-op command so nothing moves.
-    if (!isSysIdEnabled()) return new edu.wpi.first.wpilibj2.command.InstantCommand();
-
-    // Otherwise run SysId's dynamic step.
-    return sysIdRoutine.dynamic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.dynamic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   // ---------------- SysId callbacks ----------------
@@ -819,51 +806,25 @@ private final double forwardDeg =
     if (!isSim || !EnabledSubsystems.turret) {
       return 0.0;
     }
-    return turret.getSimState().getSupplyCurrent();
+    return turretSim.getCurrentDrawAmps();
   }
 
   @Override
   public void simulationPeriodic() {
-    // WPILib calls this automatically in simulation for each Subsystem.
-    if (!EnabledSubsystems.turret) {
-      return;
-    }
-    if (!isSim) {
-      return;
-    }
-
-    final double dt = 0.02;
-
-    // Phoenix simulated state
+    if (!isSim || !EnabledSubsystems.turret) return;
     var simState = turret.getSimState();
-
-    simState.setSupplyVoltage(12.0);
-
-    // Feed CTRE’s motor voltage output into WPILib’s motor physics model
-    turretSim.setInputVoltage(simState.getMotorVoltage());
-    turretSim.update(dt);
-
-    // Read physics model state
-    final double posRot = turretSim.getAngularPositionRotations();
-    final double velRps = turretSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-
-    // Push state back into Phoenix
-    simState.setRawRotorPosition(posRot);
-    simState.setRotorVelocity(velRps);
-
-    // Keep your local copy if you still want it for any other debug/telemetry
-    simPosRot = posRot;
-
-    // Update CANcoder sim to match turret position
-    var encoderSimState = throughboreCANcoder.getSimState();
-    encoderSimState.setSupplyVoltage(12.0);
-    double absRot = posRot % 1.0;
-    if (absRot < 0) absRot += 1.0;
-    encoderSimState.setRawPosition(absRot);
-
-    encoderSimState.setVelocity(velRps);
-
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
+    turretSim.update(simState.getMotorVoltage(), .020);
+    double rotorRot = turretSim.rotorPositionRotations();
+    double rotorRps = turretSim.rotorVelocityRps();
+    simState.setRawRotorPosition(rotorRot);
+    simState.setRotorVelocity(rotorRps);
+    // CANcoder is on the pinion, with the opposite sign to the integrated motor convention.
+    // Supply raw position before the real CANcoder magnet-offset configuration is applied.
+    var encoderSim = throughboreCANcoder.getSimState();
+    encoderSim.setSupplyVoltage(RoboRioSim.getVInVoltage());
+    encoderSim.setRawPosition(Turret.ABS_ZERO_ROTATIONS - Turret.CANCODER_MAGNET_OFFSET_ROT + rotorRot / ANGLE_SIGN);
+    encoderSim.setVelocity(rotorRps / ANGLE_SIGN);
   }
 
   // ---------------- Helpers ----------------

@@ -23,14 +23,11 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.controls.NeutralOut;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
@@ -80,13 +77,8 @@ public class HoodSubsystem extends SubsystemBase {
   private ControlMode controlMode = ControlMode.IDLE;
 
   // ---------------- Simulation ----------------
-  private final FlywheelSim hoodSim = new FlywheelSim(
-      LinearSystemId.createFlywheelSystem(
-          DCMotor.getKrakenX60(1),
-          Constants.OperatorConstants.Hood.SIM_GEAR_RATIO,
-          Constants.OperatorConstants.Hood.SIM_HOOD_J_KGM2),
-      DCMotor.getKrakenX60(1));
-  private double simPosRot = 0.0;
+  private final frc.robot.simulation.RotaryMotorSim hoodSim = RobotBase.isSimulation()
+      ? new frc.robot.simulation.RotaryMotorSim(1, Constants.OperatorConstants.Hood.SIM_HOOD_J_KGM2, Constants.OperatorConstants.Hood.SIM_GEAR_RATIO) : null;
 
   // ---------------- SysId Characterization ----------------
   private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
@@ -272,15 +264,13 @@ public class HoodSubsystem extends SubsystemBase {
 
   // ---------------- SysId factory commands ----------------
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled())
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
-    return sysIdRoutine.quasistatic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.quasistatic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled())
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
-    return sysIdRoutine.dynamic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.dynamic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   // ---------------- SysId callbacks ----------------
@@ -377,27 +367,12 @@ public class HoodSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
-    if (!isSim)
-      return;
-    if (!EnabledSubsystems.hood)
-      return;
-
-    final double dt = 0.02;
-
+    if (!isSim || !EnabledSubsystems.hood) return;
     var simState = hoodMotor.getSimState();
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
-
-    double appliedV = simState.getMotorVoltage();
-
-    hoodSim.setInputVoltage(appliedV);
-    hoodSim.update(dt);
-
-    double rps = hoodSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-    simPosRot += rps * dt;
-
-    simState.setRawRotorPosition(simPosRot);
-    simState.setRotorVelocity(rps);
-
+    hoodSim.update(simState.getMotorVoltage(), .020);
+    simState.setRawRotorPosition(hoodSim.rotorPositionRotations());
+    simState.setRotorVelocity(hoodSim.rotorVelocityRps());
   }
 
 }

@@ -1,5 +1,9 @@
 # Full robot audit and refactor — OffSeason-195
 
+This records the first full refactor at `80acda9`. The subsequent
+[interruption, auto, rules and simulation audit](second-pass-audit.md) supersedes its stop-policy,
+trench-region and simulation descriptions. Read SESSION_STATE.md for open work and current checks.
+
 Reviewed against Houston robot code `6c4ecb4c196541236e7f3a702e2ad1099a094e1c`, the first retrofit
 `5a3e43165acde503481590a9e65a65aa9ad7cb71`, and the 2027 prototype at
 `d20594af6fde49686fcbd9ed63250cf94463aaf5`. Completed October 1, 2026.

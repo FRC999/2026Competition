@@ -21,15 +21,12 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
@@ -70,15 +67,10 @@ public class ShooterSubsystem extends SubsystemBase {
   private final boolean isSim = RobotBase.isSimulation();
 
   // WPILib 2026 FlywheelSim uses a plant + motor model
-  private final FlywheelSim flywheelSim = new FlywheelSim(
-      LinearSystemId.createFlywheelSystem(
-          DCMotor.getKrakenX60(1),
-          Constants.OperatorConstants.Shooter.SIM_GEAR_RATIO,
-          Constants.OperatorConstants.Shooter.SIM_J_KGM2),
-      DCMotor.getKrakenX60(1));
+  private final frc.robot.simulation.RotaryMotorSim flywheelSim = RobotBase.isSimulation()
+      ? new frc.robot.simulation.RotaryMotorSim(2, Constants.OperatorConstants.Shooter.SIM_J_KGM2, Constants.OperatorConstants.Shooter.SIM_GEAR_RATIO) : null;
 
   // Integrated simulated rotor position in rotations.
-  private double simPosRot = 0.0;
 
   // Phoenix 6 typed signals
   private StatusSignal<AngularVelocity> velocitySig;
@@ -289,15 +281,13 @@ public class ShooterSubsystem extends SubsystemBase {
 
   // ---------------- SysId factory commands ----------------
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled())
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
-    return sysIdRoutine.quasistatic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.quasistatic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-    if (!isSysIdEnabled())
-      return new edu.wpi.first.wpilibj2.command.InstantCommand();
-    return sysIdRoutine.dynamic(direction);
+    return frc.robot.commands.GuardedSysId.wrap(sysIdRoutine.dynamic(direction),
+        this::isSysIdEnabled, this::stop);
   }
 
   // ---------------- SysId callbacks ----------------
@@ -455,28 +445,18 @@ public class ShooterSubsystem extends SubsystemBase {
 
   @Override
   public void simulationPeriodic() {
-    if (!EnabledSubsystems.shooter) {
-      return;
-    }
-
-    if (!isSim)
-      return;
-
-    final double dt = 0.02;
-
+    if (!isSim || !EnabledSubsystems.shooter) return;
     var simState = shooterLeader.getSimState();
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
-
-    double appliedV = simState.getMotorVoltage();
-    flywheelSim.setInputVoltage(appliedV);
-    flywheelSim.update(dt);
-
-    double rps = flywheelSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-    simState.setRotorVelocity(rps);
-
-    simPosRot += rps * dt;
-    simState.setRawRotorPosition(simPosRot);
-
+    flywheelSim.update(simState.getMotorVoltage(), .020);
+    simState.setRawRotorPosition(flywheelSim.rotorPositionRotations());
+    simState.setRotorVelocity(flywheelSim.rotorVelocityRps());
+    // Shared load; synthetic follower direction follows the configured alignment.
+    var followerSim = shooterFollower.getSimState();
+    followerSim.setSupplyVoltage(RoboRioSim.getVInVoltage());
+    double followerSign = Constants.OperatorConstants.Shooter.FOLLOWER_OPPOSE_MASTER ? -1 : 1;
+    followerSim.setRawRotorPosition(followerSign * flywheelSim.rotorPositionRotations());
+    followerSim.setRotorVelocity(followerSign * flywheelSim.rotorVelocityRps());
   }
 
   /**

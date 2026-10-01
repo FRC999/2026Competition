@@ -7,6 +7,7 @@ import frc.robot.RobotContainer;
 
 public class DeployAndRunIntakeWhileHeld extends Command {
   private boolean waitingForDeployRelease = false;
+  private final edu.wpi.first.wpilibj.Timer deployTimer = new edu.wpi.first.wpilibj.Timer();
 
   public DeployAndRunIntakeWhileHeld() {
     addRequirements(RobotContainer.intakeSubsystem);
@@ -14,6 +15,7 @@ public class DeployAndRunIntakeWhileHeld extends Command {
 
   @Override
   public void initialize() {
+    deployTimer.restart();
     RobotContainer.intakeSubsystem.runIntakeNoPid(IntakeConstants.INTAKE_ROLLER_DUTY);
     waitingForDeployRelease = !RobotContainer.intakeSubsystem.isAtPosition(IntakePositions.IntakeDeployedDeg);
     if (waitingForDeployRelease) {
@@ -33,10 +35,16 @@ public class DeployAndRunIntakeWhileHeld extends Command {
       RobotContainer.intakeSubsystem.releaseDeployHoldToCoast();
       waitingForDeployRelease = false;
     }
+    if (waitingForDeployRelease && deployTimer.hasElapsed(
+        IntakeConstants.INTAKE_PIVOT_POSITION_COMMAND_TIMEOUT_SEC)) {
+      RobotContainer.intakeSubsystem.stopPivotInBrake();
+      waitingForDeployRelease = false;
+    }
   }
 
   @Override
   public void end(boolean interrupted) {
+    deployTimer.stop();
     if (interrupted) RobotContainer.intakeSubsystem.stopPivotInBrake();
     RobotContainer.intakeSubsystem.stopIntake();
   }

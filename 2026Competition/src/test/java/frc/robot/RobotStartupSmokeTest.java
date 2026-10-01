@@ -14,8 +14,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import frc.robot.commands.ShootWhileHeld;
 import frc.robot.commands.ReverseShooterTemporary;
-import frc.robot.commands.ReverseTransfer;
-import frc.robot.commands.ReverseSpindexer;
 import frc.robot.lib.ShotPlanner;
 import org.junit.jupiter.api.*;
 
@@ -29,6 +27,12 @@ class RobotStartupSmokeTest {
     DriverStationSim.setDsAttached(true);
     DriverStationSim.setEnabled(false);
     DriverStationSim.setJoystickAxisCount(Constants.OperatorConstants.OIContants.BUTTON_BOX, 6);
+    DriverStationSim.setJoystickButtonCount(Constants.OperatorConstants.OIContants.BUTTON_BOX, 12);
+    int driverPort = Constants.OperatorConstants.OIContants.XBOX_CONTROLLER.portNumber();
+    DriverStationSim.setJoystickAxisCount(driverPort, 6);
+    DriverStationSim.setJoystickButtonCount(driverPort, 10);
+    DriverStationSim.setJoystickPOVCount(driverPort, 1);
+    DriverStationSim.setJoystickPOV(driverPort, 0, -1);
     DriverStationSim.notifyNewData();
     var error = new AtomicReference<Throwable>();
     var actions = new ConcurrentLinkedQueue<Runnable>();
@@ -62,6 +66,19 @@ class RobotStartupSmokeTest {
         assertNull(error.get(), () -> String.valueOf(error.get()));
         assertTrue(RobotContainer.driveSubsystem.getSimulationTruthPose().getTranslation()
             .getDistance(before.getTranslation()) < .02, "Default auto must not drive");
+        var autoOwner = RobotContainer.driveSubsystem.getCurrentCommand();
+        DriverStationSim.setJoystickAxis(driverPort, 2, 1); // LT
+        DriverStationSim.setJoystickAxis(driverPort, 3, 1); // RT
+        DriverStationSim.setJoystickButton(driverPort, 1, true); // A
+        pump(5);
+        assertSame(autoOwner, RobotContainer.driveSubsystem.getCurrentCommand(), "Driver controls must not cancel auto");
+        assertNull(RobotContainer.intakeSubsystem.getCurrentCommand(), "Auto must ignore manual intake controls");
+        assertFalse(RobotContainer.autoShootSupervisorSubsystem.isShootRequested());
+        DriverStationSim.setJoystickAxis(driverPort, 2, 0);
+        DriverStationSim.setJoystickAxis(driverPort, 3, 0);
+        DriverStationSim.setJoystickButton(driverPort, 1, false);
+        pump(5);
+        assertSame(autoOwner, RobotContainer.driveSubsystem.getCurrentCommand(), "Release cleanup must not cancel auto");
         onLoop(actions, () -> RobotContainer.driveSubsystem.resetPoseFromVision(
             new Pose2d(10, 5, Rotation2d.fromDegrees(90))));
         assertTrue(RobotContainer.driveSubsystem.getPose().getTranslation()
@@ -76,7 +93,7 @@ class RobotStartupSmokeTest {
             .minus(before.getRotation()).getDegrees()) < 1, "Driver reset changes perspective only");
 
         var shoot = new ShootWhileHeld(ShotPlanner.Mode.MOVING_AUTO, false);
-        var reverse = new ReverseShooterTemporary().alongWith(new ReverseTransfer(), new ReverseSpindexer());
+        var reverse = new ReverseShooterTemporary();
         onLoop(actions, shoot::schedule); pump(5);
         assertTrue(RobotContainer.autoShootSupervisorSubsystem.isShootRequested());
         onLoop(actions, reverse::schedule); pump(8);
@@ -85,6 +102,8 @@ class RobotStartupSmokeTest {
         assertEquals(frc.robot.subsystems.AutoShootSupervisorSubsystem.VolleyState.EXTERNAL_CONTROL,
             RobotContainer.autoShootSupervisorSubsystem.getVolleyState());
         assertTrue(RobotContainer.shooterSubsystem.getTargetRpm() <= 0, "Supervisor must not overwrite reverse");
+        assertEquals(.80, RobotContainer.transferSubsystem.getCommandedDuty(), 1e-9,
+            "Transfer must reverse under the same owner (positive duty is reverse on this mechanism)");
         onLoop(actions, () -> {
           var state = RobotContainer.autoShootSupervisorSubsystem.getVolleyState();
           RobotContainer.autoShootSupervisorSubsystem.calculateDiagnosticSolution();
@@ -94,9 +113,38 @@ class RobotStartupSmokeTest {
         });
         onLoop(actions, reverse::cancel); pump(5);
         assertFalse(RobotContainer.autoShootSupervisorSubsystem.isShootRequested(), "Jam clear must not revive old intent");
+        assertEquals(0, RobotContainer.transferSubsystem.getCommandedDuty(), 1e-9);
         onLoop(actions, shoot::schedule); pump(5);
         assertTrue(RobotContainer.autoShootSupervisorSubsystem.isShootRequested(), "A fresh request can rearm");
         onLoop(actions, shoot::cancel);
+
+        // Inspect the CTRE request, not just the Java boost flag: cleanup must change the held slot.
+        var pivotField = frc.robot.subsystems.IntakeSubsystem.class.getDeclaredField("intakePivotMotor");
+        pivotField.setAccessible(true);
+        var pivot = (com.ctre.phoenix6.hardware.TalonFX) pivotField.get(RobotContainer.intakeSubsystem);
+        onLoop(actions, () -> {
+          var intake = RobotContainer.intakeSubsystem;
+          intake.enableTeleopRetractPivotPowerBoost();
+          intake.setTargetPivotDeg(intake.getPivotDeg() < 20 ? 40 : 0);
+          assertEquals(2, ((com.ctre.phoenix6.controls.MotionMagicVoltage) pivot.getAppliedControl()).Slot);
+          intake.disableTeleopPivotPowerBoost();
+          assertNotEquals(2, ((com.ctre.phoenix6.controls.MotionMagicVoltage) pivot.getAppliedControl()).Slot,
+              "Disabling boost must replace the active CTRE slot even without another move");
+          intake.stopPivotInBrake();
+        });
+
+        // Mode change with LT held must cancel deployment without scheduling its release retract in auto.
+        DriverStationSim.setJoystickAxis(driverPort, 2, 1); pump(5);
+        assertNotNull(RobotContainer.intakeSubsystem.getCurrentCommand());
+        DriverStationSim.setAutonomous(true); pump(5);
+        assertNull(RobotContainer.intakeSubsystem.getCurrentCommand());
+        assertFalse(RobotContainer.autoShootSupervisorSubsystem.isShootRequested());
+        DriverStationSim.setAutonomous(false); pump(5);
+        assertNull(RobotContainer.intakeSubsystem.getCurrentCommand(), "Held LT must not restart after mode change");
+        DriverStationSim.setJoystickAxis(driverPort, 2, 0); pump(5);
+        DriverStationSim.setJoystickAxis(driverPort, 2, 1); pump(5);
+        assertNotNull(RobotContainer.intakeSubsystem.getCurrentCommand(), "Release and repress can restart intake");
+        DriverStationSim.setJoystickAxis(driverPort, 2, 0); pump(5);
 
         DriverStationSim.setEnabled(false); pump(10);
         DriverStationSim.setJoystickAxis(Constants.OperatorConstants.OIContants.BUTTON_BOX,

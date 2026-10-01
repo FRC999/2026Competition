@@ -80,3 +80,19 @@ Meaning - not just a vision code that comes from 2027Prototype. Any 2026Competit
 ## 2026-09-30 — obsolete/redundant code cleanup (verbatim)
 
 > Also clear out obsolete or redundant code if it is not needed. After all, it's a separate branch
+
+## 2026-10-01 — second audit: interruption, rules, routes, simulation and change counts
+
+Once you're done with the full overhaul I want you to take another look and make sure that everything looks right and consistent. One issue that you may want to look at - whether command concurrency or sequences would cause issues. Remember that our commands are interruptable. So a command may need to die before it's fully complete. And that may cause additional state inconsistencies. In other words, I want you to do another detailed look to make sure that all inconsistent states, race conditions and potential ambiguities are addressed and resolved. If you need some confirmation how things suppose to work or why, stop and ask, otherwise do the corrections as needed.
+Make sure you check 2026 season rules for compliance, timing, positioning etc items.
+
+I also want you to take a critical look at the trajectories used in Auto. Remember that with new precision routines we "jitter" at the end of a trajectory where we need to stop. So, the question is - do we have many of those that are used in AUTO? And if so, do we need to address that?
+
+Also at the very end I wanted to see how many lines of code were modified in comparison to the code we used at the Worlds, and how many of those were related just to the vision change from LL to PhotonVision vs other changes, such as bug fixes and strategy changes.
+
+Also check our simulation routines. They may be wrong as well or even worse - may affect non-simulation ones. Also - may be add simulation items if you feel they would be appropriate? Do separate relevant line count for that if needed.
+
+### Clarifications for the second audit
+
+- Worlds baseline: "Use Houston 6c4ecb4".
+- Manual shooting without localization: "Keep manual fallback; driver confirms position".

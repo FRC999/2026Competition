@@ -9,7 +9,8 @@ import org.littletonrobotics.junction.AutoLog;
  * Vision IO supports replay-oriented analysis; the drivetrain/mechanisms still use direct CTRE IO.
  * Adapted from the pinned FRC999 prototype; see docs/offseason-195/audit.md for provenance.
  */
-public interface VisionIO {
+public interface VisionIO extends AutoCloseable {
+  @Override default void close() {}
   @AutoLog
   public static class VisionIOInputs {
     /** True when the coprocessor camera is reachable. Drives the pit "disconnected" alert. */
