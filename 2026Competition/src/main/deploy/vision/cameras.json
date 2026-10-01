@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "profile": "competition-welded",
+  "fieldLayout": "fields/2026-rebuilt-welded.json",
+  "confirmedCoprocessorLayoutSha256": "",
+  "notes": "PROPOSED mounts, NOT calibrated: rear pair at 12 inches lens height; 15 degrees up and 15 degrees outward from rear. Measure xyz from drivetrain center at floor level. WPILib rotationDegrees=[roll,pitch,yaw], negative pitch is UP. Set calibrated only after fitting and held-out validation.",
+  "cameras": [
+    {
+      "name": "back-left",
+      "enabled": true,
+      "calibrated": false,
+      "translationMeters": null,
+      "rotationDegrees": [
+        0,
+        -15,
+        165
+      ],
+      "xyStdDevFactor": 1.0,
+      "thetaStdDevFactor": 1.0,
+      "trustRotation": true,
+      "mountStatus": "PROPOSED rear-left near bumper, lens z=0.3048m; xyz unmeasured"
+    },
+    {
+      "name": "back-right",
+      "enabled": true,
+      "calibrated": false,
+      "translationMeters": null,
+      "rotationDegrees": [
+        0,
+        -15,
+        -165
+      ],
+      "xyStdDevFactor": 1.0,
+      "thetaStdDevFactor": 1.0,
+      "trustRotation": true,
+      "mountStatus": "PROPOSED rear-right near bumper, lens z=0.3048m; xyz unmeasured"
+    },
+    {
+      "name": "front-left",
+      "enabled": false,
+      "calibrated": false,
+      "translationMeters": null,
+      "rotationDegrees": [
+        0,
+        -15,
+        15
+      ],
+      "xyStdDevFactor": 1.0,
+      "thetaStdDevFactor": 1.0,
+      "trustRotation": true,
+      "mountStatus": "OPTIONAL front-left; xyz unmeasured"
+    },
+    {
+      "name": "front-right",
+      "enabled": false,
+      "calibrated": false,
+      "translationMeters": null,
+      "rotationDegrees": [
+        0,
+        -15,
+        -15
+      ],
+      "xyStdDevFactor": 1.0,
+      "thetaStdDevFactor": 1.0,
+      "trustRotation": true,
+      "mountStatus": "OPTIONAL front-right; xyz unmeasured"
+    }
+  ],
+  "proposedLensHeightMeters": 0.3048
+}

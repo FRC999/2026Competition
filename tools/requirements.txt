@@ -1,0 +1,4 @@
+numpy>=2.0,<3
+scipy>=1.14,<2
+# Only needed by the live, read-only capture command:
+pyntcore==2026.2.1

@@ -1,0 +1,3 @@
+# Field acknowledgments hash exact bytes. Keep them stable across Windows/Linux checkouts.
+2026Competition/src/main/deploy/vision/fields/*.json text eol=lf
+2026Competition/simulation/*.json text eol=lf

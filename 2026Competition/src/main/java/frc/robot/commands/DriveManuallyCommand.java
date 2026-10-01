@@ -10,6 +10,7 @@ import java.util.function.DoubleSupplier;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.Constants.DebugTelemetrySubsystems;
@@ -60,6 +61,10 @@ public class DriveManuallyCommand extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
+    if (!DriverStation.isTeleopEnabled() || RobotContainer.isPanicStopActive()) {
+      RobotContainer.driveSubsystem.stop();
+      return;
+    }
     //System.out.println("stationary bool: **** " + mStationaryShotAutoTurnSupplier.getAsBoolean());
     double xInput = mVxSupplier.getAsDouble();
     double yInput = mVySupplier.getAsDouble();
@@ -79,7 +84,11 @@ public class DriveManuallyCommand extends Command {
     //suchita test
     //System.out.println("o1: " + omegaInput);
 
-    if (stationaryAutoTurnRequested && Math.abs(omegaInput) <= omegaDeadband) {
+    var measured = RobotContainer.driveSubsystem.getRobotRelativeSpeeds();
+    if (stationaryAutoTurnRequested && Math.abs(omegaInput) <= omegaDeadband
+        && Math.hypot(xInput, yInput) <= SwerveConstants.DeadbandRatioLinear
+        && Math.hypot(measured.vxMetersPerSecond, measured.vyMetersPerSecond) < .15
+        && RobotContainer.vision.hasCompetitionAimFrame() && RobotContainer.vision.hasRecentMeasurement()) {
 
       Pose2d robotPoseField = RobotContainer.driveSubsystem.getPose();
 
@@ -129,6 +138,11 @@ public class DriveManuallyCommand extends Command {
       SmartDashboard.putNumber("Drive/StationaryAutoTurnOmegaCmd", autoTurnOmegaCmd);
     }
 
+    if (Math.hypot(xInput, yInput) <= SwerveConstants.DeadbandRatioLinear
+        && Math.abs(omegaInput) <= SwerveConstants.DeadbandRatioAngular) {
+      RobotContainer.driveSubsystem.stop();
+      return;
+    }
     if (!RobotContainer.driveSubsystem.getRobotCentric()) {
       RobotContainer.driveSubsystem.drive(
           xInput * SwerveConstants.MaxSpeed,

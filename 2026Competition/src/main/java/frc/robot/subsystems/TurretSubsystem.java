@@ -12,6 +12,9 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.ClosedLoopGeneralConfigs;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.SoftwareLimitSwitchConfigs;
+import frc.robot.lib.TurretMotionPolicy;
+import org.littletonrobotics.junction.Logger;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
@@ -142,6 +145,7 @@ private final double forwardDeg =
   private boolean lastSeedWasValid = false;
   /** Whether the current zero/integrated seed came from the CANcoder absolute reading. */
   private boolean zeroCalibratedFromAbsolute = false;
+  private boolean hardwareConfigured = false;
   // ---------------- Continuous wrap toggling ----------------
 
   // Tracks the currently-applied wrap mode (so we don't spam configs).
@@ -209,6 +213,7 @@ private final double forwardDeg =
 
     // Seed continuous angle from absolute on boot.
     seedFromAbsoluteAtBoot();
+    turret.hasResetOccurred(); // Consume startup reset; later motor resets require disabled reseeding.
 
     // Dashboard defaults.
     // SmartDashboard.putBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
@@ -304,9 +309,14 @@ private final double forwardDeg =
     .withCurrentLimits(limits)
     .withSlot0(slot0)
     .withMotionMagic(mm)
-    .withClosedLoopGeneral(clWrapOff);
+    .withClosedLoopGeneral(clWrapOff)
+    .withSoftwareLimitSwitch(new SoftwareLimitSwitchConfigs()
+        .withForwardSoftLimitEnable(true)
+        .withForwardSoftLimitThreshold(ANGLE_SIGN * motorRotFromTurretDeg(Turret.MIN_ANGLE_DEG))
+        .withReverseSoftLimitEnable(true)
+        .withReverseSoftLimitThreshold(ANGLE_SIGN * motorRotFromTurretDeg(Turret.MAX_ANGLE_DEG)));
 
-  turret.getConfigurator().apply(cfg);
+  hardwareConfigured = turret.getConfigurator().apply(cfg).isOK();
 }			  
 
   public final double getRelativePosition() {
@@ -419,11 +429,12 @@ private final double forwardDeg =
       Timer.delay(ABS_SEED_SAMPLE_PERIOD_SEC);
     }
 
-    return sawValidSample ? lastValidAbsDeg : lastAbsDegWrapped;
+    return Double.NaN; // Never seed from a stale/default angle after a failed or unstable capture.
   }
 
   /**
-   * Seed software continuous angle at boot, assuming within +/-180 of forward.
+   * Seed from the pinion encoder only while physically stowed within half a pinion revolution of zero.
+   * With the existing 11:1 ratio this is +/-16.36 turret degrees; turn identity is unobservable.
    */
   private void seedFromAbsoluteAtBoot() {
     double absDeg = sampleAbsoluteForSeed();
@@ -464,8 +475,7 @@ private final double forwardDeg =
     // Seed TalonFX integrated position in *motor* rotations, not turret rotations.
     double motorRot = motorRotFromTurretDeg(continuousDeg);
     // alex test
-    turret.setPosition(ANGLE_SIGN * motorRot);
-    zeroCalibratedFromAbsolute = true;
+    zeroCalibratedFromAbsolute = hardwareConfigured && turret.setPosition(ANGLE_SIGN * motorRot).isOK();
 
     // Initialize velocity bookkeeping.
     lastContinuousDeg = continuousDeg;
@@ -482,7 +492,7 @@ private final double forwardDeg =
   }
 
   public void zeroTurretAngle() {
-    continuousDeg = 0;
+    reseedIntegratedFromAbsoluteNow();
   }
 
   /**
@@ -509,12 +519,6 @@ private final double forwardDeg =
     // Convert motor rotations -> turret degrees using gear ratio.
     double nextUnclamped = turretDegFromMotorRot(motorRot);
 
-    // Safety-clamped degrees for control/safety logic
-    double nextClamped = MathUtil.clamp(
-        nextUnclamped,
-        Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
-        Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
-
     double motorVelRps = motorVelSig.getValueAsDouble() / ANGLE_SIGN;
     rawVelDegPerSec = turretDegFromMotorRot(motorVelRps);
     estVelDegPerSec = velocityFilter.calculate(rawVelDegPerSec);
@@ -522,7 +526,7 @@ private final double forwardDeg =
     // Commit state.
     lastContinuousDeg = continuousDeg;          // keep last clamped value for any debugging
     continuousDegUnclamped = nextUnclamped;     // used for Mechanism wrapping / display
-    continuousDeg = nextClamped;                // used for safety + control
+    continuousDeg = nextUnclamped; // Report real overtravel; clamping feedback hides a limit violation.
     lastUpdateTs = now;
 
     if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
@@ -540,7 +544,7 @@ private final double forwardDeg =
 
   /** Continuous turret angle (deg), 0 = forward, CCW positive. */
   public double getAngleDeg() {
-    // This is the software-unwrapped, safety-clamped turret angle.
+    // Unclamped measured angle; a saturated display must never conceal an overshoot.
     return continuousDeg;
   }
 
@@ -571,7 +575,7 @@ private final double forwardDeg =
 
   /** Open-loop manual control with safety clamp. */
   public void setDutyCycle(double duty) {
-    if (RobotContainer.isPanicStopActive()) {
+    if (!isPositionTrusted() || !Double.isFinite(duty) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -591,7 +595,7 @@ private final double forwardDeg =
   }
 
   public void setVoltageVolts(double volts) {
-    if (RobotContainer.isPanicStopActive()) {
+    if (!isPositionTrusted() || !Double.isFinite(volts) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -642,94 +646,31 @@ private final double forwardDeg =
     return estVelDegPerSec;
   }
 
+  public boolean isPositionTrusted() {
+    return turret != null && hardwareConfigured && zeroCalibratedFromAbsolute
+        && motorPosSig.getStatus().isOK() && motorVelSig.getStatus().isOK()
+        && motorPosSig.getTimestamp().getLatency() < 0.1 && motorVelSig.getTimestamp().getLatency() < 0.1
+        && Double.isFinite(rawVelDegPerSec)
+        && Double.isFinite(continuousDegUnclamped);
+  }
+
   public void goToAngleDeg(double desiredDeg) {
-    if (RobotContainer.isPanicStopActive()) {
-      stop();
-      return;
-    }
-
-    // Clamp to physical bounds. With ±180 hardware, we do not allow ±360 equivalents.
-    double target = MathUtil.clamp(
-        desiredDeg,
-        Constants.OperatorConstants.Turret.MIN_ANGLE_DEG,
-        Constants.OperatorConstants.Turret.MAX_ANGLE_DEG);
-
-    targetDeg = target;
-
-    // Keep the closed-loop target active even when the error gets small.
-    // Dropping to open-loop zero near the setpoint makes the turret chatter as the
-    // error repeatedly crosses the tolerance boundary.
-    if (Math.abs(targetDeg - continuousDeg) <= Constants.OperatorConstants.Turret.TURRET_POSITION_TOLERANCE_DEG) {
-      return;
-    }
-
-    // Enforce wrap disabled for required behavior (-170 -> +170 goes through 0).
-    // setContinuousWrap(false);
-
-    // Convert turret degrees -> motor rotations in Talon sensor frame.
-    double motorRotTarget = ANGLE_SIGN * motorRotFromTurretDeg(target);
-
-    // alex test
-    turret.setControl(mmRequest.withPosition(motorRotTarget));
-
-    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
-      SmartDashboard.putNumber("Turret/TargetDeg", targetDeg);
-      SmartDashboard.putNumber("Turret/DeltaDegCmd", targetDeg - continuousDeg);
-      SmartDashboard.putNumber("Turret/DesiredDegInput", desiredDeg);
-      SmartDashboard.putNumber("Turret/CurrentContinuousDeg", continuousDeg);
-      SmartDashboard.putNumber("Turret/MotorRotTarget", motorRotTarget);
-      SmartDashboard.putString("Turret/GoalStatus", "MM_WRAP_OFF_CLAMPED");
-    }
-}
+    var target = TurretMotionPolicy.motorPositionTarget(desiredDeg, Turret.MIN_ANGLE_DEG,
+        Turret.MAX_ANGLE_DEG, Turret.GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT, ANGLE_SIGN,
+        isPositionTrusted() && !RobotContainer.isPanicStopActive());
+    if (target.isEmpty()) { stop(); return; }
+    targetDeg = MathUtil.clamp(desiredDeg, Turret.MIN_ANGLE_DEG, Turret.MAX_ANGLE_DEG);
+    // Always issue the current setpoint, including small corrections and recovery from open-loop stop.
+    turret.setControl(mmRequest.withPosition(target.getAsDouble()));
+    Logger.recordOutput("Turret/DesiredDegInput", desiredDeg);
+    Logger.recordOutput("Turret/TargetDeg", targetDeg);
+    Logger.recordOutput("Turret/MotorRotTarget", target.getAsDouble());
+  }
 
   /** true if turret is within tolerance of desired angle (deg), using best safe equivalent. */
   public boolean atAngleDeg(double desiredDeg, double toleranceDeg) {
-    // Compute the safe equivalent target we would command.
-    double best = chooseBestEquivalentTargetDeg(desiredDeg);
-
-    // If unreachable safely, then we can't be "at" it.
-    if (Double.isNaN(best)) return false;
-
-    // Compare current continuous position to the best safe target.
-    return Math.abs(continuousDeg - best) <= toleranceDeg;
-  }
-
-  /**
-   * Choose best equivalent target among {deg, deg+360, deg-360} that:
-   *  - stays within [MIN_ANGLE_DEG, MAX_ANGLE_DEG]
-   *  - minimizes travel from current continuousDeg
-   */
-  private double chooseBestEquivalentTargetDeg(double desiredDeg) {
-    // Pull safety range from constants.
-    double min = Constants.OperatorConstants.Turret.MIN_ANGLE_DEG;
-    double max = Constants.OperatorConstants.Turret.MAX_ANGLE_DEG;
-
-    // Clamp requested target into legal range first (keeps intent sane).
-    desiredDeg = MathUtil.clamp(desiredDeg, min, max);
-
-    // Consider equivalent angles one revolution away.
-    double[] candidates = new double[] { desiredDeg, desiredDeg + 360.0, desiredDeg - 360.0 };
-
-    // Track the best (closest) candidate within legal range.
-    double best = Double.NaN;
-    double bestDist = Double.POSITIVE_INFINITY;
-
-    // Search candidates for the closest safe move.
-    for (double c : candidates) {
-      // Skip candidates that violate +/-340 hard limits.
-      if (c < min || c > max) continue;
-
-      // Distance is evaluated in continuous space (deg).
-      double dist = Math.abs(c - continuousDeg);
-
-      // Keep the closest.
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = c;
-      }
-    }
-
-    return best;
+    return TurretMotionPolicy.atTarget(continuousDegUnclamped, desiredDeg, toleranceDeg,
+        Turret.MIN_ANGLE_DEG, Turret.MAX_ANGLE_DEG, isPositionTrusted());
   }
 
   /**
@@ -765,7 +706,8 @@ private final double forwardDeg =
   private double tunedKd = Constants.OperatorConstants.Turret.kD;
 
   public void reseedIntegratedFromAbsoluteNow() {
-    double absRot = getAbsolutePosition();
+    if (!edu.wpi.first.wpilibj.DriverStation.isDisabled() || turret == null) return;
+    double absRot = sampleAbsoluteForSeed() / 360.0;
     double absDeg = wrapTo0To360(absRot * 360.0);
     lastAbsDegWrapped = absDeg;
 
@@ -791,8 +733,7 @@ private final double forwardDeg =
     double motorRot = motorRotFromTurretDeg(continuousDeg);
 
     // alex test
-    turret.setPosition(ANGLE_SIGN * motorRot);
-    zeroCalibratedFromAbsolute = true;
+    zeroCalibratedFromAbsolute = hardwareConfigured && turret.setPosition(ANGLE_SIGN * motorRot).isOK();
 
     targetDeg = continuousDeg;
     if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
@@ -842,7 +783,8 @@ private final double forwardDeg =
    * Calibration: reseed TalonFX integrated position from absolute encoder NOW.
    */
   public void calibrationReseedIntegratedFromAbsoluteNow() {
-    double absRot = getAbsolutePosition();
+    if (!edu.wpi.first.wpilibj.DriverStation.isDisabled() || turret == null) return;
+    double absRot = sampleAbsoluteForSeed() / 360.0;
     double absDeg = wrapTo0To360(absRot * 360.0);
     lastAbsDegWrapped = absDeg;
 
@@ -866,8 +808,7 @@ private final double forwardDeg =
     continuousDegUnclamped = deltaDeg;
 
     double motorRot = motorRotFromTurretDeg(continuousDeg);
-    turret.setPosition(ANGLE_SIGN * motorRot);
-    zeroCalibratedFromAbsolute = true;
+    zeroCalibratedFromAbsolute = hardwareConfigured && turret.setPosition(ANGLE_SIGN * motorRot).isOK();
 
     targetDeg = continuousDeg;
     if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
@@ -987,7 +928,13 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     }
 
     // Update continuous (multi-turn) angle state every loop.
-     updateContinuousAngle();
+    if (turret.hasResetOccurred()) zeroCalibratedFromAbsolute = false;
+    updateContinuousAngle();
+    if (!isPositionTrusted()) stop();
+    Logger.recordOutput("Turret/PositionTrusted", isPositionTrusted());
+    Logger.recordOutput("Turret/MeasuredDegrees", continuousDegUnclamped);
+    Logger.recordOutput("Turret/VelocityDegPerSec", rawVelDegPerSec);
+    Logger.recordOutput("Turret/TargetDegrees", targetDeg);
     if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
       Translation2d turretCenterField = getTurretCenterFieldMeters();
       SmartDashboard.putNumber("Turret/RelativeAngleFromZeroDeg", getRelativeAngleFromZeroDeg());

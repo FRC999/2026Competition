@@ -56,6 +56,8 @@ public class HoodSubsystem extends SubsystemBase {
   private final boolean isSim = RobotBase.isSimulation();
 
   private TalonFX hoodMotor;
+  private boolean hardwareConfigured;
+  private boolean positionTrusted;
 
   private final MotionMagicVoltage mmRequest = new MotionMagicVoltage(0).withSlot(0);  private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
   private final NeutralOut neutralOut = new NeutralOut();
@@ -122,7 +124,8 @@ public class HoodSubsystem extends SubsystemBase {
     configureStatusSignals();
 
     // Seed: hood starts fully down at beginning of match
-    hoodMotor.setPosition(0.0);
+    positionTrusted = hardwareConfigured && hoodMotor.setPosition(0.0).isOK();
+    hoodMotor.hasResetOccurred(); // Consume startup reset; later resets invalidate the seed.
     positionRot = 0.0;
     targetRot = 0.0;
     targetAngleRad = 0.0;
@@ -173,7 +176,7 @@ public class HoodSubsystem extends SubsystemBase {
         .withMotionMagic(mm)
         .withSoftwareLimitSwitch(softLimits);
 
-    hoodMotor.getConfigurator().apply(cfg);
+    hardwareConfigured = hoodMotor.getConfigurator().apply(cfg).isOK();
 
   }
 
@@ -212,6 +215,7 @@ public class HoodSubsystem extends SubsystemBase {
 	 
   public void setTargetAngleRad(double angleRad) {
 								
+    if (!positionTrusted || frc.robot.RobotContainer.isPanicStopActive() || !Double.isFinite(angleRad)) { stop(); return; }
     double clampedRad = MathUtil.clamp(
         angleRad,
         Constants.OperatorConstants.Hood.MIN_ANGLE_RAD,
@@ -225,25 +229,24 @@ public class HoodSubsystem extends SubsystemBase {
 
   /** Direct motor-rotation target (kept for testing). */
   public void setTargetRot(double rot) {
-    targetRot = rot;
+    if (!positionTrusted || frc.robot.RobotContainer.isPanicStopActive() || !Double.isFinite(rot)) { stop(); return; }
+    targetRot = MathUtil.clamp(rot, Constants.OperatorConstants.Hood.REVERSE_SOFT_LIMIT_ROT, Constants.OperatorConstants.Hood.FORWARD_SOFT_LIMIT_ROT);
 														   
-    targetAngleRad = rot / Constants.OperatorConstants.Hood.MOTOR_ROT_PER_RAD;
+    targetAngleRad = targetRot / Constants.OperatorConstants.Hood.MOTOR_ROT_PER_RAD;
     controlMode = ControlMode.POSITION_CLOSED_LOOP;
 
   }
 
   /** Open-loop duty-cycle (for quick tests). */
   public void setDutyCycle(double duty) {
-								  
-			 
-	 
-    hoodMotor.setControl(dutyRequest.withOutput(duty));
+    setCalibrationDutyCycle(duty);
   }
 
     /** Calibration-only: seed "down hard stop" to zero rotations. */
   public void seedZeroFromDownHardStop() {
-    // Assumes the hood is physically resting on the bottom plate.
-    hoodMotor.setPosition(0.0); // TODO: PLACEHOLDER confirm TalonFX reports 0 at hard stop
+    if (!edu.wpi.first.wpilibj.DriverStation.isDisabled() || hoodMotor == null) return;
+    // Operator must place the hood physically on its bottom plate before this command.
+    positionTrusted = hardwareConfigured && hoodMotor.setPosition(0.0).isOK();
     targetRot = 0.0;
     targetAngleRad = 0.0;
     controlMode = ControlMode.POSITION_CLOSED_LOOP;
@@ -254,6 +257,8 @@ public class HoodSubsystem extends SubsystemBase {
    * IMPORTANT: periodic() must NOT overwrite this, so we switch controlMode.
    */
   public void setCalibrationDutyCycle(double duty) {
+    if (!positionTrusted || !Double.isFinite(duty) || frc.robot.RobotContainer.isPanicStopActive()) { stop(); return; }
+    duty = MathUtil.clamp(duty, -1.0, 1.0);
     controlMode = ControlMode.OPEN_LOOP_CALIBRATION;
     hoodMotor.setControl(dutyRequest.withOutput(duty));
   }
@@ -269,8 +274,7 @@ public class HoodSubsystem extends SubsystemBase {
       return;
     }
     hoodMotor.setControl(dutyRequest.withOutput(0.0));
-    // Default back to closed-loop holding the last target
-    controlMode = ControlMode.POSITION_CLOSED_LOOP;
+    controlMode = ControlMode.IDLE;
   }
 
 
@@ -316,8 +320,10 @@ public class HoodSubsystem extends SubsystemBase {
         .angularVelocity(RotationsPerSecond.of(getVelocityRps()));
   }
 
-  private boolean atTarget() {
-  return Math.abs(targetRot - getPositionRot()) <= Constants.OperatorConstants.Hood.AT_TARGET_TOL_ROT;
+  public boolean isAtTarget() {
+    return EnabledSubsystems.hood && positionTrusted && controlMode == ControlMode.POSITION_CLOSED_LOOP && positionSig != null && positionSig.getStatus().isOK()
+        && positionSig.getTimestamp().getLatency() < 0.1 && Double.isFinite(positionRot)
+        && Math.abs(targetRot - positionRot) <= Constants.OperatorConstants.Hood.AT_TARGET_TOL_ROT;
   }
 
   @Override
@@ -326,18 +332,21 @@ public class HoodSubsystem extends SubsystemBase {
       return;
     }
 
+    if (hoodMotor.hasResetOccurred()) positionTrusted = false;
+    org.littletonrobotics.junction.Logger.recordOutput("Hood/PositionTrusted", positionTrusted);
+    if (!positionTrusted || frc.robot.RobotContainer.isPanicStopActive()) { stop(); return; }
     BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
     positionRot = positionSig.getValueAsDouble();
     velocityRps = velocitySig.getValueAsDouble();
+    org.littletonrobotics.junction.Logger.recordOutput("Hood/TargetDegrees", Math.toDegrees(targetAngleRad));
+    org.littletonrobotics.junction.Logger.recordOutput("Hood/MeasuredDegrees", positionRot / Constants.OperatorConstants.Hood.MOTOR_ROT_PER_DEG);
+    org.littletonrobotics.junction.Logger.recordOutput("Hood/AtTarget", isAtTarget());
 
   switch (controlMode) {
 
   case POSITION_CLOSED_LOOP:
-    if (atTarget()) {
-      hoodMotor.setControl(neutralOut);
-      controlMode = ControlMode.IDLE;
-    } else {
-      hoodMotor.setControl(mmRequest.withPosition(targetRot));    }
+    // Retain closed-loop hold at the target; neutral output lets gravity move the hood again.
+    hoodMotor.setControl(mmRequest.withPosition(targetRot));
     break;
 
   case IDLE:

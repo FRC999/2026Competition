@@ -22,22 +22,20 @@ public class Robot extends LoggedRobot {
   private final RobotContainer m_robotContainer;
 
   public Robot() {
-    // --- AdvantageKit setup (NO robot behavior changes) ---
-    // Logger.recordMetadata("Project", "2026Competition");
-    // Logger.recordMetadata("Mode", "Competition");
-
-    if (isReal()) { 
-      // Real robot logging
-      // Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
-      // Logger.addDataReceiver(new NT4Publisher());
-    } else {
-      // NORMAL SIMULATION (no replay, real timing)
-      // Logger.addDataReceiver(new NT4Publisher());
-      // Logger.addDataReceiver(new WPILOGWriter("logs/sim"));
+    Logger.recordMetadata("Project", "2026Competition/OffSeason-195");
+    try (var in = Robot.class.getResourceAsStream("/build-info.properties")) {
+      if (in != null) {
+        var metadata = new java.util.Properties();
+        metadata.load(in);
+        for (String key : metadata.stringPropertyNames()) Logger.recordMetadata(key, metadata.getProperty(key));
+      }
+    } catch (java.io.IOException ex) {
+      DriverStation.reportWarning("Build metadata unavailable: " + ex.getMessage(), false);
     }
+    Logger.addDataReceiver(new NT4Publisher());
+    Logger.addDataReceiver(isReal() ? new WPILOGWriter() : new WPILOGWriter("logs/sim"));
+    Logger.start();
 
-    //Logger.start();
-    
     RobotContainer.setIfAllianceRed();
 
     m_robotContainer = new RobotContainer();
@@ -69,10 +67,6 @@ public class Robot extends LoggedRobot {
   public void disabledPeriodic() {
       m_robotContainer.driveSubsystem.seedFieldRelativeOnce();
 
-      // Trigger LL reanchor AFTER drivetrain seed
-      if (m_robotContainer.driveSubsystem.hasFinishedSeeding()) {
-          m_robotContainer.odometryUpdateSubsystem.handlePostYawSeed();
-      }
   }
 
   @Override
@@ -80,6 +74,7 @@ public class Robot extends LoggedRobot {
 
   @Override
   public void autonomousInit() {
+    RobotContainer.driveSubsystem.clearAutonomousPrecisionFailure();
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
     if (m_autonomousCommand != null) {

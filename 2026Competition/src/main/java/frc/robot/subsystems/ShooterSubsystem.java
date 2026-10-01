@@ -46,6 +46,9 @@ public class ShooterSubsystem extends SubsystemBase {
 
   private TalonFX shooterLeader;
   private TalonFX shooterFollower;
+  private boolean hardwareConfigured;
+  private final Follower followerRequest = new Follower(Constants.OperatorConstants.Shooter.LEADER_CAN_ID,
+      Constants.OperatorConstants.Shooter.FOLLOWER_OPPOSE_MASTER ? MotorAlignmentValue.Opposed : MotorAlignmentValue.Aligned);
 
   private VelocityVoltage velocityRequest;
   private DutyCycleOut dutyRequest;
@@ -158,7 +161,7 @@ public class ShooterSubsystem extends SubsystemBase {
     TalonFXConfiguration cfg = new TalonFXConfiguration().withMotorOutput(out).withCurrentLimits(limits)
         .withSlot0(slot0);
 
-    shooterLeader.getConfigurator().apply(cfg);
+    hardwareConfigured = shooterLeader.getConfigurator().apply(cfg).isOK();
 
     // Follower: mechanically linked by equal sprockets; may require opposing direction.
     MotorAlignmentValue alignment = Constants.OperatorConstants.Shooter.FOLLOWER_OPPOSE_MASTER
@@ -172,46 +175,39 @@ public class ShooterSubsystem extends SubsystemBase {
     // Apply SAME current limits to follower motor as well
     TalonFXConfiguration followerCfg = new TalonFXConfiguration();
     followerCfg.CurrentLimits = limits;
-    shooterFollower.getConfigurator().apply(followerCfg);
+    hardwareConfigured &= shooterFollower.getConfigurator().apply(followerCfg).isOK();
 }
 
   // ---------------- Public API ----------------
 
-  /** Target shooter speed (RPM). Uses hardware velocity control. */
-    /** Target shooter speed (RPM). Uses hardware velocity control. */
+  /** Target shooter speed; gradual tracking changes retain the rolling readiness window. */
   public void setTargetRpm(double rpm) {
-    if (RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !Double.isFinite(rpm) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
-
-    double newTargetRpm = Math.max(0.0, rpm);
-
-    // Do NOT reset readiness every 20 ms if the target did not materially change.
-    if (Math.abs(newTargetRpm - targetRpm) <= 1.0) {
-      double targetRps = newTargetRpm / 60.0;
-      shooterLeader.setControl(velocityRequest.withVelocity(targetRps));
-      return;
+    double newTargetRpm = Math.max(0, rpm);
+    double toleranceFraction = 1 - Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE;
+    if (frc.robot.lib.ShooterReadinessPolicy.requiresNewWindow(targetRpm, newTargetRpm, toleranceFraction)) {
+      dipDetected = false;
+      readySince = 0;
+      wasReady = false;
+      readinessArmed = false;
+      resetReadinessStats();
     }
-
     targetRpm = newTargetRpm;
-    dipDetected = false;
-    readySince = 0.0;
-    wasReady = false;
-    readinessArmed = false;
-    resetReadinessStats();
-
-    double targetRps = targetRpm / 60.0; // Phoenix 6 uses rotations/sec
-    shooterLeader.setControl(velocityRequest.withVelocity(targetRps));
+    shooterFollower.setControl(followerRequest); // stopMotor() cancels follower mode; restore it.
+    shooterLeader.setControl(velocityRequest.withVelocity(targetRpm / 60.0));
   }
 
   /** Temporarily run the shooter backward under velocity control. */
   public void setReverseTargetRpm(double rpm) {
-    if (RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !Double.isFinite(rpm) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
 
+    shooterFollower.setControl(followerRequest);
     double newTargetRpm = -Math.abs(rpm);
 
     if (Math.abs(newTargetRpm - targetRpm) <= 1.0) {
@@ -231,7 +227,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Open-loop duty-cycle (for quick tests). */
   public void setDutyCycle(double duty) {
-    if (RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !Double.isFinite(duty) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -245,6 +241,7 @@ public class ShooterSubsystem extends SubsystemBase {
     wasReady = false;
     readinessArmed = false;
     resetReadinessStats();
+    shooterFollower.setControl(followerRequest);
     shooterLeader.setControl(dutyRequest.withOutput(duty));
   }
 
@@ -288,7 +285,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** True when shooter has been within tolerance for READY_MIN_TIME_S. */
   public boolean isReadyToShoot() {
-    return wasReady;
+    return hardwareConfigured && wasReady && velocitySig != null && velocitySig.getStatus().isOK()
+        && velocitySig.getTimestamp().getLatency() < 0.1
+        && frc.robot.lib.ShooterReadinessPolicy.instantaneouslyReady(getVelocityRpm(), targetRpm,
+            1 - Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE);
   }
 
   /**
@@ -336,6 +336,7 @@ public class ShooterSubsystem extends SubsystemBase {
       -Constants.OperatorConstants.SysId.SHOOTER_SYSID_MAX_VOLTS,
       Constants.OperatorConstants.SysId.SHOOTER_SYSID_MAX_VOLTS);
 
+  shooterFollower.setControl(followerRequest);
   shooterLeader.setControl(voltageRequest.withOutput(v));
 }
 
@@ -412,7 +413,8 @@ public class ShooterSubsystem extends SubsystemBase {
 
     boolean windowFull = rpmWindowCount >= Constants.OperatorConstants.Shooter.READY_WINDOW_SAMPLES;
 
-    boolean readyNow = readinessArmed
+    boolean readyNow = hardwareConfigured && velocitySig.getStatus().isOK()
+        && velocitySig.getTimestamp().getLatency() < 0.1 && readinessArmed
         && windowFull
         && Math.abs(rpm - targetRpm) <= (1-Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE) * targetRpm
         && rpmStdDev <= Constants.OperatorConstants.Shooter.READY_STDDEV_MAX * targetRpm;
@@ -435,6 +437,9 @@ public class ShooterSubsystem extends SubsystemBase {
       dipDetected = true;
     }
     lastRpm = rpm;
+    org.littletonrobotics.junction.Logger.recordOutput("Shooter/TargetRPM", targetRpm);
+    org.littletonrobotics.junction.Logger.recordOutput("Shooter/MeasuredRPM", rpm);
+    org.littletonrobotics.junction.Logger.recordOutput("Shooter/Ready", isReadyToShoot());
 
     // Dashboard
     if (DebugTelemetrySubsystems.shooter) {

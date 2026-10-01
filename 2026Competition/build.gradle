@@ -1,6 +1,7 @@
 plugins {
     id "java"
     id "edu.wpi.first.GradleRIO" version "2026.2.1"
+    id "jacoco"
 }
 
 java {
@@ -9,6 +10,37 @@ java {
 }
 
 def ROBOT_MAIN_CLASS = "frc.robot.Main"
+
+// Every log identifies the built source, including uncommitted code/configuration changes.
+def metadataDir = layout.buildDirectory.dir('generated/buildMetadata')
+tasks.register('generateBuildInfo') {
+    outputs.dir(metadataDir)
+    outputs.upToDateWhen { false }
+    doLast {
+        def gitValue = { List<String> args ->
+            def out = new ByteArrayOutputStream()
+            exec { commandLine(['git'] + args); standardOutput = out }
+            out.toString('UTF-8').trim()
+        }
+        def hash = java.security.MessageDigest.getInstance('SHA-256')
+        def sourceFiles = files(fileTree('src/main'), fileTree('vendordeps'), file('build.gradle'))
+        sourceFiles.files.sort { a, b -> a.path <=> b.path }.each { f ->
+            hash.update(project.relativePath(f).replace('\\', '/').getBytes('UTF-8'))
+            hash.update((byte) 0)
+            hash.update(f.bytes)
+        }
+        def props = new Properties()
+        props.setProperty('GitSHA', gitValue(['rev-parse', 'HEAD']))
+        props.setProperty('GitDirty', String.valueOf(!gitValue(['status', '--porcelain']).isEmpty()))
+        props.setProperty('SourceSHA256', java.util.HexFormat.of().formatHex(hash.digest()))
+        props.setProperty('BuildTimeUTC', java.time.Instant.now().toString())
+        def target = metadataDir.get().file('build-info.properties').asFile
+        target.parentFile.mkdirs()
+        target.withOutputStream { props.store(it, 'OffSeason-195 build identity') }
+    }
+}
+sourceSets.main.resources.srcDir(metadataDir)
+processResources.dependsOn('generateBuildInfo')
 
 // Define my targets (RoboRIO) and artifacts (deployable files)
 // This is added by GradleRIO's backing project DeployUtils.
@@ -56,6 +88,8 @@ dependencies {
     annotationProcessor wpi.java.deps.wpilibAnnotations()
     implementation wpi.java.deps.wpilib()
     implementation wpi.java.vendor.java()
+    def akit = new groovy.json.JsonSlurper().parse(file('vendordeps/AdvantageKit.json'))
+    annotationProcessor "org.littletonrobotics.akit:akit-autolog:${akit.version}"
 
     roborioDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.roborio)
     roborioDebug wpi.java.vendor.jniDebug(wpi.platforms.roborio)
@@ -76,8 +110,14 @@ dependencies {
 }
 
 test {
-    useJUnitPlatform()
+    useJUnitPlatform { excludeTags 'robotSmoke' }
     systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports { xml.required = true; html.required = true }
 }
 
 // Simulation configuration (e.g. environment variables).
@@ -100,6 +140,17 @@ jar {
 deployArtifact.jarTask = jar
 wpi.java.configureExecutableTasks(jar)
 wpi.java.configureTestTasks(test)
+
+// Separate JVM: Robot owns static CAN devices and the global AdvantageKit logger.
+def robotSmoke = tasks.register('robotSmoke', Test) {
+    description = 'Boot the complete robot in desktop simulation, without a GUI or physical deployment.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'robotSmoke' }
+    systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
+    shouldRunAfter test
+}
+wpi.java.configureTestTasks(robotSmoke.get())
 
 // Configure string concat to always inline compile
 tasks.withType(JavaCompile) {

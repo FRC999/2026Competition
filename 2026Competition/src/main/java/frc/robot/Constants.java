@@ -109,8 +109,6 @@ public final class Constants {
 
     public static final boolean chasis = true;
     public static final boolean odometry = true;
-    public static final boolean ll = true;
-    public static final boolean questnav = true;
     public static final boolean intake = true;
     public static final boolean shooter = true;
     public static final boolean turret = true;
@@ -131,7 +129,6 @@ public final class Constants {
     public static final boolean chassis = false;
     public static final boolean ll = false;
     public static final boolean llLight = false;
-    public static final boolean questnav = false;
     public static final boolean perfLight = false;
     public static final boolean intake = false;
     public static final boolean shooter = false;
@@ -230,13 +227,9 @@ public final class Constants {
       public static final int BB_MANUAL_SHOT_4M = 11;
       public static final int BB_MANUAL_RPM_UP = 2;
       public static final int BB_MANUAL_RPM_DOWN = 3;
-      public static final int BB_LL_QUEST_RECAL_BUTTON = 12;
-      public static final int BB_LL_QUEST_RECAL_AXIS = BB_PANIC_STOP_AXIS;
-      public static final double BB_LL_QUEST_RECAL_AXIS_VALUE = -0.9;
-      public static final int BB_DISABLE_QUEST_BUTTON_A = 3;
-      public static final int BB_DISABLE_QUEST_BUTTON_B = 12;
-      public static final int BB_DISABLE_QUEST_AXIS = BB_PANIC_STOP_AXIS;
-      public static final double BB_DISABLE_QUEST_AXIS_VALUE = -0.9;
+      public static final int BB_VISION_SEED_BUTTON = 12;
+      public static final int BB_VISION_SEED_AXIS = BB_PANIC_STOP_AXIS;
+      public static final double BB_VISION_SEED_AXIS_VALUE = -0.9;
 
       // Xbox inputs used in competition bindings
       public static final int XBOX_BUTTON_A = 1;
@@ -482,8 +475,8 @@ public final class Constants {
           BOOT_MAX_ABS_MOTOR_ROT * 360.0 * (20.0 / 220.0);
 
       /** Mechanical safe range relative to forward (degrees). */
-      public static final double MIN_ANGLE_DEG = -110.0; // CW hard stop -100
-      public static final double MAX_ANGLE_DEG = 110.0; // CCW hard stop 100
+      public static final double MIN_ANGLE_DEG = -110.0; // Team extension-envelope limit; NOT a physical stop
+      public static final double MAX_ANGLE_DEG = 110.0; // Team extension-envelope limit; NOT a physical stop
 
       /**
        * "Soft" limit for auto-aiming (degrees from your turret ZERO). Your notes
@@ -578,7 +571,7 @@ public final class Constants {
       public static final double MM_ACCEL_DEG_PER_SEC2 = 1200.0; // 1200
 
       /** Simulation placeholders. */
-      public static final double SIM_GEAR_RATIO = 220.0 / 20.0; // pinion has 20 teeth, turret ring has 280
+      public static final double SIM_GEAR_RATIO = 220.0 / 20.0; // existing software uses 20:220; verify on robot
       public static final double SIM_TURRET_J_KGM2 = 0.002;
       // Simulation-only: use a fixed supply so this subsystem doesn't collapse
       // RoboRIO voltage.
@@ -590,7 +583,7 @@ public final class Constants {
       public static final double SIM_BRAKE_KV_VOLTS_PER_RAD_PER_SEC = 0.25; // viscous braking
       public static final double SIM_STOP_OMEGA_EPS_RAD_PER_SEC = 0.10; // snap-to-zero threshold
 
-      /** Gear ratio: motor pinion 11 teeth, turret ring 280 teeth. */
+      /** Gear ratio: existing software ratio: motor pinion 20 teeth, turret ring 220 teeth. */
       public static final double GEAR_RATIO_TURRET_ROT_PER_MOTOR_ROT = 20.0 / 220.0; // output / input
       public static final double GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT = 220.0 / 20.0; // input / output
 
@@ -670,7 +663,7 @@ public final class Constants {
 
       // Physical angle clamps used by setTargetAngleRad()
       public static final double MIN_ANGLE_RAD = Math.toRadians(HOOD_MIN_ANGLE_DEG); // TODO: PLACEHOLDER
-      public static final double MAX_ANGLE_RAD = Math.toRadians(HOOD_MAX_ANGLE_DEG); // TODO: PLACEHOLDER
+      public static final double MAX_ANGLE_RAD = Math.min(Math.toRadians(HOOD_MAX_ANGLE_DEG), FORWARD_SOFT_LIMIT_ROT / MOTOR_ROT_PER_RAD); // TODO: PLACEHOLDER
       /**
        * Neutral (safe) hood angle used in teleop when not shooting and during trench
        * lockout.
@@ -897,11 +890,11 @@ public final class Constants {
       public static final double STATIONARY_ASSIST_TRIGGER_THRESHOLD = 0.30;
 
       /**
-       * Shared comfort margin inside turret hard limits for both:
+       * Shared comfort margin inside turret perimeter limits for both:
        * - deciding when the chassis should auto-turn to make a shot legal
        * - deciding when the shot is actually legal enough to feed
        *
-       * With turret hard limits of [-110, +110], a value of 15 creates a comfort
+       * With turret perimeter limits of [-110, +110], a value of 15 creates a comfort
        * window of [-95, +95].
        */
       public static final double STATIONARY_ILLEGAL_SHOT_COMFORT_MARGIN_DEG = 15.0;

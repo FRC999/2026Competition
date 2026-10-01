@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "profile": "simulation",
+  "fieldLayout": "two-tag-field.json",
+  "confirmedCoprocessorLayoutSha256": "7125e93f4ee2cd45140b489e286f5034d3a7e37718a6c19aecbff4ffc69648b7",
+  "notes": "SYNTHETIC ONLY. Not measured robot geometry. Tags look along +X; robot placement (3,3,0) sees them behind.",
+  "cameras": [
+    {
+      "name": "back-left",
+      "enabled": true,
+      "calibrated": true,
+      "translationMeters": [
+        -0.3,
+        0.25,
+        0.3048
+      ],
+      "rotationDegrees": [
+        0,
+        -15,
+        165
+      ],
+      "xyStdDevFactor": 1.0,
+      "thetaStdDevFactor": 1.0,
+      "trustRotation": true
+    },
+    {
+      "name": "back-right",
+      "enabled": true,
+      "calibrated": true,
+      "translationMeters": [
+        -0.3,
+        -0.25,
+        0.3048
+      ],
+      "rotationDegrees": [
+        0,
+        -15,
+        -165
+      ],
+      "xyStdDevFactor": 1.0,
+      "thetaStdDevFactor": 1.0,
+      "trustRotation": true
+    }
+  ]
+}

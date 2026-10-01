@@ -246,7 +246,8 @@ public final class TurretHelpers {
             if (s.isEmpty())
                 return null;
             try {
-                return Double.parseDouble(s);
+                double value = Double.parseDouble(s);
+                return Double.isFinite(value) ? value : null;
             } catch (NumberFormatException ex) {
                 return null;
             }
@@ -556,6 +557,11 @@ public final class TurretHelpers {
             double shooterRpmCommand,
             double hoodCommandAngleRad,
             double batteryVoltage) {
+        if (!Double.isFinite(distanceMeters) || distanceMeters <= 0
+                || !Double.isFinite(turretAngleDeg) || !Double.isFinite(shooterRpmCommand) || shooterRpmCommand <= 0
+                || !Double.isFinite(hoodCommandAngleRad)) {
+            throw new IllegalArgumentException("Moving-shot sample must contain finite positive distance/RPM and finite angles");
+        }
         table.computeIfAbsent(distanceMeters, k -> new TreeMap<>())
                 .computeIfAbsent(turretAngleDeg, k -> new ArrayList<>())
                 .add(
@@ -612,7 +618,7 @@ public final class TurretHelpers {
                 if (distanceMeters == null
                         || shooterRpm == null
                         || hoodAngleDeg == null
-                        || turretAngleDeg == null) {
+                        || turretAngleDeg == null || distanceMeters <= 0 || shooterRpm <= 0) {
                     continue;
                 }
 
@@ -636,7 +642,8 @@ public final class TurretHelpers {
             double preferredShooterRpm) {
         if (table.isEmpty()
                 || !Double.isFinite(distanceMeters)
-                || !Double.isFinite(turretAngleDeg)) {
+                || !Double.isFinite(turretAngleDeg)
+                || distanceMeters < table.firstKey() || distanceMeters > table.lastKey()) {
             return makeInvalidMovingAutoShotCommand();
         }
 
@@ -773,7 +780,8 @@ public final class TurretHelpers {
             return null;
         }
         try {
-            return Double.parseDouble(s);
+            double value = Double.parseDouble(s);
+                return Double.isFinite(value) ? value : null;
         } catch (NumberFormatException ex) {
             return null;
         }

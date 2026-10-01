@@ -39,9 +39,6 @@ import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.OperatorConstants.OIContants;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
-import frc.robot.OdometryUpdates.LLAprilTagSubsystem;
-import frc.robot.OdometryUpdates.OdometryUpdatesSubsystem;
-import frc.robot.OdometryUpdates.QuestNavSubsystem;
 import frc.robot.commands.AutoMainOneLeft;
 import frc.robot.commands.AutoMainOneRight;
 import frc.robot.commands.AutoMainOneRightBlue;
@@ -132,9 +129,8 @@ public class RobotContainer {
   //public static KrakenMotorSubsystem m_kraken = new KrakenMotorSubsystem();
 
   public static final DriveSubsystem driveSubsystem = DriveSubsystem.createDrivetrain();
-  public static QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem();
-  public static LLAprilTagSubsystem llAprilTagSubsystem = new LLAprilTagSubsystem();
-  public static OdometryUpdatesSubsystem odometryUpdateSubsystem = new OdometryUpdatesSubsystem();
+  public static final frc.robot.subsystems.vision.Vision vision =
+      frc.robot.subsystems.vision.VisionFactory.create(driveSubsystem);
   public static ClimbSubsystem climbSubsystem = new ClimbSubsystem();
   //public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
   public static TurretSubsystem turretSubsystem = new TurretSubsystem();
@@ -147,6 +143,12 @@ public class RobotContainer {
   public static IntakeSubsystem intakeSubsystem = new IntakeSubsystem();
 
   public static SendableChooser<Command> autoChooser = new SendableChooser<>();
+
+  public static void seedPoseFromPhotonVision() {
+    if (!DriverStation.isDisabled()) return;
+    vision.getFreshTrustedSeedPose().ifPresentOrElse(driveSubsystem::resetCTREPose,
+        () -> DriverStation.reportWarning("No fresh calibrated MultiTag pose available for seeding.", false));
+  }
 
   public RobotContainer() {
     configureBindings();
@@ -164,8 +166,26 @@ public class RobotContainer {
     CommandScheduler.getInstance().schedule(FollowPathCommand.warmupCommand());
 
     AutonomousConfigure();
+    frc.robot.commands.DriveToPosePrecisionCommand.primeTelemetrySchema();
+    autoChooser.setDefaultOption("OffSeason: Do nothing", Commands.run(driveSubsystem::stop, driveSubsystem));
+    autoChooser.addOption("OffSeason: Precision 1m forward (clear area)", Commands.defer(() -> {
+      Pose2d start = driveSubsystem.getPose();
+      Pose2d goal = start.transformBy(new edu.wpi.first.math.geometry.Transform2d(1, 0, Rotation2d.kZero));
+      return new frc.robot.commands.DriveToPosePrecisionCommand(driveSubsystem, goal)
+          .withFinishPermission(vision::hasRecentMeasurement);
+    }, java.util.Set.of(driveSubsystem)));
+    SmartDashboard.putData("Vision/Seed pose (disabled)",
+        Commands.runOnce(RobotContainer::seedPoseFromPhotonVision, driveSubsystem).ignoringDisable(true));
+    SmartDashboard.putData("Vision/Capture camera jitter (disabled)",
+        Commands.runOnce(vision::startCameraJitterCapture).ignoringDisable(true));
+    SmartDashboard.putData("Vision/Stop camera jitter capture",
+        Commands.runOnce(vision::stopCameraJitterCapture).ignoringDisable(true));
+    SmartDashboard.putData("Calibration/Reseed turret ONLY when physically stowed (disabled)",
+        Commands.runOnce(turretSubsystem::reseedIntegratedFromAbsoluteNow, turretSubsystem).ignoringDisable(true));
+    SmartDashboard.putData("Calibration/Zero hood ONLY when fully down (disabled)",
+        Commands.runOnce(hoodSubsystem::seedZeroFromDownHardStop, hoodSubsystem).ignoringDisable(true));
     if (RobotBase.isSimulation()) {
-      // configureSimulation();
+      configureSimulation();
     }
     // testTurretShooter();
   }
@@ -175,7 +195,8 @@ public class RobotContainer {
     // simulated sensors or adjusting subsystem parameters for simulation.
     // For example, you might want to set up a simulated gyro or adjust the drive
     // subsystem's max speed for testing.
-    driveSubsystem.resetCTREPose(new Pose2d(3.5, 5.7, new Rotation2d(0)));
+    driveSubsystem.placeSimulationRobot(new Pose2d(3, 3, Rotation2d.kZero));
+    driveSubsystem.resetCTREPose(new Pose2d(3.15, 3.1, Rotation2d.kZero));
   }
 
   public static void AutonomousConfigure() {
@@ -271,7 +292,6 @@ public class RobotContainer {
       //configureTurretCalibrationBindings();
       //configureTransferCalibrationBindings();  
       //configureSpindexerCalibrationBindings();
-      questCalibration();
     }
     competitionXBOXButtonBindings();
     //turretCalibration();
@@ -307,17 +327,12 @@ public class RobotContainer {
         > OIContants.BB_PANIC_STOP_THRESHOLD;
   }
 
-  private static boolean isLLQuestRecalAxisActive() {
-    return bb.getRawAxis(OIContants.BB_LL_QUEST_RECAL_AXIS)
-        < OIContants.BB_LL_QUEST_RECAL_AXIS_VALUE;
+  private static boolean isVisionSeedAxisActive() {
+    return bb.getRawAxis(OIContants.BB_VISION_SEED_AXIS)
+        < OIContants.BB_VISION_SEED_AXIS_VALUE;
   }
 
-  private static boolean isDisableQuestChordActive() {
-    return bb.getRawButton(OIContants.BB_DISABLE_QUEST_BUTTON_A)
-        && bb.getRawButton(OIContants.BB_DISABLE_QUEST_BUTTON_B)
-        && bb.getRawAxis(OIContants.BB_DISABLE_QUEST_AXIS)
-            <= OIContants.BB_DISABLE_QUEST_AXIS_VALUE;
-  }
+
 
   public static boolean isPanicStopActive() {
     return panicStopLatched;
@@ -375,21 +390,12 @@ public class RobotContainer {
         }))
         .onFalse(new InstantCommand(() -> panicStopLatched = false));
 
-    Trigger disableQuestChordTrigger = new Trigger(RobotContainer::isDisableQuestChordActive);
-
-    disableQuestChordTrigger
+    new JoystickButton(bb, OIContants.BB_VISION_SEED_BUTTON)
+        .and(new Trigger(RobotContainer::isVisionSeedAxisActive))
+        .and(new Trigger(DriverStation::isDisabled))
         .and(panicInactiveTrigger)
-        .onTrue(new InstantCommand(
-            () -> odometryUpdateSubsystem.requestQuestDisabledOverride(),
-            odometryUpdateSubsystem).ignoringDisable(true));
-
-    new JoystickButton(bb, OIContants.BB_LL_QUEST_RECAL_BUTTON)
-        .and(new Trigger(RobotContainer::isLLQuestRecalAxisActive))
-        .and(new Trigger(() -> !RobotContainer.isDisableQuestChordActive()))
-        .and(panicInactiveTrigger)
-        .onTrue(new InstantCommand(
-            () -> odometryUpdateSubsystem.requestManualMegaTag1Recalibration(),
-            odometryUpdateSubsystem).ignoringDisable(true));
+        .onTrue(Commands.runOnce(RobotContainer::seedPoseFromPhotonVision, driveSubsystem)
+            .ignoringDisable(true));
 
     
    new Trigger(() -> xboxDriveController.getRawAxis(OIContants.XBOX_LEFT_TRIGGER_AXIS)
@@ -513,7 +519,7 @@ public class RobotContainer {
 
     new JoystickButton(xboxDriveController, 8) // Left of X
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
-            .andThen(new InstantCommand(() -> odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset())));
+            );
 
     // Trigger 3: MOVING shot while held (no drivetrain hold)
     new Trigger(() -> xboxDriveController.getRawAxis(3) > 0.3) // RT
@@ -597,16 +603,6 @@ public class RobotContainer {
   new JoystickButton(getTurretStick(), 7)
       .onTrue(new InstantCommand(() -> supplyRpsSet[0] = Math.max(0.0, supplyRpsSet[0] - SUPPLY_STEP_RPS)));
 }
-
-  private void questCalibration() {
-    new JoystickButton(getTurretStick(), 11)
-        .onTrue(questNavSubsystem.offsetTranslationCharacterizationCommand())
-        .onFalse(new StopRobot());
-
-    new JoystickButton(getTurretStick(), 12)
-        .onTrue(questNavSubsystem.offsetAngleCharacterizationCommand())
-        .onFalse(new StopRobot());
-  }
 
   private void turretCalibration() {
 
@@ -946,7 +942,7 @@ private void configureIntakeCalibrationBindings() {
 
     // Seed zero (press)
     new JoystickButton(getTurretStick(), 7)
-        .onTrue(new InstantCommand(() -> hoodSubsystem.seedZeroFromDownHardStop()));
+        .onTrue(new InstantCommand(() -> hoodSubsystem.seedZeroFromDownHardStop()).ignoringDisable(true));
 // 51, 14, 13, 12, 11, 41, 42, 43, 44
     // Jog UP (hold)
     new JoystickButton(getTurretStick(), 6)
@@ -991,7 +987,7 @@ private void configureIntakeCalibrationBindings() {
   public void setYaws() {
     new JoystickButton(xboxDriveController, 8)
         .onTrue(new InstantCommand(() -> driveSubsystem.zeroChassisYaw())
-            .andThen(new InstantCommand(() -> odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset())));
+            );
   }
 
   // Driver preferred controls
@@ -1015,83 +1011,46 @@ private void configureIntakeCalibrationBindings() {
     return -xboxDriveController.getRightStickX();
   }
 
-  public static Command runTrajectoryPathPlannerWithForceResetOfStartingPose(String tr,
-      boolean shouldResetOdometryToStartingPose, boolean flipTrajectory) {
-
-    // alex test
-    // System.out.println("Start drive routine");
-
-    try {
-      // Load the path you want to follow using its name in the GUI
-      PathPlannerPath path = PathPlannerPath.fromPathFile(tr);
-
-      ElasticHelpers.setAutoPathSingle(path);
-
-      Pose2d startPose = path.getStartingHolonomicPose().get(); // reset odometry, as PP may not do so
-
-      // Create a path following command using AutoBuilder. This will also trigger
-      // event markers.
-      if (!shouldResetOdometryToStartingPose) {
-
-        // alex test
-         System.out.println("Rigth before driving without reset");
-         System.out.println("trajectory: " + tr);
-        return AutoBuilder.followPath(path);
-
-      } else { // reset odometry the right way
-
-        // alex test
-         System.out.println("Rigth before driving with reset");
-         System.out.println("trajectory: " + tr);
-
-
-        return Commands.sequence(
-            // new InstantCommand(
-            AutoBuilder.resetOdom(startPose), new WaitCommand(0), AutoBuilder.followPath(path));
-
-        // return Commands.sequence(AutoBuilder.resetOdom(startPose));
-
+  public static Command runTrajectoryPathPlannerWithForceResetOfStartingPose(String name,
+      boolean resetToStart, boolean forceRedFlip) {
+    return Commands.defer(() -> {
+      try {
+        if (!vision.hasCompetitionAimFrame()) {
+          return frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
+              "Named competition paths require the verified welded competition frame");
+        }
+        PathPlannerPath path = frc.robot.commands.PrecisionPathCommands.inFieldFrame(
+            PathPlannerPath.fromPathFile(name), forceRedFlip,
+            DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Red);
+        ElasticHelpers.setAutoPathSingle(path);
+        return frc.robot.commands.PrecisionPathCommands.followResolved(driveSubsystem, path,
+            resetToStart, vision::hasRecentMeasurement);
+      } catch (Exception ex) {
+        return frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
+            "Cannot execute path " + name + ": " + ex.getMessage());
       }
-    } catch (Exception e) {
-      DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
-      return Commands.none();
-    }
+    }, java.util.Set.of(driveSubsystem));
   }
 
-  public static Command runTrajectory2Poses(boolean shouldResetOdometryToStartingPose, Pose2d startPose,
-      Pose2d endPose) {
+  public static Command runTrajectory2Poses(boolean resetToStart, Pose2d startPose, Pose2d endPose) {
+    if (startPose.getTranslation().getDistance(endPose.getTranslation()) < 0.01) {
+      Command finish = frc.robot.commands.PrecisionPathCommands.finishAt(driveSubsystem, endPose,
+          vision::hasRecentMeasurement);
+      return resetToStart ? Commands.runOnce(() -> driveSubsystem.resetCTREPose(startPose), driveSubsystem)
+          .andThen(finish) : finish;
+    }
     try {
-      List<Waypoint> pathWaypoints = PathPlannerPath.waypointsFromPoses(startPose, endPose);
-
-      if (!shouldResetOdometryToStartingPose) {
-        PathPlannerPath path = new PathPlannerPath(
-            pathWaypoints,
-            AutoConstants.pathConstraints,
-            null,
-            new GoalEndState(0, endPose.getRotation()));
-        path.preventFlipping = true;
-        // System.out.println("== Driving from " + startPose + " to " + endPose);
-        return AutoBuilder.followPath(path);
-      } else { // reset odometry, then follow the path
-        PathPlannerPath path = new PathPlannerPath(
-            pathWaypoints,
-            AutoConstants.pathConstraints,
-            new IdealStartingState(0, startPose.getRotation()),
-            new GoalEndState(2, endPose.getRotation()));
-        path.preventFlipping = true;
-        // System.out.println("== Driving from " + startPose + " to " + endPose);
-
-        // Keep the original CTRE pose reset behavior, but perform it at schedule-time.
-        // AutoBuilder.resetOdom(startPose) is the PathPlanner-friendly reset; we run it
-        // too.
-        return Commands.sequence(
-            Commands.runOnce(() -> driveSubsystem.resetCTREPose(startPose), driveSubsystem),
-            AutoBuilder.resetOdom(startPose),
-            AutoBuilder.followPath(path));
-      }
-    } catch (Exception e) {
-      DriverStation.reportError("Big oops: " + e.getMessage(), e.getStackTrace());
-      return Commands.none();
+      Rotation2d tangent = endPose.getTranslation().minus(startPose.getTranslation()).getAngle();
+      List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(
+          new Pose2d(startPose.getTranslation(), tangent), new Pose2d(endPose.getTranslation(), tangent));
+      PathPlannerPath path = new PathPlannerPath(waypoints, AutoConstants.pathConstraints,
+          new IdealStartingState(0, startPose.getRotation()), new GoalEndState(0, endPose.getRotation()));
+      path.preventFlipping = true; // Caller supplied absolute field coordinates.
+      return frc.robot.commands.PrecisionPathCommands.followResolved(driveSubsystem, path,
+          resetToStart, vision::hasRecentMeasurement);
+    } catch (Exception ex) {
+      return frc.robot.commands.PrecisionPathCommands.failedHold(driveSubsystem,
+          "Cannot generate two-pose path: " + ex.getMessage());
     }
   }
 
@@ -1129,7 +1088,6 @@ private void configureIntakeCalibrationBindings() {
           Pose2d pose = new Pose2d(3.5, 4.0, new Rotation2d());
           driveSubsystem.resetChassisIMUToAngle(pose.getRotation().getDegrees());
           driveSubsystem.resetCTREPose(pose);
-          odometryUpdateSubsystem.requestReanchorFromLimelightAfterYawReset();
         }));
   }
 
