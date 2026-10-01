@@ -201,3 +201,17 @@ implemented and tested. Do not mark the new task complete while the strategy dec
   not restart across modes. Desktop CAN/joystick/loop-overrun warnings persist; no hardware claim.
 - No deployment or physical operation. Independent audit changes can be reviewed on OffSeason-195;
   check Git/origin for receipt. Final strategy work and final summary/counts remain outstanding.
+
+### Branch delivery receipt
+
+The mentor reiterated that the new code must be committed to the new branch with proper comments.
+Verified that the implementation is committed and pushed to **OffSeason-195**:
+
+- `5a3e431`: initial PhotonVision retrofit, precision controls and calibration workflow.
+- `80acda9`: localization, autonomous frames, shot control and mechanism ownership refactor.
+- `a37f951`: interruption, route-stop, rule/position guards and simulation isolation fixes.
+
+Non-obvious behavior has inline rationale; full-refactor-audit.md and second-pass-audit.md document
+the issues, replacements, evidence and physical limitations. Latest code validation remains 117 Java
+tests plus the full robot smoke test, seven Python tests, six skill validations and three skill mirrors.
+The request to commit does not select a new autonomous strategy; that choice remains pending.

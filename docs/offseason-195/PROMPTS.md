@@ -96,3 +96,7 @@ Also check our simulation routines. They may be wrong as well or even worse - ma
 
 - Worlds baseline: "Use Houston 6c4ecb4".
 - Manual shooting without localization: "Keep manual fallback; driver confirms position".
+
+## 2026-10-01 — branch and commit documentation (verbatim)
+
+Make sure the new code is committed into the new branch with proper comments.
