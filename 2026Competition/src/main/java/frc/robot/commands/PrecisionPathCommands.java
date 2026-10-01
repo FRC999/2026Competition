@@ -13,14 +13,18 @@ import org.littletonrobotics.junction.Logger;
 /** Resolve the field frame once, then finish stopping paths using measured pose and motion. */
 public final class PrecisionPathCommands {
   private PrecisionPathCommands() {}
+  public enum FieldFrame { ALLIANCE, FORCE_RED, ABSOLUTE }
 
-  public static PathPlannerPath inFieldFrame(PathPlannerPath source, boolean forceRedFlip, boolean redAlliance) {
+  public static PathPlannerPath inFieldFrame(PathPlannerPath source, FieldFrame frame, boolean redAlliance) {
     // fromPathFile caches objects. Never mutate that shared source or the next alliance can inherit
     // preventFlipping=true from an earlier schedule.
     PathPlannerPath resolved = new PathPlannerPath(source.getWaypoints(), source.getRotationTargets(),
         source.getPointTowardsZones(), source.getConstraintZones(), source.getEventMarkers(),
         source.getGlobalConstraints(), source.getIdealStartingState(), source.getGoalEndState(), source.isReversed());
-    if (forceRedFlip || (!source.preventFlipping && redAlliance)) resolved = resolved.flipPath();
+    if (frame == FieldFrame.FORCE_RED
+        || (frame == FieldFrame.ALLIANCE && !source.preventFlipping && redAlliance)) {
+      resolved = resolved.flipPath();
+    }
     // AutoBuilder must not flip a path whose coordinates have already been resolved.
     resolved.preventFlipping = true;
     return resolved;
@@ -38,12 +42,22 @@ public final class PrecisionPathCommands {
     if (resetToStart) {
       Pose2d start = path.getStartingHolonomicPose().orElseThrow(
           () -> new IllegalArgumentException("Path has no explicit starting holonomic pose"));
-      coarse = Commands.runOnce(() -> drive.resetCTREPose(start), drive).andThen(coarse);
+      coarse = Commands.runOnce(() -> drive.resetKnownFieldPose(start), drive).andThen(coarse);
     }
-    if (Math.abs(path.getGoalEndState().velocityMPS()) > 1e-3) return coarse;
     // Retain the complete planned route and all event markers. Spatial early handoffs are explicit
     // opt-ins using DriveToPosePrecisionCommand.handoffFrom on a separately validated final corridor.
-    return coarse.andThen(finishAt(drive, endpoint(path), recentVision));
+    Command movement = Math.abs(path.getGoalEndState().velocityMPS()) > 1e-3 ? coarse
+        : coarse.andThen(finishAt(drive, endpoint(path), recentVision));
+    return Commands.either(movement,
+        failedHold(drive, "Path start requires an established field pose and fresh vision"),
+        () -> resetToStart || (drive.hasFieldReference() && recentVision.getAsBoolean()));
+  }
+
+  /** A routine with absolute alliance-specific waypoints cannot run on the opposite alliance. */
+  public static Command requireAlliance(DriveSubsystem drive, DriverStation.Alliance expected) {
+    return Commands.either(Commands.none(), failedHold(drive,
+        "Autonomous selection requires " + expected + " alliance"),
+        () -> DriverStation.getAlliance().filter(expected::equals).isPresent());
   }
 
   public static Command finishAt(DriveSubsystem drive, Pose2d target, BooleanSupplier recentVision) {

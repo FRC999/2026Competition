@@ -52,3 +52,31 @@ So the idea of improvement is this. We want to merge all of our advances that we
 ## 2026-09-30 — AdvantageKit authorization (verbatim)
 
 > Also, we are okay to implement advantage kit for all the testing. We have not really used that in our 2026 code, but may not be a bad idea to put that in this code.
+
+
+## 2026-09-30 — deeper state-machine, localization and aiming review (verbatim)
+
+I want you to analyze the state machines and the logic we have in the OffSeason-195 comparing with the 2027Prototyping. We saw that vision takes a WHILE to come up in a competition after we put the robot on a field. We have not had any situation like that in the 2027Prototyping.
+The point of this OffSeason-195 branch is not just to replace cameras, but to re-evaluate and replace the algorithms we use for odometry, driving and vision. I also want to make sure we do not damage the autos as PathPlanner usually auto-reverses trajectories on RED alliance - unless some special flags are specified.
+In other words, I do not want you to assume that the way we drove, aimed etc in 2026 in the 2026Competition repo was good or correct. It's very possible we had logic errors in the way we approached everything from logging to localization to trajectories to aiming. So, the goal is to re-evaluate all that and see what needs to be corrected. I also want to see a list of issues you found and corrected (both the functionality replacements and the issue correction - both logic and technical). So, may be put that part in the MD file as well?
+I am especially interested why our turret aim was so much OFF in many cases. May be math issues?
+Note that the turret center offset was calculated from the robot's center looking "forward" in robot's terms, meaning "negative X offset" means the turret is "behind" the robot center, and "negative Y offset" would mean turret center is to the RIGHT of the robot center.
+
+
+## 2026-09-30 — full refactor authorization (verbatim)
+
+As I said - you can pretty much ignore the algorithms that were in the old 2026 code if you think what we do in 2027Prototype is better, faster and/or more reliable.
+The goal is really to do a proper full refactor, so anything we used before can be deleted/modified/added to if you see an issue. I just need to know what the issue was, where was it, and how did you fix/improve it, both code and high-level
+
+
+## 2026-09-30 — independent algorithm improvements authorized (verbatim)
+
+And it's not just related to 2027Prototype code - feel free to rewrite/change/add to whatever is there if you see a problem
+
+
+## 2026-09-30 — audit all competition code (verbatim)
+
+Meaning - not just a vision code that comes from 2027Prototype. Any 2026Competition code is a suspect and should be looked at and improved if needed.
+## 2026-09-30 — obsolete/redundant code cleanup (verbatim)
+
+> Also clear out obsolete or redundant code if it is not needed. After all, it's a separate branch

@@ -7,7 +7,6 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
-import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
@@ -18,11 +17,11 @@ public class AutoBlueHubSimpleMoveAndShoot extends SequentialCommandGroup {
     // Add your commands in the addCommands() call, e.g.
     // addCommands(new FooCommand(), new BarCommand());
     addCommands(
-      RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose("BlueHubMiddle_BlueAllianceMiddle", false, false),
-      new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+      RobotContainer.followCompetitionPath("BlueHubMiddle_BlueAllianceMiddle", false, frc.robot.commands.PrecisionPathCommands.FieldFrame.ALLIANCE),
+      new ShootWhileHeld(frc.robot.lib.ShotPlanner.Mode.MOVING_AUTO, false)
         .raceWith(new WaitCommand(4)),
       new RetractIntakeSequence(),
-      new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+      new ShootWhileHeld(frc.robot.lib.ShotPlanner.Mode.MOVING_AUTO, false)
         .raceWith(new WaitCommand(7))
     );
   }

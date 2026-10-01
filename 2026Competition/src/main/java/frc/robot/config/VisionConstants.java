@@ -52,10 +52,8 @@ public final class VisionConstants {
   public static final double ANISO_MULTI_TAG_PARALLEL_EXP = 2.0;
   public static final double ANISO_MULTI_TAG_PERP_COEFF = 0.0075;
   public static final double ANISO_MULTI_TAG_PERP_EXP = 2.0;
-  public static final double AUTO_VISION_IGNORE_SECONDS = 0.3;
   public static final double TARGET_OBSERVATION_MAX_STALENESS_SECONDS = 0.25;
   public static final double VISION_SEED_MAX_STALENESS_SECONDS = 0.25;
-  public static final double RESET_QUARANTINE_SECONDS = 0.35;
   public static final int SIM_CAMERA_WIDTH_PX = 1280;
   public static final int SIM_CAMERA_HEIGHT_PX = 800;
   public static final double SIM_CAMERA_DIAGONAL_FOV_DEGREES = 84.0;

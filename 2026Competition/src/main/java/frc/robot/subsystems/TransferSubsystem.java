@@ -10,7 +10,6 @@ import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.VelocityDutyCycle;
-import com.ctre.phoenix6.hardware.CANrange;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
@@ -58,6 +57,7 @@ import frc.robot.RobotContainer;
 public class TransferSubsystem extends SubsystemBase {
 
   private TalonFX motor;
+  private boolean hardwareConfigured;
   private DutyCycleOut duty;
 
   // Sensors (beam breaks are typical). Wiring convention varies; we invert using
@@ -79,12 +79,6 @@ public class TransferSubsystem extends SubsystemBase {
   private double commandedDuty = 0.0;
   private double commandedRps = 0.0;
 
-  // --- Calibration state (for calibration bindings + AdvantageScope visibility)
-  // ---
-  private String calMode = "OFF";
-  private double calStageRpsSet = 0.0;
-  private double calFeedRpsSet = 0.0;
-  private double calBlockedStageRpsSet = 0.0;
     // --- Entry -> Throat timing telemetry ---
   private boolean prevBallAtEntry = false;
   private boolean prevBallAtThroat = false;
@@ -102,17 +96,6 @@ public class TransferSubsystem extends SubsystemBase {
   private double currentEntryToThroatElapsedSec = 0.0;
 
   // ---------------- Metered eject state ----------------
-  private enum EjectState {
-    IDLE, EJECTING, COOLDOWN
-  }
-
-  private EjectState ejectState = EjectState.IDLE;
-
-  /** Timestamp when current eject started (sec). */
-  private double ejectStartTs = -1.0;
-
-  /** Timestamp when last eject started (sec) - used for rate limiting. */
-  private double lastEjectStartTs = -1.0;
 
   // ---------------- SysId Characterization ----------------
   private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
@@ -123,6 +106,7 @@ public class TransferSubsystem extends SubsystemBase {
       new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "transfer"));
 
   private boolean isSysIdEnabled() {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isTestEnabled() || frc.robot.RobotContainer.isPanicStopActive()) return false;
     if (!Constants.OperatorConstants.SysId.ENABLE_SYSID) {
       return false;
     }
@@ -177,7 +161,8 @@ public class TransferSubsystem extends SubsystemBase {
     cfg.Slot0.kI = Constants.OperatorConstants.Transfer.VEL_kI;
     cfg.Slot0.kD = Constants.OperatorConstants.Transfer.VEL_kD;
 
-    motor.getConfigurator().apply(cfg);
+    hardwareConfigured = motor.getConfigurator().apply(cfg).isOK();
+    motor.hasResetOccurred();
 
     positionSig = motor.getPosition();
     velocitySig = motor.getVelocity();
@@ -194,12 +179,13 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer) {
       return;
     }
-    if (RobotContainer.isPanicStopActive()) {
-      return;
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
+      stop(); return;
     }
 
-    commandedDuty = dutyCycle;
-    motor.setControl(duty.withOutput(dutyCycle));
+    if (!Double.isFinite(dutyCycle)) { stop(); return; }
+    commandedDuty = MathUtil.clamp(dutyCycle, -1, 1); commandedRps = 0;
+    motor.setControl(duty.withOutput(commandedDuty));
   }
 
   /** Run transfer at a target rotor speed in RPS (closed-loop). */
@@ -207,11 +193,12 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer) {
       return;
     }
-    if (RobotContainer.isPanicStopActive()) {
-      return;
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
+      stop(); return;
     }
 
-    commandedRps = targetRps;
+    if (!Double.isFinite(targetRps)) { stop(); return; }
+    commandedRps = targetRps; commandedDuty = 0;
     motor.setControl(velocityDuty.withVelocity(targetRps));
   }
 
@@ -234,44 +221,15 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer) {
       return;
     }
-    if (RobotContainer.isPanicStopActive()) {
-      return;
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
+      stop(); return;
     }
 
     // if (hasBallAtThroat()) {
     //   motor.set(-0.4);
     //   return;
     // }
-     motor.set(-0.60);
-  }
-
-  /**
-   * Calibration-only: run stage using a live-tunable setpoint, with throat
-   * protection.
-   */
-  public void runStageCal(double stageRpsSet, double blockedStageRpsSet) {
-    calMode = "CAL_STAGE";
-    calStageRpsSet = stageRpsSet;
-    calBlockedStageRpsSet = blockedStageRpsSet;
-
-     if (hasBallAtThroat()) {
-       runVelocityRps(blockedStageRpsSet);
-     } else {
-      runVelocityRps(stageRpsSet);
-    }
-  }
-
-  /** Calibration-only: run feed using a live-tunable setpoint. */
-  public void runFeedCal(double feedRpsSet) {
-    calMode = "CAL_FEED";
-    calFeedRpsSet = feedRpsSet;
-    runVelocityRps(feedRpsSet);
-  }
-
-  /** Calibration-only: stop and mark mode. */
-  public void stopCal() {
-    calMode = "CAL_STOP";
-    stop();
+    if (hasBallAtThroat()) stop(); else runDuty(-0.60);
   }
 
   /**
@@ -282,11 +240,11 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer) {
       return;
     }
-    if (RobotContainer.isPanicStopActive()) {
-      return;
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
+      stop(); return;
     }
 
-    motor.set(-0.90);
+    runDuty(-0.90);
     //runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
   }
 
@@ -294,98 +252,12 @@ public class TransferSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.transfer) {
       return;
     }
-    if (RobotContainer.isPanicStopActive()) {
-      return;
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
+      stop(); return;
     }
 
-    motor.set(0.80);
+    runDuty(0.80);
     //runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
-  }
-
-  public void runThroat() {
-    if (!EnabledSubsystems.transfer) {
-      return;
-    }
-    if (RobotContainer.isPanicStopActive()) {
-      return;
-    }
-
-    motor.set(-0.40);
-    //runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
-  }
-
-  /**
-   * Metered feed/eject:
-   * - Ejects ONE ball by running at FEED_RPS until the throat sensor clears (ball
-   * leaves throat).
-   * - Rate-limits how often ejection can start (EJECT_MIN_INTERVAL_S).
-   * - Uses EJECT_MAX_TIME_S as a safety timeout.
-   *
-   * Call this repeatedly while you "want to fire" (e.g., in AutoShootSupervisor
-   * FIRING state).
-   */
-  public void runFeedMetered() {
-    if (!EnabledSubsystems.transfer) {
-      return;
-    }
-    if (RobotContainer.isPanicStopActive()) {
-      return;
-    }
-
-    double now = Timer.getFPGATimestamp();
-
-    // If we don't currently have a ball at the throat, just stage (but don't shove
-    // if already occupied).
-    if (!hasBallAtThroat()) {
-      ejectState = EjectState.IDLE;
-      runStage();
-      return;
-    }
-
-    // Rate limiting: don't start a new eject too frequently.
-    boolean intervalOk = (lastEjectStartTs < 0.0)
-        || (now - lastEjectStartTs) >= Constants.OperatorConstants.Transfer.EJECT_MIN_INTERVAL_S;
-
-    switch (ejectState) {
-      case IDLE:
-        if (!intervalOk) {
-          // Hold: throat is full, but we're waiting for rate interval.
-          runVelocityRps(0.0);
-          ejectState = EjectState.COOLDOWN;
-          return;
-        }
-        // Start an eject
-        ejectState = EjectState.EJECTING;
-        ejectStartTs = now;
-        lastEjectStartTs = now;
-        runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
-        return;
-
-      case EJECTING:
-        // Continue ejecting until throat clears OR safety timeout trips.
-        boolean cleared = !hasBallAtThroat();
-        boolean timedOut = (now - ejectStartTs) >= Constants.OperatorConstants.Transfer.EJECT_MAX_TIME_S;
-
-        if (cleared || timedOut) {
-          // Stop after one-ball ejection; next loop will stage/re-fill.
-          runVelocityRps(0.0);
-          ejectState = EjectState.COOLDOWN;
-          return;
-        }
-
-        runVelocityRps(Constants.OperatorConstants.Transfer.FEED_RPS);
-        return;
-
-      case COOLDOWN:
-      default:
-        // During cooldown, keep staged but do not compress into throat.
-        runStage();
-        // Once interval is OK again and throat is full, allow next eject cycle.
-        if (intervalOk && hasBallAtThroat()) {
-          ejectState = EjectState.IDLE;
-        }
-        return;
-    }
   }
 
   /** @return true if a ball is detected at transfer entry (after spindexer). */
@@ -405,7 +277,6 @@ public class TransferSubsystem extends SubsystemBase {
       return false;
     }
     // System.out.println("TransferSubsystem: throat sensor is NOT null");
-
 
     boolean raw = throatSensor.get();
     return Constants.OperatorConstants.Transfer.THROAT_SENSOR_INVERTED
@@ -512,6 +383,14 @@ public class TransferSubsystem extends SubsystemBase {
     velRps = velocitySig.getValueAsDouble();
     double rpm = velRps;
 
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled()
+        || RobotContainer.isPanicStopActive() || motor.hasResetOccurred()) stop();
+    org.littletonrobotics.junction.Logger.recordOutput("Transfer/HardwareConfigured", hardwareConfigured);
+    org.littletonrobotics.junction.Logger.recordOutput("Transfer/Duty", commandedDuty);
+    org.littletonrobotics.junction.Logger.recordOutput("Transfer/TargetRPS", commandedRps);
+    org.littletonrobotics.junction.Logger.recordOutput("Transfer/MeasuredRPS", velRps);
+    org.littletonrobotics.junction.Logger.recordOutput("Transfer/BallAtEntry", hasBallAtEntry());
+    org.littletonrobotics.junction.Logger.recordOutput("Transfer/BallAtThroat", hasBallAtThroat());
     updateEntryToThroatTimingTelemetry();
 
     if (!DebugTelemetrySubsystems.transfer) {
@@ -523,13 +402,6 @@ public class TransferSubsystem extends SubsystemBase {
     SmartDashboard.putBoolean("Transfer/BallAtEntry", ballAtEntry);
     SmartDashboard.putBoolean("Transfer/BallAtThroat", ballAtThroat);
     SmartDashboard.putNumber("Transfer/RPS", rpm);
-
-
-    // --- Calibration visibility (always present; used by calibration bindings) ---
-    SmartDashboard.putString("Transfer/Cal/Mode", calMode);
-    SmartDashboard.putNumber("Transfer/Cal/StageRpsSet", calStageRpsSet);
-    SmartDashboard.putNumber("Transfer/Cal/FeedRpsSet", calFeedRpsSet);
-    SmartDashboard.putNumber("Transfer/Cal/BlockedStageRpsSet", calBlockedStageRpsSet);
 
     // --- Entry -> Throat timing telemetry ---
     SmartDashboard.putBoolean("Transfer/EntryToThroatTimingActive", entryToThroatTimingActive);

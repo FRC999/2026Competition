@@ -26,11 +26,7 @@ public final class VisionFactory {
           ? new VisionIOPhotonVisionSim(camera.name(), camera.robotToCamera(), drive::getSimulationTruthPose)
           : new VisionIOPhotonVision(camera.name(), camera.robotToCamera())).toArray(VisionIO[]::new);
       Vision vision = createWithIO(drive, io);
-      vision.configureCameras(config, () -> {
-        var speeds = drive.getRobotRelativeSpeeds();
-        return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond) < 0.02
-            && Math.abs(drive.getGyroYawRateRadiansPerSecond()) < Math.toRadians(1);
-      });
+      vision.configureCameras(config, drive::isStationaryForLocalization);
       SmartDashboard.putBoolean("Vision/ConfigValid", true);
       SmartDashboard.putString("Vision/Profile", config.profile());
       SmartDashboard.putString("Vision/LayoutSHA256", config.layoutSha256());
@@ -54,8 +50,10 @@ public final class VisionFactory {
   }
 
   private static Vision createWithIO(DriveSubsystem drive, VisionIO[] io) {
-    return new Vision(drive::addVisionMeasurement, drive::getPose, drive::getLastPoseResetSeconds,
+    Vision vision = new Vision(drive::addVisionMeasurement, drive::getPose, drive::getLastPoseResetSeconds,
         timestamp -> drive.getSample(timestamp).map(pose -> pose.getRotation()), io);
+    vision.configureLocalization(drive::hasFieldReference, drive::resetPoseFromVision);
+    return vision;
     // DriveSubsystem.addVisionMeasurement performs FPGA -> CTRE time conversion exactly once.
   }
 }

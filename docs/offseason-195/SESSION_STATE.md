@@ -1,8 +1,11 @@
 # OffSeason-195 session state
 
-## Status — September 30 / October 1, 2026
+## Status — October 1, 2026
 
-Software implementation, guides, shared skills and final integrated build/package checks are complete.
+Initial implementation delivered at 5a3e431. The user-requested full active-robot refactor is complete;
+see full-refactor-audit.md for 40 findings, old locations, replacements, verification and physical gaps.
+The user explicitly confirmed robot-frame turret offsets: +X forward, +Y left; negative X is behind
+and negative Y is right. The cardinal-heading math is correct; no pivot sign reversal was justified.
 Delivery branch is OffSeason-195; use Git history and its origin tracking status for delivery receipts.
 No physical robot operation or deployment has occurred. User authorized commits/push to this branch;
 no PR requested. Remaining validation requires the team's measured calibration and physical testing.
@@ -51,11 +54,11 @@ No old LL mount values needed. User now wants rear-perimeter camera mounts, init
 and proposed pitch/yaw with zero roll. Proposed rear-left +165 yaw / rear-right -165 yaw, pitch -15
 (15 degrees UP in WPILib), roll 0. Actual xyz remains null/unmeasured; no invented calibrated transform.
 Rear pair enabled for capture; optional front pair disabled. Fusion requires calibrated and matching-layout acknowledgment.
-Turret can physically rotate farther: Â±110 code limits are extension-envelope limits, not hard stops.
-Retain Â±110 commands / Â±105 automatic aim, now enforce rotor-position soft limits in CTRE too.
+Turret can physically rotate farther: ±110 code limits are extension-envelope limits, not hard stops.
+Retain ±110 commands / ±105 automatic aim, now enforce rotor-position soft limits in CTRE too.
 User explicitly approves AdvantageKit for testing. No pending user answers currently block desktop work.
 
-## Implemented and checked
+## Initial delivery at 5a3e431 (historical; current follow-up below supersedes behavior)
 
 - Ported PhotonVision IO, policies, simulation, jitter and optional single-tag trig/anisotropic modes.
   PnP/isotropic defaults retained. Raw capture works before extrinsics are fitted; fusion does not.
@@ -97,7 +100,7 @@ User explicitly approves AdvantageKit for testing. No pending user answers curre
    custom two-tag field and independent robot stations, fit all six camera extrinsics, validate
    held-out stations, then restore and acknowledge the identical competition field on every device.
 2. Follow testing.md from disabled mechanism checks through independently measured endpoint accuracy,
-   stationary shots and measured moving lead. Re-time every selected 15-second autonomous routine.
+   stationary shots and measured moving lead. Re-time every selected 20-second REBUILT autonomous routine.
 3. Preserve the pinion boot-stow requirement and perimeter limits. No desktop result establishes
    physical accuracy or correct motor direction/zero. Default autonomous remains Do nothing.
 
@@ -110,3 +113,47 @@ From repo root: .venv/Scripts/python.exe -m unittest discover -s tools -v (7 tes
 python tools/verify_skill_mirrors.py. Local .venv uses system NumPy/SciPy plus pyntcore2026.2.1.
 Log/test artifacts and simulation persistence are ignored, not shipped. No physical measurements,
 robot motion, robot deployment, calibrated shot data or competition-ready accuracy have been claimed.
+
+
+## Completed full refactor follow-up
+
+The mentor explicitly expanded this review to all active 2026Competition code, not only vision or
+prototype-derived algorithms. Preserve measured hardware, but replace/refactor faulty algorithms.
+The report must give old locations, high-level effects, replacement code and verification evidence.
+
+- Houston's two-tag MT1 → mandatory 2 s MT2 wait → saved MT1 fallback → 5 s reanchor loop was a
+  confirmed software delay path. No match log establishes its exact historical contribution.
+- Disabled stationary stable MultiTag automatically establishes field reference: >=4 unique frames,
+  >=0.10 s span, <=0.25 s age, <=0.10 m / 3° spread. One healthy camera suffices; fresh disagreement
+  blocks reset. Enabled heading stays gyro-owned. Gyro reset revokes reference. No arbitrary
+  early-auto/reset quarantine remains; pre-reset capture timestamps are still rejected.
+- Alliance and driver button 8 now alter operator perspective only. No blind field-yaw seed or
+  duplicate button binding remains. Aim/path starts/finish require referenced fresh localization.
+- Path frames are ALLIANCE/FORCE_RED/ABSOLUTE with cache-safe copies and one flip/reset maximum.
+  Opening approaches use real path starts; two Main route joins were aligned (22.4 cm / 1.3 cm).
+  Alliance-specific autos reject wrong/unknown alliance; BLUE-authored generic autos flip on RED.
+  Shoot-only holds chassis stopped. Outpost shooting uses remaining time, with a 20 s enclosing
+  deadline and mode-exit cancellation. Official 2026 timing corrected an intermediate 15 s assumption.
+- Pure AimGeometry/FieldTargeting/MovingAimModel/ShotPlanner/ShotTable/ShotIntent/ShotReadiness replace
+  duplicated supervisor calculations and dead TurretHelpers ballistics. Diagnostic reads cannot
+  mutate control. All readiness gates remain active during FIRING; reverse never restores stale intent.
+- Trench checks cover all four physical rectangles on either alliance; no rearm inside, neutral hood,
+  and fresh request required after exit. Rectangles remain provisional point regions, not swept volume.
+- Passing is intentionally inhibited until the separate pass_shots.csv has measured data. Hub rows
+  remain unchanged; no forced 13° hood or invented RPM-dip hood compensation. Corrupt table rejects
+  as a unit and logs hash/status/row count. Flight-time CSV remains empty; empirical lead labeled.
+- Driver shaping applies raw deadband before cubic, has zero/sign/finite guards and correct axis
+  choices; robot-centric Y is preserved. Intake configuration/seed/reset/soft-limit bookkeeping fixed;
+  timeout/interruption stops pivot, homing timeout never seeds, and neutral changes preserve inversion.
+  Transfer/spindexer duty goes through guarded mode setters. Disabled panic changes are honored.
+  Climb config/follower/null/simulation defects corrected, but it remains disabled pending physical checks.
+- Retired unused autos, duplicate timeout/calibration wrappers, dead intake-driver state, unused
+  artillery constants/arrays, obsolete telemetry/helpers and example subsystems. History retains them.
+  Kept useful SysId APIs behind config/test-mode/panic guards; no gains were retuned or hardware run.
+- Updated full-refactor-audit.md, audit.md, README, calibration/testing guides, prompt record and
+  matching Codex/Claude skills. Current test receipt: 105 normal Java tests + 1 expanded robotSmoke,
+  7 Python tests, six skill validations and three mirror checks; full test/robotSmoke/build passes.
+  Desktop CAN/joystick/loop-overrun warnings persist; no physical/performance claim follows.
+
+Remaining work is operator-led calibration and physical acceptance, not unfinished desktop refactoring.
+Use Git history and origin tracking for the delivered follow-up commit. No deployment occurred.

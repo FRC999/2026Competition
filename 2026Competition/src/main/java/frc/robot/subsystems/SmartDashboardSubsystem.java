@@ -53,10 +53,6 @@ public class SmartDashboardSubsystem extends SubsystemBase {
     ElasticHelpers.updateRobotPose(robotPose);
     teleopTelemetry();
 
-    // systemsCheckTelemetry();
-    // teleopTelemetry();
-
-    // Task #12: Subsystem-specific telemetry (LL visibility, turret sensors, etc.)
-    // should live inside their respective subsystems, not here.
+    systemsCheckTelemetry();
   }
 }

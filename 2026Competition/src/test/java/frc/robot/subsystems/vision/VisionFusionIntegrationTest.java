@@ -37,11 +37,11 @@ class VisionFusionIntegrationTest {
       vision.periodic(); assertEquals(1, fused.size()); // Duplicate cannot count again.
       reset[0] = Timer.getFPGATimestamp(); assertFalse(vision.hasRecentMeasurement());
       SimHooks.stepTiming(.02); frames[0] = frame(Timer.getFPGATimestamp()); vision.periodic();
-      assertEquals(1, fused.size()); // Post-reset quarantine.
+      assertEquals(2, fused.size()); // Fresh capture after reset is accepted immediately.
       SimHooks.stepTiming(.4); frames[0] = frame(Timer.getFPGATimestamp()); vision.periodic();
-      assertEquals(2, fused.size());
+      assertEquals(3, fused.size());
       SimHooks.stepTiming(.6); assertFalse(vision.hasRecentMeasurement());
-      frames[0] = frame(Timer.getFPGATimestamp() + .2); vision.periodic(); assertEquals(2, fused.size());
+      frames[0] = frame(Timer.getFPGATimestamp() + .2); vision.periodic(); assertEquals(3, fused.size());
     } finally {
       edu.wpi.first.wpilibj2.command.CommandScheduler.getInstance().unregisterSubsystem(vision);
       VisionConstants.configure(original); SimHooks.resumeTiming();
@@ -49,5 +49,46 @@ class VisionFusionIntegrationTest {
   }
   static VisionIO.PoseObservation frame(double timestamp) {
     return new VisionIO.PoseObservation(timestamp, new Pose3d(3,3,0,new Rotation3d()), 0, 2, 2, 1);
+  }
+
+  @Test void disabledMultiTagBootstrapDoesNotWaitForAnotherCameraOrResetWhileEnabled() throws Exception {
+    assertTrue(HAL.initialize(500, 0));
+    DriverStationSim.setEnabled(false); DriverStationSim.notifyNewData();
+    SimHooks.pauseTiming();
+    var original = OffseasonVisionConfig.load(Path.of("src/main/deploy/vision/cameras.json"));
+    var fixture = OffseasonVisionConfig.load(Path.of("simulation/vision.json"));
+    VisionConstants.configure(fixture);
+    Pose2d[] estimate = {new Pose2d(12, 6, Rotation2d.fromDegrees(137))};
+    double[] reset = {Double.NEGATIVE_INFINITY};
+    boolean[] referenced = {false};
+    int[] seeds = {0};
+    var vision = new Vision((pose, timestamp, std) -> {}, () -> estimate[0], () -> reset[0],
+        timestamp -> Optional.empty(), new VisionIO() {
+          @Override public void updateInputs(VisionIOInputs inputs) {
+            inputs.connected = true;
+            inputs.poseObservations = new PoseObservation[] {frame(Timer.getFPGATimestamp() - .005)};
+          }
+        }, new VisionIO() {}); // One disconnected camera must not block a healthy camera.
+    try {
+      vision.configureCameras(fixture, () -> true);
+      vision.configureLocalization(() -> referenced[0], pose -> {
+        estimate[0] = pose; referenced[0] = true; seeds[0]++;
+        reset[0] = Timer.getFPGATimestamp();
+      });
+      for (int i = 0; i < 6; i++) { SimHooks.stepTiming(.03); vision.periodic(); }
+      assertEquals(1, seeds[0]);
+      assertEquals(new Pose2d(3, 3, Rotation2d.kZero), estimate[0]);
+      assertTrue(vision.isLocalizationReady());
+      DriverStationSim.setEnabled(true); DriverStationSim.notifyNewData();
+      estimate[0] = new Pose2d(9, 4, Rotation2d.fromDegrees(90));
+      for (int i = 0; i < 8; i++) { SimHooks.stepTiming(.03); vision.periodic(); }
+      assertEquals(1, seeds[0], "Enabled vision must not reset absolute heading");
+      referenced[0] = false;
+      assertFalse(vision.isLocalizationReady(), "Fresh XY cannot establish field heading");
+    } finally {
+      DriverStationSim.setEnabled(false); DriverStationSim.notifyNewData();
+      edu.wpi.first.wpilibj2.command.CommandScheduler.getInstance().unregisterSubsystem(vision);
+      VisionConstants.configure(original); SimHooks.resumeTiming();
+    }
   }
 }

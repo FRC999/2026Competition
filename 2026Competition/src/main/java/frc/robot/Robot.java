@@ -10,7 +10,6 @@ import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.simulation.BatterySim;
 import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -36,43 +35,22 @@ public class Robot extends LoggedRobot {
     Logger.addDataReceiver(isReal() ? new WPILOGWriter() : new WPILOGWriter("logs/sim"));
     Logger.start();
 
-    RobotContainer.setIfAllianceRed();
-
     m_robotContainer = new RobotContainer();
 
   }
 
-  @Override
-  public void robotInit() {
-    RobotContainer.setIfAllianceRed();
-
-    // The YAW should be set by autos and not really here
-    //RobotContainer.driveSubsystem.zeroYaw(); //Sets Yaw to 180 if on Red Alliance, or 0 on Blue (theoretically)
-    // RobotContainer.driveSubsystem.zeroYawInitial();
-
-    //RobotContainer.driveSubsystem.zeroChassisYaw();
-  }
-
-  @Override
+@Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
-    //m_robotContainer.publishPoseToAdvantageScope();
-    
+
   }
 
-  @Override
-  public void disabledInit() {}
-
-  @Override
+@Override
   public void disabledPeriodic() {
-      m_robotContainer.driveSubsystem.seedFieldRelativeOnce();
 
   }
 
-  @Override
-  public void disabledExit() {}
-
-  @Override
+@Override
   public void autonomousInit() {
     RobotContainer.driveSubsystem.clearAutonomousPrecisionFailure();
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
@@ -80,15 +58,11 @@ public class Robot extends LoggedRobot {
     if (m_autonomousCommand != null) {
       CommandScheduler.getInstance().schedule(m_autonomousCommand);
     }
-    RobotContainer.setIfAllianceRed();
   }
 
-  @Override
-  public void autonomousPeriodic() {}
-
-  @Override
+@Override
   public void autonomousExit() {
-    RobotContainer.setIfAllianceRed();
+    if (m_autonomousCommand != null) m_autonomousCommand.cancel();
   }
 
   @Override
@@ -96,14 +70,10 @@ public class Robot extends LoggedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
-    RobotContainer.setIfAllianceRed();
-    
+
   }
 
-  @Override
-  public void teleopPeriodic() {}
-
-  @Override
+@Override
   public void teleopExit() {}
 
   @Override
@@ -111,10 +81,7 @@ public class Robot extends LoggedRobot {
     CommandScheduler.getInstance().cancelAll();
   }
 
-  @Override
-  public void testPeriodic() {}
-
-  @Override
+@Override
   public void testExit() {}
 
   @Override
@@ -127,7 +94,7 @@ public class Robot extends LoggedRobot {
     // Sum current draw from subsystems that simulate loads.
     // (Each subsystem returns 0 if disabled or not sim.)
     totalCurrentAmps += RobotContainer.turretSubsystem.getSimCurrentDrawAmps();
-    //totalCurrentAmps += RobotContainer.m_kraken.getSimCurrentDrawAmps();
+
     totalCurrentAmps += RobotContainer.shooterSubsystem.getSimCurrentDrawAmps();
     totalCurrentAmps += RobotContainer.intakeSubsystem.getSimCurrentDrawAmps();
     totalCurrentAmps += RobotContainer.transferSubsystem.getSimCurrentDrawAmps();

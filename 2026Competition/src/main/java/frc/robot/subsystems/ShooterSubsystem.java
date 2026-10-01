@@ -54,12 +54,9 @@ public class ShooterSubsystem extends SubsystemBase {
   private DutyCycleOut dutyRequest;
   private final VoltageOut voltageRequest = new VoltageOut(0.0).withEnableFOC(false); // SysId should be true voltage
 
-
   private double targetRpm = 0.0;
-  private double lastRpm = 0.0;
   private boolean wasReady = false;
   private double readySince = 0.0;
-  private boolean dipDetected = false;
   private boolean readinessArmed = false;
 
   // ---------------- Shooter readiness (rolling window stats) ----------------
@@ -88,7 +85,6 @@ public class ShooterSubsystem extends SubsystemBase {
   private StatusSignal<Voltage> motorVoltageSig;
   private StatusSignal<Angle> positionSig; // used for SysId logging
 
-
   // ---------------- SysId Characterization ----------------
   private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
       new SysIdRoutine.Config(
@@ -99,6 +95,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Runtime gating for SysId. */
   private boolean isSysIdEnabled() {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isTestEnabled() || frc.robot.RobotContainer.isPanicStopActive()) return false;
     return Constants.OperatorConstants.SysId.ENABLE_SYSID
         && SmartDashboard.getBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
   }
@@ -118,6 +115,7 @@ public class ShooterSubsystem extends SubsystemBase {
     motorVoltageSig = shooterLeader.getMotorVoltage();
     positionSig = shooterLeader.getPosition(); // SysId: log real position
     configureStatusSignals();
+    shooterLeader.hasResetOccurred(); shooterFollower.hasResetOccurred();
     dutyRequest = new DutyCycleOut(0);
     velocityRequest = new VelocityVoltage(0).withSlot(0).withEnableFOC(false);
 
@@ -182,14 +180,13 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Target shooter speed; gradual tracking changes retain the rolling readiness window. */
   public void setTargetRpm(double rpm) {
-    if (!hardwareConfigured || !Double.isFinite(rpm) || RobotContainer.isPanicStopActive()) {
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || !hardwareConfigured || !Double.isFinite(rpm) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
     double newTargetRpm = Math.max(0, rpm);
     double toleranceFraction = 1 - Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE;
     if (frc.robot.lib.ShooterReadinessPolicy.requiresNewWindow(targetRpm, newTargetRpm, toleranceFraction)) {
-      dipDetected = false;
       readySince = 0;
       wasReady = false;
       readinessArmed = false;
@@ -202,7 +199,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Temporarily run the shooter backward under velocity control. */
   public void setReverseTargetRpm(double rpm) {
-    if (!hardwareConfigured || !Double.isFinite(rpm) || RobotContainer.isPanicStopActive()) {
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || !hardwareConfigured || !Double.isFinite(rpm) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -216,7 +213,6 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     targetRpm = newTargetRpm;
-    dipDetected = false;
     readySince = 0.0;
     wasReady = false;
     readinessArmed = false;
@@ -227,7 +223,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Open-loop duty-cycle (for quick tests). */
   public void setDutyCycle(double duty) {
-    if (!hardwareConfigured || !Double.isFinite(duty) || RobotContainer.isPanicStopActive()) {
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || !hardwareConfigured || !Double.isFinite(duty) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -264,7 +260,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
   /** Shooter velocity in rotations/sec. */
   public double getVelocityRps() {
-    return velocitySig.getValueAsDouble();
+    return velocitySig == null ? Double.NaN : velocitySig.getValueAsDouble();
   }
 
   public double getVelocityRpm() {
@@ -272,7 +268,7 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public double getAppliedVolts() {
-    return motorVoltageSig.getValueAsDouble();
+    return motorVoltageSig == null ? Double.NaN : motorVoltageSig.getValueAsDouble();
   }
 
   /** "Power" as a duty-cycle estimate (applied volts / battery volts). */
@@ -289,23 +285,6 @@ public class ShooterSubsystem extends SubsystemBase {
         && velocitySig.getTimestamp().getLatency() < 0.1
         && frc.robot.lib.ShooterReadinessPolicy.instantaneouslyReady(getVelocityRpm(), targetRpm,
             1 - Constants.OperatorConstants.Shooter.READY_RPM_TOLERANCE);
-  }
-
-  /**
-   * True when we observed a speed dip after being ready (proxy for a ball hit).
-   */
-  public boolean wasDipDetected() {
-    return dipDetected;
-  }
-
-  /**
-   * Clear the dip-detected latch without resetting the target RPM.
-   *
-   * The auto-shoot command uses dip detection as a "ball fired" event and then
-   * clears it so the next ball can be detected.
-   */
-  public void clearDipDetected() {
-    dipDetected = false;
   }
 
   // ---------------- SysId factory commands ----------------
@@ -340,7 +319,6 @@ public class ShooterSubsystem extends SubsystemBase {
   shooterLeader.setControl(voltageRequest.withOutput(v));
 }
 
-
   private void sysIdLog(SysIdRoutineLog log) {
   if (!isSysIdEnabled()) {
     return;
@@ -355,37 +333,18 @@ public class ShooterSubsystem extends SubsystemBase {
       .angularVelocity(RotationsPerSecond.of(velocitySig.getValueAsDouble()));
 }
 
-
   @Override
   public void periodic() {
     if (!EnabledSubsystems.shooter){
       return;
     }
-      
+
+    if (shooterLeader.hasResetOccurred() | shooterFollower.hasResetOccurred()) stop();
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) stop();
     // refresh fast signals as a batch
     BaseStatusSignal.refreshAll(velocitySig, motorVoltageSig);
 
     double rpm = getVelocityRpm();
-
-    /*
-     * // Ready logic PREVIOUS
-     * boolean inTol = targetRpm > 1.0
-     * && Math.abs(rpm - targetRpm) <=
-     * Constants.OperatorConstants.Shooter.READY_TOLERANCE_RPM;
-     * 
-     * double now = Timer.getFPGATimestamp();
-     * if (inTol) {
-     * if (readySince <= 0.0)
-     * readySince = now;
-     * if (!wasReady && (now - readySince) >=
-     * Constants.OperatorConstants.Shooter.READY_MIN_TIME_S) {
-     * wasReady = true;
-     * }
-     * } else {
-     * readySince = 0.0;
-     * wasReady = false;
-     * }
-     */
 
         // Ready logic:
     // Do NOT start the readiness window during full spin-up.
@@ -432,11 +391,6 @@ public class ShooterSubsystem extends SubsystemBase {
       wasReady = false;
     }
 
-    // Dip detection
-    if (!dipDetected && wasReady && (lastRpm - rpm) >= Constants.OperatorConstants.Shooter.DIP_DETECT_DROP_RPM) {
-      dipDetected = true;
-    }
-    lastRpm = rpm;
     org.littletonrobotics.junction.Logger.recordOutput("Shooter/TargetRPM", targetRpm);
     org.littletonrobotics.junction.Logger.recordOutput("Shooter/MeasuredRPM", rpm);
     org.littletonrobotics.junction.Logger.recordOutput("Shooter/Ready", isReadyToShoot());
@@ -446,7 +400,6 @@ public class ShooterSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("Shooter/TargetRPM", targetRpm);
       SmartDashboard.putNumber("Shooter/RPM", rpm);
       SmartDashboard.putBoolean("Shooter/Ready", wasReady);
-      SmartDashboard.putBoolean("Shooter/DipDetected", dipDetected);
 
       SmartDashboard.putNumber("Shooter/AppliedVolts", getAppliedVolts());
       SmartDashboard.putNumber("Shooter/AppliedDuty", getAppliedDuty());
@@ -500,7 +453,6 @@ public class ShooterSubsystem extends SubsystemBase {
     return flywheelSim.getCurrentDrawAmps();
   }
 
-
   @Override
   public void simulationPeriodic() {
     if (!EnabledSubsystems.shooter) {
@@ -522,11 +474,9 @@ public class ShooterSubsystem extends SubsystemBase {
     double rps = flywheelSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
     simState.setRotorVelocity(rps);
 
-
     simPosRot += rps * dt;
     simState.setRawRotorPosition(simPosRot);
 
-    
   }
 
   /**

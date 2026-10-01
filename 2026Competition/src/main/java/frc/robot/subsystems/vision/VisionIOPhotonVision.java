@@ -55,6 +55,9 @@ public class VisionIOPhotonVision implements VisionIO {
     inputs.unreadResultCount = unreadResults.size();
 
     for (var result : unreadResults) {
+      if (Double.isFinite(result.getTimestampSeconds())) {
+        inputs.lastResultTimestampSeconds = Math.max(inputs.lastResultTimestampSeconds, result.getTimestampSeconds());
+      }
       // Latest simple target bearing (for future boresight aiming, not for fusion).
       if (result.hasTargets()) {
         inputs.latestTargetObservation =

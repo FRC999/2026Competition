@@ -46,7 +46,7 @@ import frc.robot.Constants.OperatorConstants.ClimbConstants.ClimbMotionMagicDuty
 
 public class ClimbSubsystem extends SubsystemBase {
 
-  private TalonFX climbMotorLeft; 
+  private TalonFX climbMotorLeft;
   private TalonFX climbMotorRight;
 
   // Motion Magic request (position is in rotations per Phoenix 6)
@@ -60,6 +60,7 @@ public class ClimbSubsystem extends SubsystemBase {
 
   // Last requested target (for telemetry + hold)
   private double lastSetpointRot = 0.0;
+  private boolean hardwareConfigured;
 
   // Status signals (for telemetry + SysId logs)
   private StatusSignal<Angle> leftPositionSig;
@@ -76,6 +77,7 @@ public class ClimbSubsystem extends SubsystemBase {
           new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "climb"));
 
   private boolean isSysIdEnabled() {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isTestEnabled() || frc.robot.RobotContainer.isPanicStopActive()) return false;
     if (!Constants.OperatorConstants.SysId.ENABLE_SYSID) {
       return false;
     }
@@ -151,14 +153,25 @@ public class ClimbSubsystem extends SubsystemBase {
     applyCurrentLimits(rightConfig);
 
     // Apply configs with retry (CAN hiccups happen)
-    applyWithRetry(climbMotorLeft, leftConfig, "Climb Left");
-    applyWithRetry(climbMotorRight, rightConfig, "Climb Right");
+    hardwareConfigured = applyWithRetry(climbMotorLeft, leftConfig, "Climb Left");
+    hardwareConfigured &= applyWithRetry(climbMotorRight, rightConfig, "Climb Right");
+    climbMotorLeft.hasResetOccurred(); climbMotorRight.hasResetOccurred();
 
     // Follower: right follows left. OpposeMasterDirection is a BOOLEAN in Phoenix 6.
     // false = same direction (most common when mechanically linked),
     // true  = opposite direction (mirrored mounting, etc.)
     boolean oppose = SmartDashboard.getBoolean("Climb/FollowerOpposeMaster", false);
-    //climbMotorRight.setControl(new Follower(ClimbConstants.climbMotorLeftID, MotorAlignmentValue.Opposed));
+    restoreFollower();
+  }
+
+  private boolean canOperate() {
+    return EnabledSubsystems.climber && hardwareConfigured && edu.wpi.first.wpilibj.DriverStation.isEnabled()
+        && !frc.robot.RobotContainer.isPanicStopActive();
+  }
+  private void restoreFollower() {
+    boolean oppose = SmartDashboard.getBoolean("Climb/FollowerOpposeMaster", false);
+    climbMotorRight.setControl(new Follower(ClimbConstants.climbMotorLeftID,
+        oppose ? MotorAlignmentValue.Opposed : MotorAlignmentValue.Aligned));
   }
 
   private void configureMotionMagicDutyCycle(TalonFXConfiguration config) {
@@ -193,8 +206,8 @@ public class ClimbSubsystem extends SubsystemBase {
 
     CurrentLimitsConfigs limits = new CurrentLimitsConfigs();
     limits.SupplyCurrentLimitEnable = enable;
-    limits.SupplyCurrentLimit = supplyLimitA;
     limits.SupplyCurrentLimit = supplyThresholdA;
+    limits.SupplyCurrentLowerLimit = supplyLimitA;
     limits.SupplyCurrentLowerTime = supplyThresholdTimeS;
 
     limits.StatorCurrentLimitEnable = enable;
@@ -203,15 +216,16 @@ public class ClimbSubsystem extends SubsystemBase {
     config.withCurrentLimits(limits);
   }
 
-  private void applyWithRetry(TalonFX motor, TalonFXConfiguration config, String name) {
+  private boolean applyWithRetry(TalonFX motor, TalonFXConfiguration config, String name) {
     StatusCode status = StatusCode.StatusCodeNotInitialized;
     for (int i = 0; i < 5; i++) {
       status = motor.getConfigurator().apply(config);
       if (status.isOK()) {
-        return;
+        return true;
       }
     }
-    System.out.println("Could not apply configs for " + name + ", error: " + status.toString());
+    edu.wpi.first.wpilibj.DriverStation.reportError("Could not configure " + name + ": " + status, false);
+    return false;
   }
 
   private void publishDashboardDefaults() {
@@ -238,12 +252,16 @@ public class ClimbSubsystem extends SubsystemBase {
 
   /** Motion Magic position setpoint (units: rotations). */
   public void setMotionMagicDutyCycle(double positionRot) {
+    if (!canOperate() || !Double.isFinite(positionRot)) { stopMotors(); return; }
+    restoreFollower();
     lastSetpointRot = positionRot;
     climbMotorLeft.setControl(motMagDutyCycle.withPosition(positionRot));
   }
 
   /** Manual open-loop output (-1..1). Useful for testing / emergency moves. */
   public void setDutyCycle(double dutyCycle) {
+    if (!canOperate() || !Double.isFinite(dutyCycle)) { stopMotors(); return; }
+    restoreFollower();
     // Clamp for safety (commentary: avoids accidental >1 inputs)
     double dc = MathUtil.clamp(dutyCycle, -1.0, 1.0);
     climbMotorLeft.setControl(percentOut.withOutput(dc));
@@ -255,16 +273,17 @@ public class ClimbSubsystem extends SubsystemBase {
       return;
     }
     climbMotorLeft.setControl(stopOut);
+    climbMotorRight.stopMotor();
   }
 
   /** Leader rotor position (rotations). */
   public double getClimbMotorEncoder() {
-    return climbMotorLeft.getRotorPosition().getValueAsDouble();
+    return climbMotorLeft == null ? Double.NaN : climbMotorLeft.getRotorPosition().getValueAsDouble();
   }
 
   /** Follower rotor position (rotations). */
   public double getClimbMotorRightEncoder() {
-    return climbMotorRight.getRotorPosition().getValueAsDouble();
+    return climbMotorRight == null ? Double.NaN : climbMotorRight.getRotorPosition().getValueAsDouble();
   }
 
   /** Returns absolute position error vs last setpoint (rotations). */
@@ -275,7 +294,9 @@ public class ClimbSubsystem extends SubsystemBase {
   /** Simple "at setpoint" check based on last setpoint and dashboard tolerance. */
   public boolean atSetpoint() {
     double tol = SmartDashboard.getNumber("Climb/AtSetpointTolRot", 0.05);
-    return getPositionErrorRot() <= tol;
+    return canOperate() && leftPositionSig.getStatus().isOK()
+        && leftPositionSig.getTimestamp().getLatency() < .1 && Double.isFinite(tol) && tol >= 0
+        && getPositionErrorRot() <= tol;
   }
 
   // ---------------------------------------------------------------------------
@@ -328,7 +349,6 @@ public class ClimbSubsystem extends SubsystemBase {
         this);
   }
 
-
   // ---------------------------------------------------------------------------
   // SYSID (Characterization)
   // ---------------------------------------------------------------------------
@@ -362,7 +382,7 @@ public class ClimbSubsystem extends SubsystemBase {
     }
     double dutyOut = v / batt;
     dutyOut = MathUtil.clamp(dutyOut, -1.0, 1.0);
-    climbMotorLeft.setControl(percentOut.withOutput(dutyOut));
+    setDutyCycle(dutyOut);
   }
 
   private void sysIdLog(SysIdRoutineLog log) {
@@ -409,19 +429,21 @@ public class ClimbSubsystem extends SubsystemBase {
     if (!EnabledSubsystems.climber) {
       return;
     }
+    BaseStatusSignal.refreshAll(leftPositionSig, leftVelocitySig, leftMotorVoltageSig);
+    if (!canOperate() || (climbMotorLeft.hasResetOccurred() | climbMotorRight.hasResetOccurred())) stopMotors();
+    org.littletonrobotics.junction.Logger.recordOutput("Climb/Configured", hardwareConfigured);
+    org.littletonrobotics.junction.Logger.recordOutput("Climb/PositionRot", getClimbMotorEncoder());
     if (DebugTelemetrySubsystems.climber) {
       publishTelemetry();
     }
   }
 
   public double getSimCurrentDrawAmps() {
-  if (!isSim || !EnabledSubsystems.hood) {
+  if (!isSim || !EnabledSubsystems.climber) {
     return 0.0;
   }
   return climbSim.getCurrentDrawAmps();
 }
-
-
 
   @Override
   public void simulationPeriodic() {
@@ -453,6 +475,5 @@ public class ClimbSubsystem extends SubsystemBase {
     rightSim.setRotorVelocity(-velRps);
     rightSim.setRawRotorPosition(-simPosRot);
 
-    
   }
 }

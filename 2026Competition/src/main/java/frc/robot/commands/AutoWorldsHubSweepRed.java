@@ -5,55 +5,48 @@
 package frc.robot.commands;
 
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.DeferredCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
-import frc.robot.lib.TrajectoryHelper;
-import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 
 public class AutoWorldsHubSweepRed extends SequentialCommandGroup {
   public AutoWorldsHubSweepRed() {
     addCommands(
+        PrecisionPathCommands.requireAlliance(RobotContainer.driveSubsystem, edu.wpi.first.wpilibj.DriverStation.Alliance.Red),
         new WaitCommand(3),
         Commands.defer(
             InitialAutoDeployWhileHeld::new,
             java.util.Set.of(RobotContainer.intakeSubsystem)),
-        new DeferredCommand(
-            () -> RobotContainer.runTrajectory2Poses(
-                true,
-                RobotContainer.driveSubsystem.getPose(),
-                TrajectoryHelper.AutoDesiredPoses.RedTrenchRight2),
-            java.util.Set.of(RobotContainer.driveSubsystem)),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
+        RobotContainer.approachCompetitionPath("BlueTrenchRight2_BlueNeutralHubRightMore"),
+        RobotContainer.followCompetitionPath(
             "BlueTrenchRight2_BlueNeutralHubRightMore",
             false,
-            false)
+            frc.robot.commands.PrecisionPathCommands.FieldFrame.ALLIANCE)
         .raceWith(new StartIntake()),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
+        RobotContainer.followCompetitionPath(
             "BlueNeutralHubRightMore_BlueOffCenter",
             false,
-            false)
+            frc.robot.commands.PrecisionPathCommands.FieldFrame.ALLIANCE)
         .raceWith(new StartIntake()),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
+        RobotContainer.followCompetitionPath(
             "BlueOffCenter_BlueNearTower",
             false,
-            false),
-        (new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+            frc.robot.commands.PrecisionPathCommands.FieldFrame.ALLIANCE),
+        (new ShootWhileHeld(frc.robot.lib.ShotPlanner.Mode.MOVING_AUTO, false)
            .alongWith(new RepeatIntakeRetractDeploy())
            )
             .raceWith(new WaitCommand(3.75)),
         new DeployIntakeSequence().raceWith(new WaitCommand(1.5)),
-        RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
+        RobotContainer.followCompetitionPath(
             "BlueNearTower_BlueDepotThrough",
             false,
-            false)
+            frc.robot.commands.PrecisionPathCommands.FieldFrame.ALLIANCE)
         .raceWith(new StartIntake()),
         // RobotContainer.runTrajectoryPathPlannerWithForceResetOfStartingPose(
         //     "BlueDepotThrough_BlueLeftLine",
         //     false,
         //     false),
-        (new ShootWhileHeld(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO, false)
+        (new ShootWhileHeld(frc.robot.lib.ShotPlanner.Mode.MOVING_AUTO, false)
             .alongWith(new RepeatIntakeRetractDeploy())
             )
             .raceWith(new WaitCommand(2)));

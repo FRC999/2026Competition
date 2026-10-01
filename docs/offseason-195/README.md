@@ -2,7 +2,7 @@
 
 This branch retrofits the **2026 competition robot**, retaining its drivetrain and mechanism geometry.
 It replaces the active Limelight/Quest localization with PhotonVision, adds a measured-motion finish
-to stopping paths, and corrects several turret, hood and shooting-readiness defects.
+to stopping paths, and refactors localization, driver controls, shot planning and mechanism ownership.
 
 **It is a software candidate for robot testing, not a calibrated competition release.** The shipped
 real-camera transforms are deliberately unmeasured. Those cameras can produce calibration data but
@@ -16,7 +16,7 @@ do not establish centimeter accuracy, shot percentage, or a safe mechanism envel
    the recurring workflow targets less than 30 minutes per camera.
 3. [Restore and verify the competition field](calibration.md#return-to-the-competition-field).
 4. [Run the acceptance tests](testing.md), beginning with disabled checks and low-speed motion.
-5. [Read the algorithm audit](audit.md) before tuning or enabling match autos.
+5. [Read the full issue/fix ledger](full-refactor-audit.md) and [initial audit](audit.md) before tuning or enabling match autos.
 
 ## Developers
 
@@ -32,7 +32,8 @@ $env:JAVA_HOME = 'C:\Users\Public\wpilib\2026\jdk'
 ```
 
 `robotSmoke` boots the complete robot in desktop simulation in a separate JVM, produces a WPILOG,
-and checks vision reception and the stationary default auto. It does not deploy. For a workstation
+and checks localization, alliance/perspective changes, command ownership, panic behavior and the
+stationary default auto. It does not deploy. For a workstation
 whose Java trust store cannot validate the dependency server's certificate chain, this session used
 the Windows root store (not disabled certificate verification):
 

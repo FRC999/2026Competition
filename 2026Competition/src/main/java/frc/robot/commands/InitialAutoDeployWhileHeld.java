@@ -32,7 +32,7 @@ public class InitialAutoDeployWhileHeld extends Command {
   public void end(boolean interrupted) {
     timeoutTimer.stop();
     RobotContainer.intakeSubsystem.disableInitialAutoDeployCurrentBoost();
-    RobotContainer.intakeSubsystem.stopPivotAndHoldCurrentPosition();
+    RobotContainer.intakeSubsystem.stopPivotInBrake();
   }
 
   @Override

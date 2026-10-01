@@ -229,19 +229,7 @@ class VisionPolicyTest {
   // Timing / gating rules (unchanged behavior, now on VisionPolicy).
   // ---------------------------------------------------------------------------------------------
 
-  @Test
-  void teleopAlwaysFusesVision() {
-    // Not autonomous -> always accept, regardless of the timer value.
-    assertTrue(VisionPolicy.shouldAcceptDuringAuto(false, 0.0));
-    assertTrue(VisionPolicy.shouldAcceptDuringAuto(false, 100.0));
-  }
 
-  @Test
-  void earlyAutoSuppressesThenResumes() {
-    double ignore = VisionConstants.AUTO_VISION_IGNORE_SECONDS;
-    assertTrue(!VisionPolicy.shouldAcceptDuringAuto(true, ignore - 0.05), "early auto must suppress fusion");
-    assertTrue(VisionPolicy.shouldAcceptDuringAuto(true, ignore + 0.05), "fusion resumes after the window");
-  }
 
   @Test
   void suppressesVisionFrameFromBeforeReset() {
@@ -251,20 +239,7 @@ class VisionPolicyTest {
     assertTrue(!VisionPolicy.isPreResetFrame(2.0, 1.5), "post-reset frame must be fused");
   }
 
-  @Test
-  void resetQuarantineSuppressesRecentPostResetFrames() {
-    // Frame timestamped just AFTER the reset but within the quarantine window -> still suppressed
-    // (catches queued/latency-delayed frames whose timestamp slipped past the reset).
-    assertTrue(
-        VisionPolicy.isResetSuppressed(100.05, 100.0, 100.1, 0.35), "post-reset frame in quarantine suppressed");
-  }
 
-  @Test
-  void resetQuarantineEndsAfterWindow() {
-    // Fresh frame well past the quarantine window -> fused.
-    assertTrue(
-        !VisionPolicy.isResetSuppressed(100.4, 100.0, 100.5, 0.35), "frame past the quarantine must be fused");
-  }
 
   @Test
   void targetXEmptyWhenNoTarget() {

@@ -45,12 +45,12 @@ import frc.robot.subsystems.vision.VisionPolicy.SingleTagStrategy;
  *       solves. Idea: 6328 {@code Vision.java} and the v2 strategy doc rule 7.4.
  *   <li><b>NaN / non-finite rejection</b>, <b>per-camera std-dev factors</b> (6328),
  *       <b>innovation logging</b> (pragmatic 3467), <b>structured rejection reasons</b> (3467),
- *       <b>early-auto vision ignore</b> (6328) -- see {@link VisionPolicy}.
+ *       capture-time reset rejection -- see {@link VisionPolicy}.
  *   <li><b>Selectable single-tag strategy</b> (2026-07-16): {@link SingleTagStrategy#TRIG_SOLVE}
  *       recomputes single-tag XY from the camera-to-tag translation + the odometry-buffer heading at
  *       the frame timestamp ({@link SingleTagTrigSolver}; idea: 6328 via PhotonVision
- *       {@code PNP_DISTANCE_TRIG_SOLVE}, 1678 C2026 production). Default remains the validated
- *       {@link SingleTagStrategy#PNP}; A/B autos in {@code RobotContainer} switch modes per run.
+ *       {@code PNP_DISTANCE_TRIG_SOLVE}, 1678 C2026 production). Default remains the retained
+ *       {@link SingleTagStrategy#PNP}; select modes explicitly for controlled experiments.
  *   <li><b>Selectable covariance model</b> (2026-07-16): {@link CovarianceModel#ANISOTROPIC} weights
  *       X/Y by the camera->tag ray direction (idea: 5940). Default remains
  *       {@link CovarianceModel#ISOTROPIC} until coefficients are fitted from robot logs.
@@ -86,6 +86,24 @@ public class Vision extends SubsystemBase {
   private final String[] cameraNames;
   private BooleanSupplier stationarySupplier = () -> false;
   private double lastFusedTimestamp = Double.NEGATIVE_INFINITY;
+  private final LocalizationBootstrap bootstrap = new LocalizationBootstrap();
+  private final LocalizationBootstrap.Sample[] trustedSamples;
+  private BooleanSupplier fieldReferenced = () -> false;
+  private java.util.function.Consumer<Pose2d> disabledPoseReset;
+  private double bootstrapLastResetTime = Double.NEGATIVE_INFINITY;
+  private final double startupTimestamp = Timer.getFPGATimestamp();
+  private final double[] firstConnectedSeconds, firstFrameSeconds, firstPoseSeconds, firstFusionSeconds;
+  private final double[] lastAcceptedTimestamp;
+
+  public void configureLocalization(BooleanSupplier referenced, java.util.function.Consumer<Pose2d> poseReset) {
+    fieldReferenced = referenced;
+    disabledPoseReset = poseReset;
+  }
+
+  /** Fresh XY alone is insufficient when no absolute field heading has been established. */
+  public boolean isLocalizationReady() { return fieldReferenced.getAsBoolean() && hasRecentMeasurement(); }
+  public String getInitializationStatus() { return bootstrap.status(); }
+
   private final Alert[] disconnectedAlerts;
   private final PoseJitterAccumulator[] jitterAccumulators;
   private boolean jitterCaptureActive;
@@ -100,12 +118,7 @@ public class Vision extends SubsystemBase {
   // whole board, not just the tags a camera happens to see this loop (Vision/Summary/TagPoses).
   private final Pose3d[] layoutTagPoses;
 
-  // Restarted whenever we are NOT in enabled autonomous, so it measures "seconds since auto start".
-  private final Timer autoTimer = new Timer();
-
-  // Experiment toggles (2026-07-16). Defaults are the validated 2026-06-30 baseline; the A/B autos in
-  // RobotContainer set these explicitly at the start of every run so a leftover mode from a previous
-  // test can never contaminate a comparison run.
+  // Experimental alternatives remain opt-in; coefficients require this robot's measurements.
   private SingleTagStrategy singleTagStrategy = SingleTagStrategy.PNP;
   private CovarianceModel covarianceModel = CovarianceModel.ISOTROPIC;
 
@@ -125,6 +138,10 @@ public class Vision extends SubsystemBase {
             .map(tag -> tag.pose)
             .toArray(Pose3d[]::new);
 
+    trustedSamples = new LocalizationBootstrap.Sample[io.length];
+    firstConnectedSeconds = emptyTimes(io.length); firstFrameSeconds = emptyTimes(io.length);
+    firstPoseSeconds = emptyTimes(io.length); firstFusionSeconds = emptyTimes(io.length);
+    lastAcceptedTimestamp = emptyTimes(io.length);
     inputs = new VisionIOInputsAutoLogged[io.length];
     lastFrameTimestamps = new double[io.length];
     Arrays.fill(lastFrameTimestamps, Double.NEGATIVE_INFINITY);
@@ -141,7 +158,10 @@ public class Vision extends SubsystemBase {
       jitterAccumulators[i] =
           new PoseJitterAccumulator(VisionConstants.CAMERA_JITTER_CAPTURE_SAMPLES);
     }
-    autoTimer.start();
+  }
+
+  private static double[] emptyTimes(int size) {
+    double[] values = new double[size]; Arrays.fill(values, Double.NEGATIVE_INFINITY); return values;
   }
 
   public void configureCameras(OffseasonVisionConfig config, BooleanSupplier stationarySupplier) {
@@ -171,7 +191,7 @@ public class Vision extends SubsystemBase {
         && age <= VisionConstants.MAX_FRAME_AGE_SECONDS;
   }
 
-  /** Selects how single-tag frames are solved. Set by the A/B autos; safe to call at any time. */
+  /** Selects how single-tag frames are solved. Set explicitly for controlled experiments. */
   public void setSingleTagStrategy(SingleTagStrategy strategy) {
     this.singleTagStrategy = strategy;
   }
@@ -180,7 +200,7 @@ public class Vision extends SubsystemBase {
     return singleTagStrategy;
   }
 
-  /** Selects the measurement-noise model. Set by the A/B autos; safe to call at any time. */
+  /** Selects the measurement-noise model. Set explicitly for controlled experiments. */
   public void setCovarianceModel(CovarianceModel model) {
     this.covarianceModel = model;
   }
@@ -240,7 +260,7 @@ public class Vision extends SubsystemBase {
    * heading infinite uncertainty.
    */
   public Optional<Pose2d> getFreshTrustedSeedPose() {
-    if (latestTrustedPose == null
+    if (!DriverStation.isDisabled() || !stationarySupplier.getAsBoolean() || latestTrustedPose == null
         || latestTrustedPoseTimestamp < lastResetTimeSupplier.getAsDouble()
         || Math.abs(Timer.getTimestamp() - latestTrustedPoseTimestamp)
             > VisionConstants.VISION_SEED_MAX_STALENESS_SECONDS) {
@@ -267,27 +287,29 @@ public class Vision extends SubsystemBase {
           "Vision/Timing/Camera" + i + "IoUpdateMs",
           (Timer.getFPGATimestamp() - ioStartSeconds) * 1000.0);
       Logger.processInputs("Vision/Camera" + i, inputs[i]);
+      if (inputs[i].connected && !Double.isFinite(firstConnectedSeconds[i]))
+        firstConnectedSeconds[i] = periodicStartSeconds - startupTimestamp;
+      if (inputs[i].unreadResultCount > 0 && !Double.isFinite(firstFrameSeconds[i]))
+        firstFrameSeconds[i] = periodicStartSeconds - startupTimestamp;
+      if (inputs[i].poseObservations.length > 0 && !Double.isFinite(firstPoseSeconds[i]))
+        firstPoseSeconds[i] = periodicStartSeconds - startupTimestamp;
       SmartDashboard.putNumberArray("Calibration/" + cameraNames[i] + "/FieldToCamera",
           capturePermitted ? inputs[i].rawFieldToCamera : new double[0]);
     }
 
-    // Idea: 6328 -- restart the timer whenever not in enabled auto; suppress vision for the first
-    // AUTO_VISION_IGNORE_SECONDS of autonomous so a stray frame cannot yank the known start pose.
-    if (!DriverStation.isAutonomousEnabled()) {
-      autoTimer.restart();
-    }
-    boolean acceptDuringAuto =
-        VisionPolicy.shouldAcceptDuringAuto(DriverStation.isAutonomousEnabled(), autoTimer.get());
-
     List<Pose3d> allAccepted = new LinkedList<>();
     List<Pose3d> allTrigSolved = new LinkedList<>();
-    List<Pose3d> allSuppressed = new LinkedList<>();
     List<Pose3d> allResetSuppressed = new LinkedList<>();
     List<Pose3d> allRejected = new LinkedList<>();
     List<Pose3d> allTagPoses = new LinkedList<>();
     Pose2d currentEstimate = robotPoseSupplier.get();
     double lastResetTime = lastResetTimeSupplier.getAsDouble();
     double now = Timer.getTimestamp();
+    if (lastResetTime > bootstrapLastResetTime) {
+      Arrays.fill(trustedSamples, null);
+      bootstrap.clear();
+      bootstrapLastResetTime = lastResetTime;
+    }
 
     for (int cam = 0; cam < io.length; cam++) {
       disconnectedAlerts[cam].set(!inputs[cam].connected);
@@ -296,6 +318,10 @@ public class Vision extends SubsystemBase {
         VisionConstants.FIELD_LAYOUT.getTagPose(tagId).ifPresent(allTagPoses::add);
       }
 
+      String phase = !cameraFusionEnabled[cam] ? "UNCALIBRATED_OR_LAYOUT_UNCONFIRMED"
+          : !inputs[cam].connected ? "DISCONNECTED"
+          : inputs[cam].unreadResultCount > 0 ? "FRAME_WITHOUT_SOLVABLE_POSE"
+          : "WAITING_FOR_FRESH_FRAME";
       int accepted = 0;
       int rejected = 0;
       double fusionDurationMs = 0.0;
@@ -308,28 +334,18 @@ public class Vision extends SubsystemBase {
               : RejectionReason.UNCALIBRATED_OR_LAYOUT_UNCONFIRMED;
         }
         if (reason != RejectionReason.ACCEPTED) {
+          phase = reason.toString();
           allRejected.add(obs.pose());
           rejected++;
           Logger.recordOutput("Vision/Camera" + cam + "/LastRejectionReason", reason.toString());
           continue;
         }
 
-        // Reset gate: discard a frame captured before the last reset (timestamp check) OR any frame during
-        // a short quarantine window right after a reset. The 2026-07-01 sim log showed queued/sim-delayed
-        // frames whose timestamp slipped just past the reset still bouncing the fresh pose back; the
-        // quarantine catches those. Both parts are self-limiting once the vision stream tracks the new pose.
-        if (VisionPolicy.isResetSuppressed(
-            obs.timestamp(), lastResetTime, now, VisionConstants.RESET_QUARANTINE_SECONDS)) {
+        // Reject capture times from before an explicit pose reset. Never delay fresh frames
+        // merely because autonomous just started.
+        if (VisionPolicy.isPreResetFrame(obs.timestamp(), lastResetTime)) {
+          phase = "PRE_RESET_FRAME";
           allResetSuppressed.add(obs.pose());
-          continue;
-        }
-
-        // Early-auto gate (6328): a validated frame is NOT fused during the first
-        // AUTO_VISION_IGNORE_SECONDS of autonomous, so a stray early frame cannot move the known start
-        // pose. Suppressed poses are logged on their OWN channel (not AcceptedPoses) so a log reader can
-        // tell "validated but withheld" from "actually fused."
-        if (!acceptDuringAuto) {
-          allSuppressed.add(obs.pose());
           continue;
         }
 
@@ -373,6 +389,7 @@ public class Vision extends SubsystemBase {
 
         // Preserve an eligible MultiTag pose for the operator's explicit manual seed even when
         // running estimator fusion is configured XY-only while enabled.
+        if (seedRotationEligible) trustedSamples[cam] = new LocalizationBootstrap.Sample(cam, obs.timestamp(), fusedPose.toPose2d());
         if (seedRotationEligible && obs.timestamp() >= latestTrustedPoseTimestamp) {
           latestTrustedPose = fusedPose.toPose2d();
           latestTrustedPoseTimestamp = obs.timestamp();
@@ -381,6 +398,10 @@ public class Vision extends SubsystemBase {
         double fusionStartSeconds = Timer.getFPGATimestamp();
         consumer.accept(fusedPose.toPose2d(), obs.timestamp(), stdDevs);
         lastFusedTimestamp = Math.max(lastFusedTimestamp, obs.timestamp());
+        lastAcceptedTimestamp[cam] = obs.timestamp();
+        if (!Double.isFinite(firstFusionSeconds[cam])) firstFusionSeconds[cam] = now - startupTimestamp;
+        phase = "FUSING";
+        Logger.recordOutput("Vision/Camera" + cam + "/LastRejectionReason", "ACCEPTED");
         fusionDurationMs += (Timer.getFPGATimestamp() - fusionStartSeconds) * 1000.0;
         accepted++;
         // AcceptedPoses == frames actually fused (matches the AcceptedFrames count below).
@@ -400,7 +421,29 @@ public class Vision extends SubsystemBase {
       Logger.recordOutput("Vision/Camera" + cam + "/Connected", inputs[cam].connected);
       Logger.recordOutput("Vision/Timing/Camera" + cam + "FusionMs", fusionDurationMs);
       logJitterOutputs(cam);
+      Logger.recordOutput("Vision/Camera" + cam + "/AcquisitionPhase", phase);
+      Logger.recordOutput("Vision/Camera" + cam + "/FrameAgeSeconds", now - inputs[cam].lastResultTimestampSeconds);
+      Logger.recordOutput("Vision/Camera" + cam + "/AcceptedAgeSeconds", now - lastAcceptedTimestamp[cam]);
+      Logger.recordOutput("Vision/Camera" + cam + "/Startup/FirstConnectedSeconds", firstConnectedSeconds[cam]);
+      Logger.recordOutput("Vision/Camera" + cam + "/Startup/FirstFrameSeconds", firstFrameSeconds[cam]);
+      Logger.recordOutput("Vision/Camera" + cam + "/Startup/FirstPoseSeconds", firstPoseSeconds[cam]);
+      Logger.recordOutput("Vision/Camera" + cam + "/Startup/FirstFusionSeconds", firstFusionSeconds[cam]);
     }
+
+    if (disabledPoseReset != null) {
+      bootstrap.update(now, DriverStation.isDisabled(), stationarySupplier.getAsBoolean(),
+          fieldReferenced.getAsBoolean(), currentEstimate, Arrays.asList(trustedSamples)).ifPresent(pose -> {
+            disabledPoseReset.accept(pose);
+            Logger.recordOutput("Vision/Initialization/SeedPose", pose);
+            Logger.recordOutput("Vision/Initialization/SeedTimeSeconds", now - startupTimestamp);
+          });
+    }
+    Logger.recordOutput("Vision/Initialization/State", bootstrap.status());
+    Logger.recordOutput("Vision/Initialization/StableSamples", bootstrap.sampleCount());
+    Logger.recordOutput("Vision/Initialization/FieldReferenceEstablished", fieldReferenced.getAsBoolean());
+    Logger.recordOutput("Vision/LocalizationReady", isLocalizationReady());
+    SmartDashboard.putString("Vision/InitializationState", bootstrap.status());
+    SmartDashboard.putBoolean("Vision/LocalizationReady", isLocalizationReady());
 
     boolean comparisonReady =
         jitterAccumulators.length >= 2
@@ -443,11 +486,9 @@ public class Vision extends SubsystemBase {
     // Subset of AcceptedPoses whose XY came from the trig solver -- lets AdvantageScope overlay the
     // two single-tag strategies directly during A/B runs.
     Logger.recordOutput("Vision/Summary/TrigSolvedPoses", allTrigSolved.toArray(Pose3d[]::new));
-    Logger.recordOutput("Vision/Summary/AutoSuppressedPoses", allSuppressed.toArray(Pose3d[]::new));
     Logger.recordOutput("Vision/Summary/ResetSuppressedPoses", allResetSuppressed.toArray(Pose3d[]::new));
     Logger.recordOutput("Vision/Summary/RejectedPoses", allRejected.toArray(Pose3d[]::new));
     Logger.recordOutput("Vision/Summary/TagPoses", allTagPoses.toArray(Pose3d[]::new));
-    Logger.recordOutput("Vision/Summary/AcceptingDuringAuto", acceptDuringAuto);
     // The active experiment modes, logged every loop so every A/B log names its configuration.
     Logger.recordOutput("Vision/Modes/SingleTagStrategy", singleTagStrategy.toString());
     Logger.recordOutput("Vision/Modes/CovarianceModel", covarianceModel.toString());

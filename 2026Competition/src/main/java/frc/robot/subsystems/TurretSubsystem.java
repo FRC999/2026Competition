@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-										  
 import static edu.wpi.first.units.Units.Rotations;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.Seconds;
@@ -57,22 +56,10 @@ import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.RobotContainer;
 import frc.robot.Constants.OperatorConstants.Turret;
 
-
-/**
- * Turret using an absolute CAN Through-Bore (CANcoder) sensor (wraps every 360 deg) on a Talon FXS.
- *
- * <p>Key requirements (your rules):
- * <ul>
- *   <li>At boot, turret is within +/- 180 degrees of forward.</li>
- *   <li>Turret must never go beyond +/- 340 degrees of forward (umbilical safety).</li>
- *   <li>We track multi-turn angle in software (unwrap absolute) to enforce +/-340.</li>
- *   <li>We use hardware PID (PositionVoltage) but we dynamically toggle ContinuousWrap:
- *       <ul>
- *         <li>Wrap ON for "short way" moves (|delta| <= 180 deg)</li>
- *         <li>Wrap OFF when the short way would violate the +/-340 rule (forcing the long way)</li>
- *       </ul>
- *   </li>
- * </ul>
+/** TalonFX turret with a pinion CANcoder boot reference and continuous integrated position.
+ * Boot requires known physical stow within half a pinion turn (+/-16.36 turret degrees).
+ * +/-110 degree command limits protect the robot perimeter; zero points toward the robot rear.
+ * ContinuousWrap stays disabled, and measured overshoot is never hidden by clamping.
  */
 public class TurretSubsystem extends SubsystemBase {
   private static final double ABS_SEED_SAMPLE_PERIOD_SEC = 0.01;
@@ -90,14 +77,14 @@ public class TurretSubsystem extends SubsystemBase {
   private final DutyCycleOut dutyRequest = new DutyCycleOut(0);
 
   private final MotionMagicVoltage mmRequest = new MotionMagicVoltage(0).withSlot(0).withEnableFOC(false);
-																							  
+
   private final VoltageOut voltageRequest = new VoltageOut(0).withEnableFOC(false);
 
   // Track what we last commanded so simulation can use true volts (not normalized output).
 
   // Absolute CAN Through-Bore in signed rotations (-0.5..+0.5). Wraps every revolution.
   private final StatusSignal<Angle> absPosSig = throughboreCANcoder.getAbsolutePosition();
-																				 
+
   // Motor voltage is used for telemetry and SysId logging.
   private StatusSignal<Voltage> motorVoltageSig;
 
@@ -120,13 +107,12 @@ public class TurretSubsystem extends SubsystemBase {
   /** last wrapped absolute angle (deg) in [0, 360) */
   private double lastAbsDegWrapped = 0.0;
 
-  /** continuous turret angle (deg), 0=forward, CCW positive, clamped to +/-340 */
+  /** continuous turret angle (deg), 0=robot rear, CCW positive; never clamped */
   private double continuousDeg = 0.0;
 
   // Unclamped multi-turn angle directly from motor position (deg).
   // This is what we use for visualization wrapping in Mechanism2d.
   private double continuousDegUnclamped = 0.0;
-
 
   /** derived velocity estimate */
   private double lastContinuousDeg = 0.0;
@@ -135,7 +121,7 @@ public class TurretSubsystem extends SubsystemBase {
   private double rawVelDegPerSec = 0.0;
   private final LinearFilter velocityFilter = LinearFilter.singlePoleIIR(0.05, 0.02);
 
-  /** continuous target angle (deg) in [-340, +340] */
+  /** continuous target angle (deg) inside the configured perimeter range */
   private double targetDeg = 0.0;
 
   /** turret ZERO reference in degrees in the absolute sensor frame */
@@ -169,9 +155,7 @@ private final double forwardDeg =
 
   // Integrated simulated position in rotations.
   private double simPosRot = 0.0;
-  // Optional: simple supply drop model (ohms), same idea as KrakenMotorSubsystem.
   private static final double SIM_MOTOR_RESISTANCE_OHMS = 0.002;
-
 
   // ---------------- SysId Characterization ----------------
 
@@ -185,9 +169,10 @@ private final double forwardDeg =
 
   /**
    * Runtime gating for SysId. Requires BOTH compile-time enable and dashboard enable.
-													
+
    */
   private boolean isSysIdEnabled() {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isTestEnabled() || frc.robot.RobotContainer.isPanicStopActive()) return false;
     // Both gates must be true to allow SysId to actually move hardware.
     return Constants.OperatorConstants.SysId.ENABLE_SYSID
         && SmartDashboard.getBoolean(Constants.OperatorConstants.SysId.SYSID_DASH_ENABLE_KEY, false);
@@ -228,10 +213,9 @@ private final double forwardDeg =
         // SmartDashboard.putData("Turret/Mechanism", turretMech);
     }
 
-												
   }
 
-  private void configureStatusSignals() {			  
+  private void configureStatusSignals() {
     // We want absolute angle to update quickly for unwrap math + control decisions.
     absPosSig.setUpdateFrequency(100.0);
 
@@ -248,8 +232,8 @@ private final double forwardDeg =
     turret.optimizeBusUtilization();
   }
 
-  private InvertedValue motorInvertedValue() {			
-																			  
+  private InvertedValue motorInvertedValue() {
+
     // Convert the project constant into Phoenix's inversion enum.
     return Constants.OperatorConstants.Turret.MOTOR_INVERTED
         ? InvertedValue.CounterClockwise_Positive
@@ -258,7 +242,7 @@ private final double forwardDeg =
 
   private SensorPhaseValue sensorPhaseValue() {
     // Sensor phase aligns the remote sensor's positive direction with the motor/controller convention.
-																									 
+
     boolean inverted = Constants.OperatorConstants.Turret.SENSOR_PHASE_INVERTED;
     return inverted ? SensorPhaseValue.Opposed : SensorPhaseValue.Aligned;
   }
@@ -317,7 +301,7 @@ private final double forwardDeg =
         .withReverseSoftLimitThreshold(ANGLE_SIGN * motorRotFromTurretDeg(Turret.MAX_ANGLE_DEG)));
 
   hardwareConfigured = turret.getConfigurator().apply(cfg).isOK();
-}			  
+}
 
   public final double getRelativePosition() {
     // Integrated/relative position from CANcoder in rotations (does not wrap in the same way).
@@ -330,7 +314,6 @@ private final double forwardDeg =
     return throughboreCANcoder.getAbsolutePosition().getValueAsDouble();
   }
 
-								
   // private void setContinuousWrap(boolean enable) {
   //   // If we're already in the desired wrap mode, do nothing (avoid CAN config spam).
   //   if (enable == continuousWrapEnabled) return;
@@ -345,7 +328,7 @@ private final double forwardDeg =
 
   /**
    * Read absolute angle (deg) in [0, 360).
-   * If signal is stale, returns last known value.					   
+   * If signal is stale, returns last known value.
    */
   private double getAbsDegWrapped(boolean refreshSignal) {
     if (refreshSignal) {
@@ -441,7 +424,7 @@ private final double forwardDeg =
     double absRot = absDeg / 360.0;
 
     // Initialize last wrapped state for future delta calculations.
-    lastAbsDegWrapped = absDeg;	
+    lastAbsDegWrapped = absDeg;
 
     double motorRotError = MathUtil.inputModulus(
         absRot - Constants.OperatorConstants.Turret.ABS_ZERO_ROTATIONS,
@@ -479,16 +462,16 @@ private final double forwardDeg =
 
     // Initialize velocity bookkeeping.
     lastContinuousDeg = continuousDeg;
-														 
+
     // Initialize dt tracking so velocity math starts clean.
     lastUpdateTs = Timer.getFPGATimestamp();
 
     // Start target at current so there is no immediate step command.
     targetDeg = continuousDeg;
-							 
+
     // Publish seed diagnostics to dashboard.
     // SmartDashboard.putNumber("Turret/SeedAbsDeg", absDeg);
-    // SmartDashboard.putNumber("Turret/SeedContinuousDeg", continuousDeg);	 
+    // SmartDashboard.putNumber("Turret/SeedContinuousDeg", continuousDeg);
   }
 
   public void zeroTurretAngle() {
@@ -496,8 +479,8 @@ private final double forwardDeg =
   }
 
   /**
-   * Update continuousDeg by unwrapping absolute position, clamping to +/-340.
-																	   
+   * Update continuous angle from trusted integrated motor position without clamping.
+
    */
   private void updateContinuousAngle() {
     double now = Timer.getFPGATimestamp();
@@ -534,11 +517,9 @@ private final double forwardDeg =
       SmartDashboard.putNumber("Turret/MotorSensorRot", motorRotSensor);
     }
 
-
     // Keep abs wrapped for telemetry/diagnostics
-  lastAbsDegWrapped = getAbsDegWrapped(false);    
+  lastAbsDegWrapped = getAbsDegWrapped(false);
   }
-
 
   // ---------------- Public API ----------------
 
@@ -555,6 +536,7 @@ private final double forwardDeg =
 
   public double getAppliedVolts() {
     // Refresh motor voltage signal (ensures telemetry reflects current output).
+    if (motorVoltageSig == null) return Double.NaN;
     motorVoltageSig.refresh();
     return motorVoltageSig.getValueAsDouble();
   }
@@ -570,12 +552,12 @@ private final double forwardDeg =
     ticks %= ABS_TICKS_PER_REV_UI;
     if (ticks < 0) ticks += ABS_TICKS_PER_REV_UI;
     return ticks;
-							
+
   }
 
   /** Open-loop manual control with safety clamp. */
   public void setDutyCycle(double duty) {
-    if (!isPositionTrusted() || !Double.isFinite(duty) || RobotContainer.isPanicStopActive()) {
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || !isPositionTrusted() || !Double.isFinite(duty) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -587,7 +569,6 @@ private final double forwardDeg =
 
     duty = MathUtil.clamp(duty, -maxDuty, maxDuty);
 
-
     // Send open-loop command to the motor controller.
 
     // alex test
@@ -595,7 +576,7 @@ private final double forwardDeg =
   }
 
   public void setVoltageVolts(double volts) {
-    if (!isPositionTrusted() || !Double.isFinite(volts) || RobotContainer.isPanicStopActive()) {
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || !isPositionTrusted() || !Double.isFinite(volts) || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -607,7 +588,6 @@ private final double forwardDeg =
     // alex test
     turret.setControl(voltageRequest.withOutput(v));
   }
-
 
   public void stop() {
     if (!EnabledSubsystems.turret || turret == null) {
@@ -657,7 +637,7 @@ private final double forwardDeg =
   public void goToAngleDeg(double desiredDeg) {
     var target = TurretMotionPolicy.motorPositionTarget(desiredDeg, Turret.MIN_ANGLE_DEG,
         Turret.MAX_ANGLE_DEG, Turret.GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT, ANGLE_SIGN,
-        isPositionTrusted() && !RobotContainer.isPanicStopActive());
+        isPositionTrusted() && edu.wpi.first.wpilibj.DriverStation.isEnabled() && !RobotContainer.isPanicStopActive());
     if (target.isEmpty()) { stop(); return; }
     targetDeg = MathUtil.clamp(desiredDeg, Turret.MIN_ANGLE_DEG, Turret.MAX_ANGLE_DEG);
     // Always issue the current setpoint, including small corrections and recovery from open-loop stop.
@@ -696,14 +676,6 @@ private final double forwardDeg =
   }
 
   // ============================CALIBRATION METHODS===============================
-
-  // Calibration sweep state
-  private boolean isCalSweepEnabled = false;
-  private double calSweepStartTimeSec = 0.0;
-
-  // Live-tuned gains (calibration only)
-  private double tunedKp = Constants.OperatorConstants.Turret.kP;
-  private double tunedKd = Constants.OperatorConstants.Turret.kD;
 
   public void reseedIntegratedFromAbsoluteNow() {
     if (!edu.wpi.first.wpilibj.DriverStation.isDisabled() || turret == null) return;
@@ -749,130 +721,6 @@ private final double forwardDeg =
     }
   }
 
-  public void adjustKp(double delta) {
-    tunedKp = Math.max(0.0, tunedKp + delta);
-    applyTunedGains();
-  }
-
-  public void adjustKd(double delta) {
-    tunedKd = Math.max(0.0, tunedKd + delta);
-    applyTunedGains();
-  }
-
-  private void applyTunedGains() {
-    Slot0Configs slot0 = new Slot0Configs()
-        .withKP(tunedKp)
-        .withKI(Constants.OperatorConstants.Turret.kI)
-        .withKD(tunedKd)
-        .withKS(Constants.OperatorConstants.Turret.kS)
-        .withKV(Constants.OperatorConstants.Turret.kV)
-        .withKA(Constants.OperatorConstants.Turret.kA);
-
-    turret.getConfigurator().apply(slot0);
-    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
-      SmartDashboard.putNumber("Turret/TunedKP", tunedKp);
-      SmartDashboard.putNumber("Turret/TunedKD", tunedKd);
-    }
-  }
-
-  // =======================
-  // Calibration API
-  // =======================
-
-  /**
-   * Calibration: reseed TalonFX integrated position from absolute encoder NOW.
-   */
-  public void calibrationReseedIntegratedFromAbsoluteNow() {
-    if (!edu.wpi.first.wpilibj.DriverStation.isDisabled() || turret == null) return;
-    double absRot = sampleAbsoluteForSeed() / 360.0;
-    double absDeg = wrapTo0To360(absRot * 360.0);
-    lastAbsDegWrapped = absDeg;
-
-    double motorRotError = MathUtil.inputModulus(
-        absRot - Constants.OperatorConstants.Turret.ABS_ZERO_ROTATIONS,
-        -0.5,
-        0.5);
-    double deltaDeg = computeTurretSeedDegFromAbsoluteRot(absRot);
-    boolean validSeed =
-        Math.abs(deltaDeg) <= Constants.OperatorConstants.Turret.BOOT_MAX_ABS_DEG;
-    lastSeedWasValid = validSeed;
-
-    publishSeedTelemetry("Turret/Cal/Reseed/", absRot, motorRotError, deltaDeg, validSeed);
-
-    if (!validSeed) {
-      zeroCalibratedFromAbsolute = false;
-      return;
-    }
-
-    continuousDeg = deltaDeg;
-    continuousDegUnclamped = deltaDeg;
-
-    double motorRot = motorRotFromTurretDeg(continuousDeg);
-    zeroCalibratedFromAbsolute = hardwareConfigured && turret.setPosition(ANGLE_SIGN * motorRot).isOK();
-
-    targetDeg = continuousDeg;
-    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
-      SmartDashboard.putNumber("Turret/Cal/ReseedAbsDegWrapped", absDeg);
-      SmartDashboard.putNumber("Turret/Cal/ReseedContinuousDeg", continuousDeg);
-    }
-  }
-
-  /**
- * Calibration: capture current absolute CANcoder reading for diagnostics.
- * Zero is now defined by ABS_ZERO_ROTATIONS plus the CANcoder magnet offset.
- */
-public void calibrationCaptureAbsZeroTicksCandidate() {
-  int ticks = getAbsoluteTicks();
-  if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
-    SmartDashboard.putNumber("Turret/AbsTicks", ticks);
-  }
-}
-
-  /**
-   * Calibration: go to a turret angle using Motion Magic (wrap disabled,
-   * clamped).
-   */
-  public void calibrationGoToAngleDeg(double desiredDeg) {
-    goToAngleDeg(desiredDeg); // uses your updated MotionMagicVoltage + clamp + wrap-off behavior
-  }
-
-  /** Calibration: start/stop a sweep test. */
-  public void calibrationStartSweep() {
-    // Using internal state so the command can just toggle enable/disable.
-    isCalSweepEnabled = true;
-    calSweepStartTimeSec = Timer.getFPGATimestamp();
-    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
-      SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", true);
-    }
-  }
-
-  public void calibrationStopSweep() {
-    isCalSweepEnabled = false;
-    if (DebugTelemetrySubsystems.turret || DebugTelemetrySubsystems.calibration) {
-      SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", false);
-    }
-  }
-
-  /** Calibration: adjust tuned Slot0 kP by delta (testing only). */
-  public void calibrationAdjustKp(double delta) {
-    tunedKp = Math.max(0.0, tunedKp + delta);
-    applyTunedGains();
-  }
-
-  /** Calibration: adjust tuned Slot0 kD by delta (testing only). */
-  public void calibrationAdjustKd(double delta) {
-    tunedKd = Math.max(0.0, tunedKd + delta);
-    applyTunedGains();
-  }
-
-  public void calibrationToggleSweep() {
-  if (isCalSweepEnabled) {
-    calibrationStopSweep();
-  } else {
-    calibrationStartSweep();
-  }
-}
-
   // ---------------- SysId commands ----------------
 
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
@@ -909,7 +757,6 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     setVoltageVolts(v);
   }
 
-
   private void sysIdLog(SysIdRoutineLog log) {
     // Only log when SysId is enabled.
     if (!isSysIdEnabled()) return;
@@ -920,7 +767,6 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
         .angularVelocity(RotationsPerSecond.of(estVelDegPerSec / 360.0));
   }
 
-
   @Override
   public void periodic() {
     if (!EnabledSubsystems.turret) {
@@ -930,7 +776,7 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     // Update continuous (multi-turn) angle state every loop.
     if (turret.hasResetOccurred()) zeroCalibratedFromAbsolute = false;
     updateContinuousAngle();
-    if (!isPositionTrusted()) stop();
+    if (!isPositionTrusted() || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) stop();
     Logger.recordOutput("Turret/PositionTrusted", isPositionTrusted());
     Logger.recordOutput("Turret/MeasuredDegrees", continuousDegUnclamped);
     Logger.recordOutput("Turret/VelocityDegPerSec", rawVelDegPerSec);
@@ -961,26 +807,7 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
       SmartDashboard.putBoolean("Turret/ContinuousWrapEnabled", continuousWrapEnabled);
       SmartDashboard.putNumber("Turret/ErrorDeg", targetDeg - continuousDeg);
       SmartDashboard.putBoolean("Turret/At1Deg", Math.abs(targetDeg - continuousDeg) <= 1.0);
-      SmartDashboard.putBoolean("Turret/Cal/SweepEnabled", isCalSweepEnabled);
-    } 
-
-    // Calibration sweep: ping-pong between CAL_SWEEP_MIN_DEG and CAL_SWEEP_MAX_DEG.
-    // if (isCalSweepEnabled) {
-    //   double t = Timer.getFPGATimestamp() - calSweepStartTimeSec;
-
-    //   double period = Constants.OperatorConstants.Turret.CAL_SWEEP_PERIOD_SEC;
-    //   double minDeg = Constants.OperatorConstants.Turret.CAL_SWEEP_MIN_DEG;
-    //   double maxDeg = Constants.OperatorConstants.Turret.CAL_SWEEP_MAX_DEG;
-
-    //   // Triangle wave in [0, 1]
-    //   double phase = (t % period) / period; // [0,1)
-    //   double tri = phase < 0.5 ? (phase * 2.0) : (2.0 - phase * 2.0);
-
-    //   double cmdDeg = minDeg + (maxDeg - minDeg) * tri;
-
-    //   calibrationGoToAngleDeg(cmdDeg);
-    //   SmartDashboard.putNumber("Turret/Cal/SweepCmdDeg", cmdDeg);
-    // }
+    }
 
     if (Constants.DebugTelemetrySubsystems.turret && turretArm != null) {
       turretArm.setAngle(wrapTo0To360(continuousDegUnclamped));
@@ -994,7 +821,6 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     }
     return turret.getSimState().getSupplyCurrent();
   }
-
 
   @Override
   public void simulationPeriodic() {
@@ -1011,7 +837,6 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     // Phoenix simulated state
     var simState = turret.getSimState();
 
-    // Give the controller a sane supply voltage first (same idea as KrakenMotorSubsystem)
     simState.setSupplyVoltage(12.0);
 
     // Feed CTRE’s motor voltage output into WPILib’s motor physics model
@@ -1038,11 +863,8 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
 
     encoderSimState.setVelocity(velRps);
 
-    // Optional: approximate battery sag (identical concept to KrakenMotorSubsystem)
     simState.setSupplyVoltage(RoboRioSim.getVInVoltage());
   }
-
-
 
   // ---------------- Helpers ----------------
 
@@ -1052,7 +874,7 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     if (d < 0) d += 360.0;
     return d;
   }
- 
+
     /** wrap to (-180, 180] */
   private static double wrapToPlusMinus180(double deg) {
     // Wrap degrees into (-180,180] to compute shortest signed difference.
@@ -1060,7 +882,5 @@ public void calibrationCaptureAbsZeroTicksCandidate() {
     if (d < 0) d += 360.0;
     return d - 180.0;
   }
-
-  
 
 }

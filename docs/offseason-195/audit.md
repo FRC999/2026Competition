@@ -1,5 +1,9 @@
 # Retrofit decisions and code audit
 
+The [full refactor ledger](full-refactor-audit.md) extends this initial retrofit audit with startup
+state machines, all active mechanisms, controls, RED path flags, old locations and verification.
+Its current behavior supersedes earlier descriptions where called out.
+
 ## Provenance and scope
 
 Target base: `FRC999/2026Competition`, `Houston---afternoon-Friday`,
@@ -25,15 +29,15 @@ longer depend on Limelight or Quest. Other mechanisms retain their existing hard
 |---|---|---|
 | Camera transforms | Prototype calibration belongs to another robot | Startup JSON has six editable values per camera; unmeasured cameras cannot fuse |
 | Field identity | Two-tag and competition layouts can silently disagree across devices | File hash acknowledgment, official profile/layout consistency check, explicit startup-only switching |
-| Vision freshness | Queued/duplicate/future frames can corrupt timing | Drain all unread results, use newest solvable pose per camera, gate age/order/future time, quarantine resets |
+| Vision freshness | Queued/duplicate/future frames can corrupt timing | Drain all unread results, use newest solvable pose per camera, gate age/order/future time, reject captures preceding a reset |
 | Time bases | Existing CTRE consumer already converted FPGA timestamps | Exactly one conversion remains in DriveSubsystem |
-| Heading | A single AprilTag is a weak yaw source | Single-tag rotation is never fused; enabled heading remains gyro-owned; disabled trusted MultiTag seed is explicit |
+| Heading | A single AprilTag is a weak yaw source | Single-tag rotation is never fused; enabled heading remains gyro-owned; disabled stationary stable MultiTag initializes automatically; manual seed remains available |
 | Endpoint arrival | Timed PathPlanner completion did not prove settled arrival | Complete stopping paths end with profiled pose/motion qualification; timeout differs from success |
 | Path reuse | Cached paths can inherit mutated flip flags | Copy path, resolve alliance once, set preventFlipping only on the resolved copy |
 | Two-pose generation | Robot yaw was used as path tangent; some reset paths ended at 2 m/s | Geometric tangent is separate from desired yaw; generated stopping move has zero final velocity |
 | Stopping | A later default motion request can undo a precision hold | Capture measured module angles; neutral/auto default behavior preserves hold; new motion clears hold |
 | Failure handling | A failed endpoint must not advance to a subsequent shot | Hold sequence and latch autonomous feed inhibition, including parallel shooting commands |
-| Pose angles | `new Rotation2d(±90)` was radians, not degrees | Corrected the two constants to `fromDegrees` |
+| Pose angles | `new Rotation2d(±90)` was radians, not degrees | First retrofit corrected radians; full refactor then removed the unused pose constants |
 | Turret setpoint | Small-error early return could retain a stale controller request after stop | Every valid setpoint is sent; continuous angle is not wrapped across prohibited travel |
 | Turret position | Clamped feedback could conceal an overshoot; failed seed used fallback angle | Report actual angle, require configured/fresh/trusted position; invalid seed does not authorize output |
 | Turret limits | Java clamping alone did not cover all motor-control modes | CTRE rotor soft limits preserve existing ±110° perimeter range; auto aim retains ±105° |
@@ -95,7 +99,7 @@ deliberately provide a legal shooting heading; do not silently twist the chassis
 - Automatic feed requires recent accepted vision. Temporary occlusion may reduce shot availability;
   this is intentional for the initial retrofit. Measure dropout behavior before designing a longer
   odometry-only confidence window.
-- Default auto is Do nothing. Existing match autos may take longer because of explicit endpoint
+- Default auto is Do nothing. Selected autos have a 20 s deadline and may take longer because of explicit endpoint
   settling and must be re-timed, checked for path events and validated on the correct field/alliance.
 - Complete deterministic hardware replay is not provided. Vision has logged IO; most mechanism and
   drivetrain access still uses the existing direct CTRE interfaces.

@@ -17,7 +17,6 @@ import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -79,8 +78,6 @@ public class HoodSubsystem extends SubsystemBase {
   }
 
   private ControlMode controlMode = ControlMode.IDLE;
-  
-
 
   // ---------------- Simulation ----------------
   private final FlywheelSim hoodSim = new FlywheelSim(
@@ -101,6 +98,7 @@ public class HoodSubsystem extends SubsystemBase {
 
   /** Runtime gating for SysId. */
   private boolean isSysIdEnabled() {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isTestEnabled() || frc.robot.RobotContainer.isPanicStopActive()) return false;
     if (!Constants.OperatorConstants.SysId.ENABLE_SYSID) {
       return false;
     }
@@ -181,8 +179,6 @@ public class HoodSubsystem extends SubsystemBase {
   }
 
   private void configureStatusSignals() {
-										  
-												  
 
     positionSig.setUpdateFrequency(100.0);
     velocitySig.setUpdateFrequency(100.0);
@@ -206,16 +202,14 @@ public class HoodSubsystem extends SubsystemBase {
   }
 
   public double getAppliedVolts() {
-    return motorVoltageSig.getValueAsDouble();
+    return motorVoltageSig == null ? Double.NaN : motorVoltageSig.getValueAsDouble();
   }
 
   /** Command hood using a physical hood angle (radians). */
-														
-																														 
-	 
+
   public void setTargetAngleRad(double angleRad) {
-								
-    if (!positionTrusted || frc.robot.RobotContainer.isPanicStopActive() || !Double.isFinite(angleRad)) { stop(); return; }
+
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || !positionTrusted || frc.robot.RobotContainer.isPanicStopActive() || !Double.isFinite(angleRad)) { stop(); return; }
     double clampedRad = MathUtil.clamp(
         angleRad,
         Constants.OperatorConstants.Hood.MIN_ANGLE_RAD,
@@ -229,9 +223,9 @@ public class HoodSubsystem extends SubsystemBase {
 
   /** Direct motor-rotation target (kept for testing). */
   public void setTargetRot(double rot) {
-    if (!positionTrusted || frc.robot.RobotContainer.isPanicStopActive() || !Double.isFinite(rot)) { stop(); return; }
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || !positionTrusted || frc.robot.RobotContainer.isPanicStopActive() || !Double.isFinite(rot)) { stop(); return; }
     targetRot = MathUtil.clamp(rot, Constants.OperatorConstants.Hood.REVERSE_SOFT_LIMIT_ROT, Constants.OperatorConstants.Hood.FORWARD_SOFT_LIMIT_ROT);
-														   
+
     targetAngleRad = targetRot / Constants.OperatorConstants.Hood.MOTOR_ROT_PER_RAD;
     controlMode = ControlMode.POSITION_CLOSED_LOOP;
 
@@ -257,7 +251,7 @@ public class HoodSubsystem extends SubsystemBase {
    * IMPORTANT: periodic() must NOT overwrite this, so we switch controlMode.
    */
   public void setCalibrationDutyCycle(double duty) {
-    if (!positionTrusted || !Double.isFinite(duty) || frc.robot.RobotContainer.isPanicStopActive()) { stop(); return; }
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || !positionTrusted || !Double.isFinite(duty) || frc.robot.RobotContainer.isPanicStopActive()) { stop(); return; }
     duty = MathUtil.clamp(duty, -1.0, 1.0);
     controlMode = ControlMode.OPEN_LOOP_CALIBRATION;
     hoodMotor.setControl(dutyRequest.withOutput(duty));
@@ -268,7 +262,6 @@ public class HoodSubsystem extends SubsystemBase {
     controlMode = ControlMode.POSITION_CLOSED_LOOP;
   }
 
-
   public void stop() {
     if (!EnabledSubsystems.hood || hoodMotor == null) {
       return;
@@ -276,7 +269,6 @@ public class HoodSubsystem extends SubsystemBase {
     hoodMotor.setControl(dutyRequest.withOutput(0.0));
     controlMode = ControlMode.IDLE;
   }
-
 
   // ---------------- SysId factory commands ----------------
   public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
@@ -293,7 +285,8 @@ public class HoodSubsystem extends SubsystemBase {
 
   // ---------------- SysId callbacks ----------------
   private void sysIdVoltageDrive(edu.wpi.first.units.measure.Voltage volts) {
-    if (!isSysIdEnabled()) {
+    if (!isSysIdEnabled() || !positionTrusted || !edu.wpi.first.wpilibj.DriverStation.isEnabled()
+        || frc.robot.RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -334,7 +327,7 @@ public class HoodSubsystem extends SubsystemBase {
 
     if (hoodMotor.hasResetOccurred()) positionTrusted = false;
     org.littletonrobotics.junction.Logger.recordOutput("Hood/PositionTrusted", positionTrusted);
-    if (!positionTrusted || frc.robot.RobotContainer.isPanicStopActive()) { stop(); return; }
+    if (!edu.wpi.first.wpilibj.DriverStation.isEnabled() || !positionTrusted || frc.robot.RobotContainer.isPanicStopActive()) { stop(); return; }
     BaseStatusSignal.refreshAll(positionSig, velocitySig, motorVoltageSig);
     positionRot = positionSig.getValueAsDouble();
     velocityRps = velocitySig.getValueAsDouble();
@@ -354,9 +347,6 @@ public class HoodSubsystem extends SubsystemBase {
     break;
 }
 
-  
-
-
     if (DebugTelemetrySubsystems.hood || DebugTelemetrySubsystems.calibration) {
       SmartDashboard.putNumber("Hood/PosRot", positionRot);
       SmartDashboard.putNumber("Hood/VelRps", velocityRps);
@@ -366,7 +356,6 @@ public class HoodSubsystem extends SubsystemBase {
       // Helpful for 1-degree tuning:
       double angleDeg = Math.toDegrees(targetAngleRad); // NOTE: target angle, not measured
       SmartDashboard.putNumber("Hood/TargetDeg", angleDeg);
-
 
       // Approximate measured angle from motor rotations using placeholder mapping:
       double measuredDeg = positionRot / Constants.OperatorConstants.Hood.MOTOR_ROT_PER_DEG; // TODO: PLACEHOLDER
@@ -385,7 +374,6 @@ public class HoodSubsystem extends SubsystemBase {
     }
     return hoodSim.getCurrentDrawAmps();
   }
-
 
   @Override
   public void simulationPeriodic() {
@@ -410,7 +398,6 @@ public class HoodSubsystem extends SubsystemBase {
     simState.setRawRotorPosition(simPosRot);
     simState.setRotorVelocity(rps);
 
-    
   }
 
 }

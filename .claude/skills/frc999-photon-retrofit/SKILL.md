@@ -4,7 +4,7 @@ description: Maintain the FRC999 OffSeason-195 PhotonVision retrofit, including 
 ---
 
 Read [session state](../../../docs/offseason-195/SESSION_STATE.md) and the relevant section of the
-[audit](../../../docs/offseason-195/audit.md) before changing the retrofit. The robot subproject is
+[full audit](../../../docs/offseason-195/full-refactor-audit.md) before changing the retrofit. The robot subproject is
 `2026Competition/`; the historical QuestVibeGPT project is not the target.
 
 - Preserve 2026 hardware constants. Prototype source `d20594a` uses another chassis; its measured
@@ -16,7 +16,11 @@ Read [session state](../../../docs/offseason-195/SESSION_STATE.md) and the relev
   identical Pi/robot field JSON before fusion. Hash acknowledgment cannot prove remote Pi settings.
   Custom calibration and simulation profiles must not silently enable competition targets/paths.
 - Keep enabled heading gyro-owned and single-tag yaw untrusted unless a separately evaluated change
-  establishes another policy. Preserve the explicit disabled MultiTag seed and post-reset quarantine.
+  establishes another policy. Disabled stationary initialization requires stable fresh unique MultiTag
+  samples; one healthy camera can seed, fresh camera disagreement cannot. Preserve capture-time
+  rejection of frames preceding a reset, without an arbitrary early-auto/reset waiting interval.
+  Alliance/driver-forward changes must not alter field pose; aim/motion require reference plus freshness.
+  Log connection, first frame, first pose and first fusion separately before attributing a startup delay.
 - Keep configuration/source hashes, raw camera IO and rejection reasons available in AdvantageKit.
   Distinguish complete robot replay from vision IO logging; the former is not currently implemented.
 - Put documentation, prompts, skills and evidence outside robot `src/`, because Gradle archives that

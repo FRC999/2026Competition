@@ -35,11 +35,13 @@ public class DeployIntakeSequence extends Command {
 
   @Override
   public void end(boolean interrupted) {
+    boolean reached = RobotContainer.intakeSubsystem.isAtPosition(IntakePositions.IntakeDeployedDeg);
+    if (interrupted || !reached) RobotContainer.intakeSubsystem.stopPivotInBrake();
     timeoutTimer.stop();
     if (useTeleopPowerBoost) {
       RobotContainer.intakeSubsystem.disableTeleopPivotPowerBoost();
     }
-    if (!interrupted) {
+    if (!interrupted && reached) {
       RobotContainer.intakeSubsystem.releaseDeployHoldToCoast();
     }
   }

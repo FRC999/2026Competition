@@ -7,11 +7,7 @@ import frc.robot.Constants;
 import frc.robot.RobotContainer;
 import frc.robot.subsystems.AutoShootSupervisorSubsystem;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.math.geometry.Translation2d;
-import frc.robot.Constants;
-import frc.robot.RobotContainer;
 
 /**
  * Generic "shoot while held" command.
@@ -28,15 +24,14 @@ import frc.robot.RobotContainer;
  * - stops drivetrain output if it was holding
  */
 public class ShootWhileHeld extends Command {
-  private final AutoShootSupervisorSubsystem.ShotMode mode;
+  private final frc.robot.lib.ShotPlanner.Mode mode;
   private final boolean holdDriveHeading;
 
   private final PIDController headingPid;
   private double headingSetpointDeg = 0.0;
 
-
   public ShootWhileHeld(
-      AutoShootSupervisorSubsystem.ShotMode mode,
+      frc.robot.lib.ShotPlanner.Mode mode,
       boolean holdDriveHeading) {
     this.mode = mode;
     this.holdDriveHeading = holdDriveHeading;
@@ -46,6 +41,7 @@ public class ShootWhileHeld extends Command {
     // from fighting shooter/hood/transfer/spindexer/turret while this command is
     // held.
     addRequirements(
+        RobotContainer.autoShootSupervisorSubsystem,
         RobotContainer.shooterSubsystem,
         RobotContainer.hoodSubsystem,
         RobotContainer.transferSubsystem,
@@ -66,7 +62,7 @@ public class ShootWhileHeld extends Command {
 
   private boolean isManualCalibrationShot() {
     return Constants.DebugTelemetrySubsystems.calibration
-        && mode == AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED;
+        && mode == frc.robot.lib.ShotPlanner.Mode.MANUAL_FIXED;
   }
 
   private void applyInvalidShotRumble() {
@@ -96,7 +92,6 @@ public class ShootWhileHeld extends Command {
 
   @Override
   public void initialize() {
-    System.out.println("Shoot while held called");
     if (isManualCalibrationShot()) {
       RobotContainer.getDriveController().setRumble(RumbleType.kLeftRumble, 0.0);
       RobotContainer.getDriveController().setRumble(RumbleType.kRightRumble, 0.0);
@@ -110,44 +105,6 @@ public class ShootWhileHeld extends Command {
       headingPid.setSetpoint(headingSetpointDeg);
     }
 
-    // Print diagnostics once when manual fixed shot begins
-    //  SmartDashboard.putString("Shoot While Held Parameters",
-    //       "Distance to Hub: " + String.format("%.3f", "") + " Manual Fixed Shot Hood Deg: "
-    //           + String.format("%.2f", "") + " Manual Fixed Shot Shooter RPM: " + String.format("%.1f", "")
-    //           + "Turret Angle: " + String.format("%.2f", RobotContainer.turretSubsystem.getAngleDeg()));
-    if (mode == AutoShootSupervisorSubsystem.ShotMode.MANUAL_FIXED) {
-
-      var driveState = RobotContainer.driveSubsystem.getState();
-      var pose = driveState.Pose;
-
-      Translation2d hub = RobotContainer.autoShootSupervisorSubsystem
-          .getAllianceAwareAimTarget(Constants.FieldTargets.AimTarget.HUB);
-
-      Translation2d turretCenter = pose.getTranslation().plus(
-          Constants.OperatorConstants.TurretGeometry.TURRET_PIVOT_OFFSET_FROM_ROBOT_ORIGIN_METERS
-              .rotateBy(pose.getRotation()));
-
-      double distance = turretCenter.getDistance(hub);
-
-      double axis3 = MathUtil.clamp(RobotContainer.getTurretStick().getRawAxis(3), -1.0, 1.0);
-
-      double rpm = Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_BASE_RPM
-          + axis3 * Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_RPM_TRIM_RANGE;
-
-      double hood = Constants.OperatorConstants.AutoShoot.MANUAL_FIXED_SHOT_HOOD_DEG;
-
-      System.out.println("========================================");
-      System.out.println("MANUAL FIXED SHOT");
-      System.out.printf("Distance turret->hub: %.3f m%n", distance);
-      System.out.printf("Hood angle: %.2f deg%n", hood);
-      System.out.printf("Shooter RPM: %.1f%n", rpm);
-      System.out.printf("Turret Angle: %.1f%n", RobotContainer.turretSubsystem.getAngleDeg());
-      System.out.println("========================================");
-      // SmartDashboard.putString("Shoot While Held Parameters",
-      //     "Distance to Hub: " + String.format("%.3f", distance) + " Manual Fixed Shot Hood Deg: "
-      //         + String.format("%.2f", hood) + " Manual Fixed Shot Shooter RPM: " + String.format("%.1f", rpm)
-      //         + "Turret Angle: " + String.format("%.2f", RobotContainer.turretSubsystem.getAngleDeg()));
-    }
   }
 
   @Override
@@ -178,10 +135,10 @@ public class ShootWhileHeld extends Command {
     RobotContainer.autoShootSupervisorSubsystem.setShootRequested(false);
 
     // Return to default moving mode so next RT press behaves normally
-    RobotContainer.autoShootSupervisorSubsystem.setShotMode(AutoShootSupervisorSubsystem.ShotMode.MOVING_AUTO);
+    RobotContainer.autoShootSupervisorSubsystem.setShotMode(frc.robot.lib.ShotPlanner.Mode.MOVING_AUTO);
 
     if (holdDriveHeading) {
-      RobotContainer.driveSubsystem.drive(0.0, 0.0, 0.0);
+      RobotContainer.driveSubsystem.stop();
     }
 
     RobotContainer.getDriveController().setRumble(RumbleType.kLeftRumble, 0.0);

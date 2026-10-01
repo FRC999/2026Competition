@@ -32,6 +32,9 @@ public interface VisionIO {
     /** Number of PhotonVision results drained from NetworkTables during this robot loop. */
     public int unreadResultCount = 0;
 
+    /** Most recent raw result timestamp, including frames with no visible tags. */
+    public double lastResultTimestampSeconds = Double.NEGATIVE_INFINITY;
+
     /**
      * Older solvable poses from the same unread-result burst that were superseded by the newest pose.
      * NetworkTables is still drained completely; this count makes the intentional estimator-rate

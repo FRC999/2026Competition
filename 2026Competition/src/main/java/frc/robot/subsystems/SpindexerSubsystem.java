@@ -67,6 +67,7 @@ public class SpindexerSubsystem extends SubsystemBase {
   }
 
   private TalonFX motor;
+  private boolean hardwareConfigured;
   private final DutyCycleOut duty = new DutyCycleOut(0.0);
   private final VelocityVoltage velocityRequest = new VelocityVoltage(0.0).withSlot(0);
 
@@ -113,6 +114,7 @@ public class SpindexerSubsystem extends SubsystemBase {
           new SysIdRoutine.Mechanism(this::sysIdVoltageDrive, this::sysIdLog, this, "spindexer"));
 
   private boolean isSysIdEnabled() {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isTestEnabled() || frc.robot.RobotContainer.isPanicStopActive()) return false;
     if (!Constants.OperatorConstants.SysId.ENABLE_SYSID) {
       return false;
     }
@@ -177,7 +179,8 @@ public class SpindexerSubsystem extends SubsystemBase {
     cfg.Slot0 = slot0;
     cfg.withSlot0(slot0);
 
-    motor.getConfigurator().apply(cfg);
+    hardwareConfigured = motor.getConfigurator().apply(cfg).isOK();
+    motor.hasResetOccurred();
   }
 
   private void resetAntiJamTimersAndState() {
@@ -201,16 +204,17 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   private void commandVelocityRpsInternal(double velocityRps) {
     velocityClosedLoopEnabled = true;
+    if (!Double.isFinite(velocityRps)) { stop(); return; }
     targetRps = velocityRps;
     commandedDuty = 0.0;
     motor.setControl(velocityRequest.withVelocity(velocityRps));
   }
 
-  public void commandDutyInternal(double dutyCycle) {
+  private void commandDutyInternal(double dutyCycle) {
     velocityClosedLoopEnabled = false;
     targetRps = 0.0;
-    commandedDuty = dutyCycle;
-    motor.setControl(duty.withOutput(dutyCycle));
+    commandedDuty = Double.isFinite(dutyCycle) ? MathUtil.clamp(dutyCycle, -1, 1) : 0;
+    motor.setControl(duty.withOutput(commandedDuty));
   }
 
   private void requestForwardMode(DesiredMode mode, double forwardRps) {
@@ -225,7 +229,7 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Raw open-loop duty command. Anti-jam is disabled in this mode. */
   public void runDuty(double dutyCycle) {
-    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -238,7 +242,7 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Manual closed-loop velocity command. Anti-jam is disabled in this mode. */
   public void runVelocityRps(double velocityRps) {
-    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -263,7 +267,7 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Convenience: run at the configured "base circulation" velocity. */
   public void runBase() {
-    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -274,41 +278,41 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Convenience: run at the configured "shooting supply" velocity. */
   public void runSupply() {
-    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
 
     calMode = "OFF";
-    motor.set(0.7);
+    runDuty(0.7);
     //requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SUPPLY_RPS);
   }
 
   public void runSupplyReverse() {
-    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
 
     calMode = "OFF";
-    motor.set(-0.7);
+    runDuty(-0.7);
     //requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SUPPLY_RPS);
   }
 
   public void runSlow() {
-    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
 
     calMode = "OFF";
-     motor.set(0.3);
+    runDuty(0.3);
     //requestForwardMode(DesiredMode.SUPPLY_FORWARD, Constants.OperatorConstants.Spindexer.SLOW_RPS);
   }
 
   /** Calibration-only: run base using a live-tunable velocity setpoint. */
   public void runBaseCal(double baseRpsSet) {
-    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -320,7 +324,7 @@ public class SpindexerSubsystem extends SubsystemBase {
 
   /** Calibration-only: run supply using a live-tunable velocity setpoint. */
   public void runSupplyCal(double supplyRpsSet) {
-    if (!EnabledSubsystems.spindexer || RobotContainer.isPanicStopActive()) {
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled() || RobotContainer.isPanicStopActive()) {
       stop();
       return;
     }
@@ -411,7 +415,9 @@ public class SpindexerSubsystem extends SubsystemBase {
     boolean velocityCollapsed =
         absActualRps <= absTargetRps * Constants.OperatorConstants.Spindexer.JAM_MIN_VELOCITY_RATIO;
 
-    return currentHigh && targetFastEnough && velocityCollapsed;
+    return statorCurrentSig.getStatus().isOK() && velocitySig.getStatus().isOK()
+        && statorCurrentSig.getTimestamp().getLatency() < .1 && velocitySig.getTimestamp().getLatency() < .1
+        && currentHigh && targetFastEnough && velocityCollapsed;
   }
 
   private double getSettleForwardRps() {
@@ -521,6 +527,8 @@ public class SpindexerSubsystem extends SubsystemBase {
     statorCurrentA = statorCurrentSig.getValueAsDouble();
     velocityErrorRps = desiredForwardRps - velRps;
 
+    if (!hardwareConfigured || !edu.wpi.first.wpilibj.DriverStation.isEnabled()
+        || RobotContainer.isPanicStopActive() || motor.hasResetOccurred()) stop();
     if (isAntiJamEligibleMode()) {
       runAntiJamStateMachine(Timer.getFPGATimestamp());
     } else {
@@ -541,6 +549,12 @@ public class SpindexerSubsystem extends SubsystemBase {
       }
     }
 
+    org.littletonrobotics.junction.Logger.recordOutput("Spindexer/HardwareConfigured", hardwareConfigured);
+    org.littletonrobotics.junction.Logger.recordOutput("Spindexer/Mode", desiredMode.toString());
+    org.littletonrobotics.junction.Logger.recordOutput("Spindexer/AntiJamState", antiJamState.toString());
+    org.littletonrobotics.junction.Logger.recordOutput("Spindexer/Duty", commandedDuty);
+    org.littletonrobotics.junction.Logger.recordOutput("Spindexer/TargetRPS", targetRps);
+    org.littletonrobotics.junction.Logger.recordOutput("Spindexer/MeasuredRPS", velRps);
     if (DebugTelemetrySubsystems.spindexer) {
       double now = Timer.getFPGATimestamp();
 

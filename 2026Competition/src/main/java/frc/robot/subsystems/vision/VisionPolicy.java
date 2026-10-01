@@ -16,10 +16,9 @@ import frc.robot.config.VisionConstants;
  * logging; THIS class owns the decisions. Split out 2026-07-16 (was static methods inside
  * {@code Vision}).
  *
- * <p>Idea traceability is preserved from the original in-class versions: 6328 (early-auto ignore,
- * covariance shape, single-tag heading = +Infinity), 3467 (rejection reason enums), 125 (conservative
+ * <p>Idea traceability is preserved from the original in-class versions: 6328 (covariance shape, single-tag heading = +Infinity), 3467 (rejection reason enums), 125 (conservative
  * single-tag heading), 5940 (anisotropic log-fitted covariance -- 2026-07-16 survey), plus this
- * project's reset-quarantine rules from the 2026-07-01 sim logs.
+ * project's capture-timestamp rejection for frames recorded before a pose reset.
  */
 public final class VisionPolicy {
   private VisionPolicy() {}
@@ -261,36 +260,11 @@ public final class VisionPolicy {
   }
 
   /**
-   * Whether validated vision should be fused right now, given the autonomous state and how long auto
-   * has been running. Returns false only during the first {@code AUTO_VISION_IGNORE_SECONDS} of
-   * enabled autonomous. Idea: 6328 early-auto vision ignore.
-   */
-  public static boolean shouldAcceptDuringAuto(
-      boolean autonomousEnabled, double secondsSinceAutoStart) {
-    return !autonomousEnabled || secondsSinceAutoStart >= VisionConstants.AUTO_VISION_IGNORE_SECONDS;
-  }
-
-  /**
    * True when a vision frame's capture timestamp predates the last pose reset, so it must not be
    * fused (an in-flight frame still sees the pre-reset pose).
    */
   public static boolean isPreResetFrame(double obsTimestampSeconds, double lastResetTimeSeconds) {
     return obsTimestampSeconds < lastResetTimeSeconds;
-  }
-
-  /**
-   * Whether a vision frame must be withheld because of a recent pose reset: true if its capture
-   * timestamp predates the reset ({@link #isPreResetFrame}) OR we are still within
-   * {@code quarantineSeconds} of the reset. The time window catches queued/latency-delayed frames
-   * whose timestamp slipped past the reset.
-   */
-  public static boolean isResetSuppressed(
-      double obsTimestampSeconds,
-      double lastResetTimeSeconds,
-      double nowSeconds,
-      double quarantineSeconds) {
-    return isPreResetFrame(obsTimestampSeconds, lastResetTimeSeconds)
-        || (nowSeconds - lastResetTimeSeconds) < quarantineSeconds;
   }
 
   /**

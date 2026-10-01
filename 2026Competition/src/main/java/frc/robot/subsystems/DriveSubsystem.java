@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
-import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.Pigeon2;
@@ -30,7 +29,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -38,14 +36,9 @@ import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
-import frc.robot.OdometryUpdates.OdometryConstants;
-import frc.robot.RobotContainer;
-
-import com.ctre.phoenix6.sim.Pigeon2SimState;
 
 /**
  * Class that extends the Phoenix 6 SwerveDrivetrain class and implements
@@ -63,18 +56,42 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private final com.ctre.phoenix6.swerve.SwerveRequest.Idle idle = new com.ctre.phoenix6.swerve.SwerveRequest.Idle();
 
     // --- SIM Yaw Hold ---
-    
+
     private PrecisionModuleAngleHoldRequest precisionAngleHold;
     private final SwerveRequest.RobotCentric precisionVelocity = new SwerveRequest.RobotCentric()
         .withDriveRequestType(DriveRequestType.Velocity);
     private double lastPoseResetSeconds = Double.NEGATIVE_INFINITY;
     private volatile Pose2d simulationTruth = new Pose2d();
-    private boolean hasSeeded = false;
+    private boolean fieldReferenceEstablished;
+    private String fieldReferenceSource = "UNINITIALIZED";
     private boolean autonomousPrecisionFailure;
     public void clearAutonomousPrecisionFailure() { autonomousPrecisionFailure = false; }
     public void latchAutonomousPrecisionFailure() { autonomousPrecisionFailure = true; }
     public boolean hasAutonomousPrecisionFailure() { return autonomousPrecisionFailure; }
-    private double yawSeedTimestamp = 0.0;
+    public boolean hasFieldReference() {
+        return fieldReferenceEstablished && imu != null && imu.getYaw().getStatus().isOK()
+            && imu.getYaw().getTimestamp().getLatency() < .1;
+    }
+
+    public void resetPoseFromVision(Pose2d pose) {
+        if (!DriverStation.isDisabled() || !isStationaryForLocalization()) return;
+        resetPose(pose);
+        fieldReferenceEstablished = true;
+        fieldReferenceSource = "DISABLED_MULTITAG";
+    }
+
+    /** Only for an explicitly known field pose, never a copy of the uninitialized estimator. */
+    public void resetKnownFieldPose(Pose2d pose) {
+        resetPose(pose);
+        fieldReferenceEstablished = true;
+        fieldReferenceSource = "EXPLICIT_KNOWN_POSE";
+    }
+
+    /** Driver convenience changes joystick axes only; it must never rewrite localization. */
+    public void orientDriverForwardToCurrentHeading() {
+        if (!DriverStation.isTeleopEnabled()) return;
+        setOperatorPerspectiveForward(getPose().getRotation());
+    }
     /** A new motion owner clears the previous precision hold. */
     public void applyMotionRequest(SwerveRequest request) {
         precisionAngleHold = null;
@@ -101,6 +118,13 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return ChassisSpeeds.fromRobotRelativeSpeeds(state.Speeds, state.Pose.getRotation());
     }
     public double getGyroYawRateRadiansPerSecond() { return Math.toRadians(getTurnRate()); }
+    public boolean isStationaryForLocalization() {
+        var state = getState();
+        var speeds = state.Speeds;
+        return Utils.getCurrentTimeSeconds() - state.Timestamp < .1
+            && Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond) < .02
+            && Math.abs(getGyroYawRateRadiansPerSecond()) < Math.toRadians(1);
+    }
     public double getLastPoseResetSeconds() { return lastPoseResetSeconds; }
     public Pose2d getSimulationTruthPose() { return simulationTruth; }
     public edu.wpi.first.math.kinematics.SwerveModuleState[] getModuleStates() { return getState().ModuleStates; }
@@ -113,14 +137,16 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
     @Override
     public void resetPose(Pose2d pose) {
+        if (pose == null || !Double.isFinite(pose.getX()) || !Double.isFinite(pose.getY())
+            || !Double.isFinite(pose.getRotation().getRadians())) {
+            throw new IllegalArgumentException("Pose reset requires finite field coordinates");
+        }
         super.resetPose(pose);
+        fieldReferenceEstablished = false;
+        fieldReferenceSource = "UNQUALIFIED_POSE_RESET";
         lastPoseResetSeconds = Timer.getFPGATimestamp();
         precisionAngleHold = null;
         if (poseBuffer != null) poseBuffer.clear();
-    }
-
-    public boolean hasFinishedSeeding() {
-        return hasSeeded;
     }
 
     private static final double kSimLoopPeriod = 0.005; // 5 ms
@@ -145,21 +171,21 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private final SwerveRequest.ApplyRobotSpeeds pathApplyRobotSpeeds = new SwerveRequest.ApplyRobotSpeeds();
 
     // private final com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric drive = new com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric()
-    //         .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatioLinear)
-    //         .withRotationalDeadband(SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatioAngular)
+    //         .withDeadband(0)
+    //         .withRotationalDeadband(0)
     //         .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
     private final SwerveRequest.FieldCentric drive =
     new SwerveRequest.FieldCentric()
-        .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatioLinear)
-        .withRotationalDeadband(SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatioAngular)
+        .withDeadband(0)
+        .withRotationalDeadband(0)
         .withDriveRequestType(Utils.isSimulation()
             ? DriveRequestType.Velocity
             : DriveRequestType.OpenLoopVoltage);
 
     private final SwerveRequest.RobotCentric driveRobotCentric = new SwerveRequest.RobotCentric()
-            .withDeadband(SwerveConstants.MaxSpeed * SwerveConstants.DeadbandRatioLinear)
-            .withRotationalDeadband(SwerveConstants.MaxAngularRate * SwerveConstants.DeadbandRatioAngular) // Add a 10%
+            .withDeadband(0)
+            .withRotationalDeadband(0) // Add a 10%
                                                                                                            // deadband
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want field-centric
     // driving in open loop
@@ -281,7 +307,6 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                         SwerveConstants.MOD3.angleMotorInverted(),
                         SwerveConstants.MOD3.cancoderInverted()));
 
-
     }
 
     public DriveSubsystem(
@@ -291,13 +316,13 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 TalonFX::new, TalonFX::new, CANcoder::new,
                 drivetrainConstants, modules);
         imu = this.getPigeon2();
-       
+        imu.hasResetOccurred();
+
         if (Utils.isSimulation()) {
             startSimThread();
         }
         configureAutoBuilder();
 
-       
     }
 
     /**
@@ -323,6 +348,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 TalonFX::new, TalonFX::new, CANcoder::new,
                 drivetrainConstants, odometryUpdateFrequency, modules);
         imu = this.getPigeon2();
+        imu.hasResetOccurred();
         if (Utils.isSimulation()) {
             startSimThread();
         }
@@ -368,6 +394,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 drivetrainConstants, odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation,
                 modules);
         imu = this.getPigeon2();
+        imu.hasResetOccurred();
         configureAutoBuilder();
         if (Utils.isSimulation()) {
             startSimThread();
@@ -434,10 +461,6 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      */
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
         return sysIdRoutineToApply.dynamic(direction);
-    }
-
-    public void resetCTREPose(Pose2d pose) {
-        this.resetPose(pose);
     }
 
     public com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric getDrive() {
@@ -543,20 +566,10 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return this.getState().Pose;
     }
 
-    public void setOdometryPoseToSpecificPose(Pose2d p) {
-        this.resetPose(p);
-    }
-
-    public void setCurrentOdometryPoseToSpecificRotation(double degrees) {
-        Pose2d currentPose = this.getPose();
-        Pose2d newPose = new Pose2d(currentPose.getX(), currentPose.getY(), Rotation2d.fromDegrees(degrees));
-        setOdometryPoseToSpecificPose(newPose);
-    }
-
     /**
      * Gets the yaw of the robot (Z axis rotation) (yaw is the direction that the
      * robot is facing around an axis that shoots straight up)
-     * 
+     *
      * @return
      */
     public double getYaw() {
@@ -574,79 +587,14 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      * @return The turn rate of the robot, in degrees per second
      */
     public double getTurnRate() {
-        return imu.getAngularVelocityZWorld().getValueAsDouble(); // getAngularVelocityZWorld - CCW+
-    }
-
-    /**
-     * Zeroes the yaw of the robot
-     * 
-     * @return The previous yaw
-     */
-    public double zeroChassisYaw() {
-        double previousYaw = getYaw();
-
-        StatusCode status = StatusCode.StatusCodeNotInitialized;
-        for (int i = 0; i < 5; ++i) {
-            status = imu.setYaw(OdometryConstants.teleopYawForAlliance().getDegrees());
-            if (status.isOK())
-                break;
-        }
-        if (!status.isOK()) {
-            //System.out.println("Could not apply configs, error code: " + status.toString());
-        }
-
-        // Reset IMU pose; may need to remove for the competition
-        setCurrentOdometryPoseToSpecificRotation(OdometryConstants.teleopYawForAlliance().getDegrees());
-
-        //System.out.println("New Yaw: " + imu.getYaw());
-        return previousYaw;
-    }
-
-    public void resetChassisIMUToAngle(double angleDeg) {
-        StatusCode status = StatusCode.StatusCodeNotInitialized;
-        for (int i = 0; i < 5; ++i) {
-            status = imu.setYaw(angleDeg);
-            if (status.isOK()) {
-                break;
-            }
-        }
-
-        if (!status.isOK()) {
-            //System.out.println("Could not set chassis IMU yaw, error code: " + status.toString());
-        }
-
-        yawSeedTimestamp = Timer.getFPGATimestamp();
-        setCurrentOdometryPoseToSpecificRotation(angleDeg);
-    }
-
-        public void seedFieldRelativeOnce() {
-        if (hasSeeded) return;
-
-        var alliance = DriverStation.getAlliance();
-        if (alliance.isEmpty()) return;
-
-        Rotation2d yaw = OdometryConstants.initialYawForAlliance();
-
-        imu.setYaw(yaw.getDegrees());
-        yawSeedTimestamp = Timer.getFPGATimestamp();
-
-        resetPose(new Pose2d(
-            getState().Pose.getTranslation(),
-            yaw
-        ));
-
-        System.out.println("Seeded Yaw: " + yaw.getDegrees());
-
-        hasSeeded = true;
-    }
-
-    public double getYawSeedTimestamp() {
-        return yawSeedTimestamp;
+        var rate = imu.getAngularVelocityZWorld();
+        return rate.getStatus().isOK() && rate.getTimestamp().getLatency() < .1
+            ? rate.getValueAsDouble() : Double.NaN;
     }
 
     /**
      * Check if pose with given timestamp is present in buffer
-     * 
+     *
      * @param t
      * @return Pose2d at given timestamp
      */
@@ -654,10 +602,12 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return poseBuffer.getSample(t);
     }
 
-    
-
     @Override
     public void periodic() {
+        if (imu.hasResetOccurred()) {
+            fieldReferenceEstablished = false;
+            fieldReferenceSource = "GYRO_RESET_NEEDS_DISABLED_REFERENCE";
+        }
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply
@@ -691,10 +641,13 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             }
         }
 
-        
         // update history of the chassis poses for latency-compensated vision gating
         poseBuffer.addSample(Timer.getFPGATimestamp(), this.getPose());
         Logger.recordOutput("Drive/Pose", getPose());
+        Logger.recordOutput("Drive/FieldReferenceEstablished", fieldReferenceEstablished);
+        Logger.recordOutput("Drive/FieldReferenceSource", fieldReferenceSource);
+        Logger.recordOutput("Drive/OperatorForwardDegrees", getOperatorForwardDirection().getDegrees());
+        Logger.recordOutput("Drive/RawGyroYawDegrees", getYaw());
         Logger.recordOutput("Drive/MeasuredModuleStates", getState().ModuleStates);
         Logger.recordOutput("Drive/TargetModuleStates", getState().ModuleTargets);
         Logger.recordOutput("Drive/RobotRelativeSpeeds", getState().Speeds);
@@ -705,7 +658,6 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Logger.recordOutput("Drive/AutonomousPrecisionFailure", autonomousPrecisionFailure);
         if (Utils.isSimulation()) Logger.recordOutput("Drive/SimulationTruth", simulationTruth);
     }
-
 
 private void startSimThread() {
   lastSimTime = Utils.getCurrentTimeSeconds();

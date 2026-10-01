@@ -186,8 +186,10 @@ independently; agreement between two cameras alone cannot expose a shared survey
    and then acknowledge its exact SHA-256 in the robot config. Keep blue-origin coordinates on both
    alliances; never rotate the PhotonVision field origin for red.
 5. Deploy/restart disabled. Check the profile, hash, camera identities and calibrated flags in the
-   log. Physically check at least two surveyed poses, including a heading change. Perform the
-   disabled manual seed only with a fresh, trusted MultiTag pose and correct alliance.
+   log. Physically check at least two surveyed poses, including a heading change. While disabled
+   and stationary, stable fresh MultiTag should establish `Vision/LocalizationReady` automatically.
+   Manual seed is an optional fresh-MultiTag override, also disabled/stationary only. Field seeding
+   is independent of alliance; verify alliance separately before selecting competition paths/targets.
 6. Verify the autonomous start on the field, the intended path/alliance transformation and actual
    camera visibility. Run the staged acceptance tests before using a revised auto in a match.
 

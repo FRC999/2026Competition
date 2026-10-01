@@ -37,6 +37,7 @@ public class DeployAndRunIntakeWhileHeld extends Command {
 
   @Override
   public void end(boolean interrupted) {
+    if (interrupted) RobotContainer.intakeSubsystem.stopPivotInBrake();
     RobotContainer.intakeSubsystem.stopIntake();
   }
 

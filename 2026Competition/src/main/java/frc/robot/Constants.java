@@ -147,6 +147,8 @@ public final class Constants {
   }
 
   public static final class AutoConstants {
+    // REBUILT match timing; autonomousExit also cancels immediately on a mode change.
+    public static final double AUTO_PERIOD_SECONDS = 20.0;
     public static PathConstraints pathConstraints = new PathConstraints(
         SwerveConstants.MaxSpeed,
         SwerveConstants.maxAcceleration,
@@ -165,11 +167,6 @@ public final class Constants {
         false // constraints shold not be unlimited
     );
 
-    public static enum autoPoses {
-
-      //
-
-    }
   }
 
   public static class OperatorConstants {
@@ -341,7 +338,7 @@ public final class Constants {
        * false,
        * true,
        * false);
-       * 
+       *
        * public static final SwerveModuleConstantsRecord MOD1 = new
        * SwerveModuleConstantsRecord(
        * 3,
@@ -351,7 +348,7 @@ public final class Constants {
        * true,
        * true,
        * false);
-       * 
+       *
        * public static final SwerveModuleConstantsRecord MOD2 = new
        * SwerveModuleConstantsRecord(
        * 5,
@@ -361,7 +358,7 @@ public final class Constants {
        * false,
        * true,
        * false);
-       * 
+       *
        * public static final SwerveModuleConstantsRecord MOD3 = new
        * SwerveModuleConstantsRecord(
        * 7,
@@ -727,14 +724,13 @@ public final class Constants {
       public static final double REVERSE_CLEAR_RPM = 4000.0;
       public static final double RPM_STEP = 50.0;
       public static final double READY_MIN_TIME_S = 0.20;
-      public static final double DIP_DETECT_DROP_RPM = 250.0;
 
       /** Simulation: motor rotations / wheel rotations. 1.0 for your 1:1 belt. */
 
       public static final double SIM_GEAR_RATIO = 1.0;
       public static final double SIM_J_KGM2 = 0.02;
 
-      public static final int READY_WINDOW_SAMPLES = 5; // 60ms @ 20ms loop
+      public static final int READY_WINDOW_SAMPLES = 5; // five samples span ~80ms at a 20ms loop
       public static final double READY_RPM_TOLERANCE = 0.90; // 90% of target RPM ; was at 97
       public static final double READY_STDDEV_MAX = 0.015;
 
@@ -748,28 +744,6 @@ public final class Constants {
     public static final class AutoShoot {
       /** If true, turret aims at target continuously even when not shooting. */
       public static final boolean ALWAYS_AIM = true;
-      public static final double RPM_PERCENT_MODIFIER = 0.925;
-
-      /**
-       * Default RPM used if you have not yet integrated the artillery table / hood.
-       */
-      public static final double DEFAULT_SHOOT_RPM = Shooter.DEFAULT_RPM;
-
-      /**
-       * Intake/indexer feed duty while firing (replace with your real feeder/indexer
-       * subsystem).
-       */
-      public static final double FEED_DUTY = 0.55;
-
-      /** Minimum time between "dip" events to avoid double-counting (seconds). */
-      public static final double DIP_DEBOUNCE_S = 0.10;
-
-      /**
-       * If you don't have beam breaks yet, the command can use an operator-provided
-       * estimate of balls remaining. This is the default value placed on
-       * SmartDashboard.
-       */
-      public static final int DEFAULT_BALLS_ESTIMATE = 5;
 
       /**
        * Release prediction horizon (seconds). This compensates for rotation while
@@ -777,56 +751,6 @@ public final class Constants {
        * Tune by observing misses while rotating.
        */
       public static final double DT_RELEASE_SEC = 0.12;
-
-      /** Suppress feeding/shooting for this long after a flip decision (seconds). */
-      public static final double FLIP_SUPPRESS_SEC = 0.35;
-
-      // ---------------------------------------------------------------------
-      // MOVING AUTO SHOT DISTANCE TABLE
-      // ---------------------------------------------------------------------
-      // Distance is measured from turret center to hub center.
-      // These arrays must stay sorted ascending by distance.
-      public static final double[] MOVING_AUTO_SHOT_DISTANCE_M = {
-          1.371,
-          1.935,
-          2.274,
-          2.700,
-          3.291,
-          3.417,
-          3.444,
-          4.127,
-          4.391,
-          4.961,
-          5.512
-      };
-
-      public static final double[] MOVING_AUTO_SHOT_HOOD_DEG = {
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-          3.0,
-          3.0,
-          3.0
-      };
-
-      public static final double[] MOVING_AUTO_SHOT_RPM = {
-          2098.4 * RPM_PERCENT_MODIFIER,
-          2184.4 * RPM_PERCENT_MODIFIER,
-          2247.2 * RPM_PERCENT_MODIFIER,
-          2381.1 * RPM_PERCENT_MODIFIER,
-          2507.1 * RPM_PERCENT_MODIFIER,
-          2601.6 * RPM_PERCENT_MODIFIER,
-          2609.4 * RPM_PERCENT_MODIFIER,
-          2766.9 * RPM_PERCENT_MODIFIER,
-          2656.7 * RPM_PERCENT_MODIFIER,
-          2892.9 * RPM_PERCENT_MODIFIER,
-          3026.8 * RPM_PERCENT_MODIFIER
-      };
 
       // ---------------------------------------------------------------------
       // STATIC FAILSAFE SHOTS (pose-only, hardwired presets)
@@ -844,7 +768,6 @@ public final class Constants {
       // ---------------------------------------------------------------------
       /** Fixed hood angle for the manual fixed shot. */
       public static final double MANUAL_FIXED_SHOT_HOOD_DEG = 0.0; // TODO: tune
-      public static final double HOOD_ANGLE_SHUTTLE = 13.0;
 
       /** Base shooter RPM for the manual fixed shot. */
       public static final double MANUAL_FIXED_SHOT_BASE_RPM = 2200.0; // TODO: tune
@@ -910,9 +833,6 @@ public final class Constants {
        * assist to take over.
        */
       public static final double IDLE_SHOOTER_RPM = 2200.0; // 2200
-      public static final double STATIONARY_ASSIST_OMEGA_DEADBAND = 0.30;
-      /** Shooter enters recovery if actual RPM <= targetRPM * this fraction. */
-      public static final double RECOVERY_RPM_FRACTION_LIMIT = 0.50;
 
       /**
        * Hood compensation model:
@@ -1024,8 +944,6 @@ public final class Constants {
 
       /** Slow speed to keep balls staged without slamming them into the shooter. */
       public static final double STAGE_DUTY = 0.20;
-      /** Fast speed to inject a ball into the shooter. */
-      public static final double FEED_DUTY = 0.85;
 
       // ---------------- Closed-loop velocity targets (RPS) ----------------
       // TODO: These setpoints are placeholders until the robot is fully built and you
@@ -1090,10 +1008,6 @@ public final class Constants {
     }
 
     /** Where the artillery table CSV lives under src/main/deploy. */
-    public static final class ArtilleryTable {
-      /** Example: "artillery/rebuilt_shots.csv" */
-      public static final String DEPLOY_CSV_PATH = "artillery/rebuilt_shots.csv";
-    }
 
     /** Where the moving-auto shot CSV lives under src/main/deploy. */
     public static final class MovingAutoShotTable {
@@ -1102,21 +1016,6 @@ public final class Constants {
     }
 
     /** Solver tuning and physics constants. */
-    public static final class ArtillerySolver {
-      public static final double TOF_MIN_SEC = 0.10;
-      public static final double TOF_MAX_SEC = 1.10;
-      public static final double TOF_STEP_SEC = 0.01;
-
-      /** Use 9.80665 unless you have a reason to change. */
-      public static final double GRAVITY_MPS2 = 9.80665;
-
-      /**
-       * Weighting between matching angle vs speed in your measured table inverse
-       * lookup.
-       */
-      public static final double ANGLE_WEIGHT = 1.0;
-      public static final double SPEED_WEIGHT = 0.25;
-    }
 
     /**
      * Field geometry values needed by the solver. You said you'll supply HUB X/Y
@@ -1317,7 +1216,6 @@ public final class Constants {
 
         IntakeInitialDeployDeg(25);
 
-
         private double armDeg;
 
         IntakePositions(double armDeg) {
@@ -1406,10 +1304,6 @@ public final class Constants {
       }
     }
 
-  }
-
-  public static final class PathPlannerConstants {
-    public static final boolean shouldFlipTrajectoryOnRed = true;
   }
 
 }

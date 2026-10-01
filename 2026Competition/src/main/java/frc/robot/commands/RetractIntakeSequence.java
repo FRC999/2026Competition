@@ -40,6 +40,8 @@ public class RetractIntakeSequence extends Command {
 
   @Override
   public void end(boolean interrupted) {
+    if (interrupted || !RobotContainer.intakeSubsystem.isAtPosition(IntakePositions.IntakeRetracted))
+      RobotContainer.intakeSubsystem.stopPivotInBrake();
     timeoutTimer.stop();
     if (keepRollersRunningDuringRetract) {
       RobotContainer.intakeSubsystem.stopIntake();
