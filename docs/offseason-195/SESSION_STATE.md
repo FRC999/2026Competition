@@ -231,3 +231,7 @@ warnings for individual public members/generated code; no documentation errors r
 117 Java + robotSmoke behavioral receipt remains applicable; no redundant physical/runtime test is
 claimed. Regenerate the source-count snapshot because its physical-line metric includes comments.
 Autonomous strategy choice remains open.
+
+Documentation delivered in `5cedfe0`; the refreshed change-count report is pinned to that exact source
+revision. Subsequent report/receipt commits do not alter robot behavior. Refresh again after the pending
+autonomous strategy implementation.
