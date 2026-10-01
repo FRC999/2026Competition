@@ -16,6 +16,11 @@ import frc.robot.RobotContainer;
 import frc.robot.lib.AimGeometry;
 import frc.robot.lib.FieldTargeting;
 
+/**
+ * Default enabled-teleop drive command. Neutral input preserves module-angle hold; explicit input
+ * takes motion ownership. Stationary shot chassis assist requires a fresh pose and yields to manual
+ * translation/rotation input. AUTO, disabled mode and panic cannot obtain manual drive output.
+ */
 public class DriveManuallyCommand extends Command {
   private final DoubleSupplier mVxSupplier;
   private final DoubleSupplier mVySupplier;

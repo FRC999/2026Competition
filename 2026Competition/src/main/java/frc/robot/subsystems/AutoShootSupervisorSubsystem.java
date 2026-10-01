@@ -27,7 +27,14 @@ import frc.robot.lib.ShotReadiness;
 import frc.robot.lib.ShotTable;
 import org.littletonrobotics.junction.Logger;
 
-/** One shot plan and one feed decision per loop. Diagnostics never change control. */
+/**
+ * Scheduler-thread coordinator: one pure shot plan and one current feed decision per loop.
+ * Commands own intent and requirements; this subsystem owns readiness, targets and logging.
+ * Readiness is reevaluated even while FIRING. External mechanism owners suppress competing output;
+ * diagnostics call the planner without mutating intent, filters or volley state.
+ * Invalid automatic localization/aim inhibits feed. The mentor-authorized manual-pose fallback is
+ * explicit and reported on the dashboard; it does not bypass mechanism or trench checks.
+ */
 public class AutoShootSupervisorSubsystem extends SubsystemBase {
   public enum VolleyState { IDLE, ARMING, FIRING, RECOVERING, NO_SOLUTION, EXTERNAL_CONTROL }
   public enum SolutionValidity { VALID, TURRET_ONLY_INVALID, GLOBAL_INVALID }

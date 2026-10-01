@@ -11,10 +11,19 @@ import java.util.Optional;
 public final class MovingAimModel {
   private MovingAimModel() {}
 
+  /** Release position/velocity are field-relative meters and m/s; positive radial speed approaches target. */
   public record Aim(Translation2d releasePosition, Translation2d releaseVelocity,
       double fieldYawRadians, double turretDegrees, double effectiveDistanceMeters,
       double radialSpeedMps, double lateralSpeedMps) {}
 
+  /**
+   * Predicts release heading and pivot motion, then subtracts inherited radial/lateral velocity lead.
+   * Robot speeds are robot-relative m/s and rad/s; pivotOffset is robot-relative meters; target and
+   * pose use the blue-origin field frame. Times are seconds and turret zero is degrees.
+   * Separate radial/lateral times preserve the legacy empirical model; equal measured times use a
+   * single flight-time estimate. Empty means invalid inputs or a degenerate/reversed aim vector.
+   * Acceleration, slip, drag and projectile spin are outside this model.
+   */
   public static Optional<Aim> predict(Pose2d robotPose, ChassisSpeeds robotSpeeds,
       Translation2d pivotOffset, Translation2d target, double releaseDelaySeconds,
       double radialLeadSeconds, double lateralLeadSeconds, double turretZeroDegrees) {

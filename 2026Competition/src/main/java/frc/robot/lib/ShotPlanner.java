@@ -10,10 +10,21 @@ import frc.robot.Constants.OperatorConstants.Turret;
 import frc.robot.Constants.OperatorConstants.TurretGeometry;
 import java.util.OptionalDouble;
 
-/** Pure shot calculation shared by control and diagnostics. No hardware reads or state mutation. */
+/**
+ * Pure shot calculation shared by control and diagnostics. It produces setpoints, not permission
+ * to feed: the supervisor must separately check localization, field zone and mechanism readiness.
+ * Field positions use the blue-origin frame on both alliances; chassis velocity is robot-relative.
+ * No hardware reads or state mutation occur here.
+ */
 public final class ShotPlanner {
+  /** Moving table lookup, retained fixed stationary shots, and driver-selected distance presets. */
   public enum Mode { MOVING_AUTO, STATIC_HUB_BASE, STATIC_TOWER_BASE, MANUAL_FIXED,
     MANUAL_PRESET_2M, MANUAL_PRESET_3M, MANUAL_PRESET_4M }
+  /**
+   * Desired shot in explicitly named units. {@code valid} means calculation/table lookup succeeded;
+   * it does not establish a legal turret angle or a ready mechanism. Invalid numeric outputs are NaN.
+   * {@code leadSource} describes measured/empirical timing, or contains the rejection reason.
+   */
   public record Solution(boolean valid, double yawFieldRad, double turretDegrees,
       double shooterRpmCommand, double hoodCommandAngleRad, double distanceMeters,
       String leadSource, double radialLeadSeconds, double lateralLeadSeconds,
@@ -31,6 +42,17 @@ public final class ShotPlanner {
     this.hubTable = hubTable; this.passTable = passTable; this.flightTimes = flightTimes;
   }
 
+  /**
+   * Calculates one shot using an immutable observation of the current control inputs.
+   *
+   * @param pose blue-origin robot pose in meters/radians
+   * @param speeds robot-relative m/s and rad/s; callers use gyro angular rate
+   * @param target blue-origin target position in meters, already resolved for the alliance
+   * @param preferredRpm preference when the measured table contains several settings
+   * @param throttle manual fixed-shot adjustment, clamped to [-1, 1]
+   * @param manualRpmTrim fractional trim, e.g. 0.05 for five percent; moving-auto ignores it
+   * @return a candidate setpoint or an invalid solution; never a feed authorization
+   */
   public Solution solve(Mode mode, Pose2d pose, ChassisSpeeds speeds, Translation2d target,
       AimTarget targetKind, double preferredRpm, double throttle, double manualRpmTrim) {
     double distance = AimGeometry.pivot(pose).getDistance(target);

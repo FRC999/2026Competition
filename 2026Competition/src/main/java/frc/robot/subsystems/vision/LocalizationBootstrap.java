@@ -6,6 +6,7 @@ import java.util.Optional;
 
 /** Disabled-only absolute initialization, independent of alliance and of the current pose's accuracy. */
 public final class LocalizationBootstrap {
+  /** Caller-vetted, calibrated MultiTag robot pose in the blue frame, stamped in FPGA seconds. */
   public record Sample(int camera, double timestamp, Pose2d pose) {}
   private Sample first;
   private double lastTimestamp = Double.NEGATIVE_INFINITY;
@@ -19,6 +20,12 @@ public final class LocalizationBootstrap {
   public static final double MAX_SPREAD_DEGREES = 3;
   public static final int MIN_SAMPLES = 4;
 
+  /**
+   * Accumulates distinct fresh observations from one stable camera; fresh camera disagreement vetoes
+   * initialization. The caller supplies only trusted MultiTag samples. A returned pose requests a
+   * disabled estimator reset; an empty result can mean waiting, rejection or an already adequate
+   * reference, as distinguished by status(). This class never writes the estimator itself.
+   */
   public Optional<Pose2d> update(double now, boolean disabled, boolean stationary,
       boolean referenced, Pose2d estimate, List<Sample> samples) {
     if (!disabled || !stationary) {

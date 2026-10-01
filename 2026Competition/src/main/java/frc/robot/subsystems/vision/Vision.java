@@ -66,8 +66,8 @@ public class Vision extends SubsystemBase implements AutoCloseable {
 
   /**
    * Source of the robot heading at a given FPGA timestamp, for the trig-solve strategy.
-   * {@code RobotContainer} wires this to the CTRE odometry pose-history buffer
-   * ({@code DriveSubsystem.sampleHeadingAt}), so each frame gets the heading the robot actually had
+   * {@code VisionFactory} wires this to {@code DriveSubsystem.getSample}, the FPGA-stamped
+   * odometry pose-history buffer, so each frame gets the heading the robot actually had
    * when the frame was captured -- the same latency compensation the estimator itself uses. Empty when
    * the buffer cannot answer (e.g., right after boot); the caller then falls back to the PnP pose.
    */
@@ -96,6 +96,7 @@ public class Vision extends SubsystemBase implements AutoCloseable {
   private final double[] firstConnectedSeconds, firstFrameSeconds, firstPoseSeconds, firstFusionSeconds;
   private final double[] lastAcceptedTimestamp;
 
+  /** Startup wiring: reset callback must enforce disabled/stationary operation and establish field trust. */
   public void configureLocalization(BooleanSupplier referenced, java.util.function.Consumer<Pose2d> poseReset) {
     fieldReferenced = referenced;
     disabledPoseReset = poseReset;
@@ -165,6 +166,7 @@ public class Vision extends SubsystemBase implements AutoCloseable {
     double[] values = new double[size]; Arrays.fill(values, Double.NEGATIVE_INFINITY); return values;
   }
 
+  /** Applies startup calibration/layout acknowledgment to matching IO order; unacknowledged cameras cannot fuse. */
   public void configureCameras(OffseasonVisionConfig config, BooleanSupplier stationarySupplier) {
     if (config.cameras().size() != io.length) throw new IllegalArgumentException("Camera IO/config count mismatch");
     this.stationarySupplier = stationarySupplier;
@@ -183,8 +185,10 @@ public class Vision extends SubsystemBase implements AutoCloseable {
 
   private boolean competitionAimFrame;
 
+  /** Profile identity only; callers must also check localization readiness before automatic aim/motion. */
   public boolean hasCompetitionAimFrame() { return competitionAimFrame; }
 
+  /** Fresh accepted capture after the last estimator reset, not merely camera connection/reception. */
   public boolean hasRecentMeasurement() {
     double age = Timer.getFPGATimestamp() - lastFusedTimestamp;
     return lastFusedTimestamp > lastResetTimeSupplier.getAsDouble()

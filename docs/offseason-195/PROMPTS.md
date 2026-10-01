@@ -100,3 +100,7 @@ Also check our simulation routines. They may be wrong as well or even worse - ma
 ## 2026-10-01 — branch and commit documentation (verbatim)
 
 Make sure the new code is committed into the new branch with proper comments.
+
+## 2026-10-01 — code documentation (verbatim)
+
+Also make sure the code is properly documented

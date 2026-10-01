@@ -15,6 +15,10 @@ import edu.wpi.first.wpilibj.simulation.RoboRioSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
+/**
+ * Robot mode lifecycle and shared battery simulation. Mode exits cancel command ownership;
+ * AUTO uses the selected deadline-bounded command. close() releases cameras and the drive notifier.
+ */
 public class Robot extends LoggedRobot {
   private Command m_autonomousCommand;
 

@@ -14,9 +14,13 @@ import frc.robot.config.PrecisionConstants;
 import frc.robot.subsystems.PrecisionDrive;
 
 /**
- * Final-pose controller used after manual reset, a coarse PathPlanner/Choreo move, or directly as a
+ * Final-pose controller used after an explicitly known pose reset, a coarse trajectory, or directly as a
  * positioning test. Drives in field coordinates until the robot holds a translation/rotation tolerance
  * for a continuous settle time, with a hard safety timeout.
+ *
+ * <p>Competition routes select brake-only {@link StopAtRouteEnd} instead. This controller is retained
+ * for explicit precision alignment and may correct translation/rotation during settling. End always
+ * holds module angles; timeout/interruption is not success. Targets retain the blue field origin.
  *
  * <p>Ported from the pinned FRC999 prototype; field gains still require 2026 robot validation.
  * Historical idea traceability:
@@ -43,6 +47,7 @@ public class DriveToPosePrecisionCommand extends Command {
   private CompletionReason completionReason = CompletionReason.RUNNING;
   private java.util.function.BooleanSupplier finishPermission = () -> true;
 
+  /** Additional continuously checked finish gate (normally fresh referenced vision); set before scheduling. */
   public DriveToPosePrecisionCommand withFinishPermission(java.util.function.BooleanSupplier permission) {
     finishPermission = java.util.Objects.requireNonNull(permission);
     return this;

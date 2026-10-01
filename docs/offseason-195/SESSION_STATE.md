@@ -215,3 +215,19 @@ Non-obvious behavior has inline rationale; full-refactor-audit.md and second-pas
 the issues, replacements, evidence and physical limitations. Latest code validation remains 117 Java
 tests plus the full robot smoke test, seven Python tests, six skill validations and three skill mirrors.
 The request to commit does not select a new autonomous strategy; that choice remains pending.
+
+### Source documentation follow-up
+
+The mentor also requested proper code documentation. Added package/API contracts and focused class
+comments covering frames/units/time, localization trust, planner-versus-feed permission, interruption
+cleanup, path finish policy, SysId gating and simulation assumptions. All active top-level types now
+have class documentation. Corrected stale prototype method references, misleading validation wording,
+two malformed HTML comments and a mismatched Javadoc parameter name. code-guide.md links architecture,
+state ownership, configuration, logs and verification; README and both skill mirrors point to it.
+
+This is documentation only: non-comment Java tokens are checked against `7796482`, and Javadoc
+generation compiles the source and validates links/markup. Javadoc can still emit missing-tag/comment
+warnings for individual public members/generated code; no documentation errors remain. The previous
+117 Java + robotSmoke behavioral receipt remains applicable; no redundant physical/runtime test is
+claimed. Regenerate the source-count snapshot because its physical-line metric includes comments.
+Autonomous strategy choice remains open.

@@ -584,7 +584,7 @@ public final class Constants {
       public static final double GEAR_RATIO_TURRET_ROT_PER_MOTOR_ROT = 20.0 / 220.0; // output / input
       public static final double GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT = 220.0 / 20.0; // input / output
 
-      /** Conversions for integrated sensor (motor rotations) <-> turret degrees. */
+      /** Conversions between integrated sensor motor rotations and turret degrees. */
       public static final double MOTOR_ROT_PER_TURRET_DEG = GEAR_RATIO_MOTOR_ROT_PER_TURRET_ROT / 360.0;
       public static final double TURRET_DEG_PER_MOTOR_ROT = 1.0 / MOTOR_ROT_PER_TURRET_DEG;
 
@@ -1029,7 +1029,7 @@ public final class Constants {
       public static final double HUB_OPENING_CENTER_Z_METERS = 1.8288;
 
       /**
-       * Field length in meters, used for alliance mirroring (RED <-> BLUE).
+       * Retained nominal field length in meters. Active path/vision transforms use the loaded layout.
        *
        * IMPORTANT: Set this to the official 2026 field length for your coordinate
        * frame.

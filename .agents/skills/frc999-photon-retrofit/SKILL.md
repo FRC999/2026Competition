@@ -6,6 +6,8 @@ description: Maintain the FRC999 OffSeason-195 PhotonVision retrofit, including 
 Read [session state](../../../docs/offseason-195/SESSION_STATE.md) and the relevant section of the
 [full audit](../../../docs/offseason-195/full-refactor-audit.md) before changing the retrofit. The robot subproject is
 `2026Competition/`; the historical QuestVibeGPT project is not the target.
+The [code guide](../../../docs/offseason-195/code-guide.md) maps the current runtime contracts and
+logging. Update it and source/package comments when those contracts change; verify `gradlew javadoc`.
 
 - Preserve 2026 hardware constants. Prototype source `d20594a` uses another chassis; its measured
   camera offsets/noise and focus-dependent intrinsics are not transferable.

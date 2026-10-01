@@ -7,6 +7,8 @@ Read the [second-pass audit](../../../docs/offseason-195/second-pass-audit.md),
 [full audit](../../../docs/offseason-195/full-refactor-audit.md) and [test plan](../../../docs/offseason-195/testing.md).
 Use session state for the exact code/calibration under test. Separate verified code behavior,
 simulation evidence and physical robot evidence in the result.
+Use the [code guide](../../../docs/offseason-195/code-guide.md) for units, frames, ownership and API
+contracts. Keep Java/package comments current; `gradlew javadoc` validates rendered API documentation.
 
 - Preserve the measured/retained 2026 drivetrain and turret pivot geometry. Do not transplant
   prototype chassis or camera constants while porting algorithms.

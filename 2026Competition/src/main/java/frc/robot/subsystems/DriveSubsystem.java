@@ -41,8 +41,10 @@ import frc.robot.Constants.DebugTelemetrySubsystems;
 import frc.robot.Constants.OperatorConstants.SwerveConstants;
 
 /**
- * Class that extends the Phoenix 6 SwerveDrivetrain class and implements
- * Subsystem so it can easily be used in command-based projects.
+ * CTRE swerve boundary for scheduler-owned motion, field-reference trust and vision timestamp
+ * conversion. Estimator coordinates always use the blue field origin; operator perspective only
+ * rotates driver inputs. Ordinary control/state mutations run on the scheduler thread. The 5 ms
+ * simulation notifier shares a synchronized boundary with physical simulation placement.
  */
 public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> implements PrecisionDrive {
     // Requests moved from RobotContainer:
@@ -68,11 +70,13 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     public void clearAutonomousPrecisionFailure() { autonomousPrecisionFailure = false; }
     public void latchAutonomousPrecisionFailure() { autonomousPrecisionFailure = true; }
     public boolean hasAutonomousPrecisionFailure() { return autonomousPrecisionFailure; }
+    /** Absolute pose reference plus fresh valid gyro; this does not by itself assert recent vision. */
     public boolean hasFieldReference() {
         return fieldReferenceEstablished && imu != null && imu.getYaw().getStatus().isOK()
             && imu.getYaw().getTimestamp().getLatency() < .1;
     }
 
+    /** Accepts a trusted MultiTag seed only while disabled and stationary; other requests are ignored. */
     public void resetPoseFromVision(Pose2d pose) {
         if (!DriverStation.isDisabled() || !isStationaryForLocalization()) return;
         resetPose(pose);
@@ -145,6 +149,10 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         getPigeon2().getSimState().setRawYaw(pose.getRotation().getDegrees());
     }
 
+    /**
+     * Replaces estimator pose and invalidates prior reference/history. Never moves simulation truth.
+     * Call a qualified reset wrapper to establish trust; directly resetting coordinates is not evidence.
+     */
     @Override
     public void resetPose(Pose2d pose) {
         if (pose == null || !Double.isFinite(pose.getX()) || !Double.isFinite(pose.getY())
@@ -444,7 +452,7 @@ public class DriveSubsystem extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      * Returns a command that applies the specified control request to this swerve
      * drivetrain.
      *
-     * @param request Function returning the request to apply
+     * @param requestSupplier function returning the request to apply
      * @return Command to run
      */
     public Command applyRequest(Supplier<SwerveRequest> requestSupplier) {

@@ -10,12 +10,20 @@ import frc.robot.subsystems.DriveSubsystem;
 import java.util.function.BooleanSupplier;
 import org.littletonrobotics.junction.Logger;
 
-/** Resolve the field frame once, then finish stopping paths using measured pose and motion. */
+/**
+ * Resolves the field frame once and composes route motion with explicit endpoint policy.
+ * Cached path objects are never mutated. Pass-through goals retain planned velocity; zero-speed
+ * goals either brake/qualify or run precision correction. Failed qualification holds indefinitely
+ * until interrupted by the enclosing auto deadline/mode exit, and latches feed inhibition.
+ */
 public final class PrecisionPathCommands {
   private PrecisionPathCommands() {}
+  /** ALLIANCE respects source preventFlipping; FORCE_RED explicitly transforms; ABSOLUTE never flips. */
   public enum FieldFrame { ALLIANCE, FORCE_RED, ABSOLUTE }
+  /** PRECISION_ALIGNMENT may correct pose; competition ROUTE_STOP never chases endpoint pose noise. */
   public enum FinishPolicy { PRECISION_ALIGNMENT, ROUTE_STOP }
 
+  /** Returns a copy with final field coordinates and downstream AutoBuilder flipping disabled. */
   public static PathPlannerPath inFieldFrame(PathPlannerPath source, FieldFrame frame, boolean redAlliance) {
     // fromPathFile caches objects. Never mutate that shared source or the next alliance can inherit
     // preventFlipping=true from an earlier schedule.
@@ -38,11 +46,17 @@ public final class PrecisionPathCommands {
     return new Pose2d(points.get(points.size() - 1).position, path.getGoalEndState().rotation());
   }
 
+  /** Explicit precision-finish API; competition callers use the overload with ROUTE_STOP. */
   public static Command followResolved(DriveSubsystem drive, PathPlannerPath path, boolean resetToStart,
       BooleanSupplier recentVision) {
     return followResolved(drive, path, resetToStart, recentVision, FinishPolicy.PRECISION_ALIGNMENT);
   }
 
+  /**
+   * Owns the drivetrain for the complete sequence, including failure hold. path must already be in
+   * final field coordinates. resetToStart is only valid for an independently known physical placement;
+   * it must never conceal a localization error. Cancellation stops the follower's retained request.
+   */
   public static Command followResolved(DriveSubsystem drive, PathPlannerPath path, boolean resetToStart,
       BooleanSupplier recentVision, FinishPolicy policy) {
     Command coarse = AutoBuilder.followPath(path).finallyDo(interrupted -> {
@@ -87,6 +101,7 @@ public final class PrecisionPathCommands {
         failedHold(drive, "Precision endpoint did not qualify; autonomous sequence held"), precise::succeeded));
   }
 
+  /** Latches failure once, then holds drive without allowing the parent sequence to advance. */
   public static Command failedHold(DriveSubsystem drive, String reason) {
     return Commands.runOnce(() -> {
       drive.latchAutonomousPrecisionFailure();

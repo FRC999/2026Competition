@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj.Filesystem;
  */
 public final class ShotTable {
     private static final double LOWEST_HOOD_DISTANCE_THRESHOLD_METERS = 3.5;
+    /** Candidate motor/hood settings; invalid lookups contain NaNs and must never command hardware. */
     public static class Setting {
         public final boolean valid;
         public final double shooterRpmCommand;
@@ -57,6 +58,7 @@ public final class ShotTable {
     private final TreeMap<Double, TreeMap<Double, ArrayList<Sample>>> table =
             new TreeMap<>();
 
+    /** Adds a measured row: meters, turret degrees, motor RPM, hood radians and optional battery volts. */
     public void addSample(
             double distanceMeters,
             double turretAngleDeg,
@@ -140,6 +142,11 @@ public final class ShotTable {
         return out;
     }
 
+    /**
+     * Interpolates within measured distance coverage, with turret-angle endpoint reuse as documented
+     * above. Returns an invalid Setting outside coverage. Inputs are meters, degrees and RPM.
+     * A valid table result does not imply current motor readiness or legal field position.
+     */
     public Setting findInterpolatedShot(
             double distanceMeters,
             double turretAngleDeg,

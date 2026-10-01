@@ -2,6 +2,9 @@ package frc.robot.lib;
 
 import edu.wpi.first.math.MathUtil;
 
+/**
+ * Finite, bounded joystick shaping with a raw-input deadband and optional cubic response.
+ */
 public final class DriverInput {
   private DriverInput() {}
   /** Retains the season's cubic curve outside the raw-input deadband, without sign reversal inside. */

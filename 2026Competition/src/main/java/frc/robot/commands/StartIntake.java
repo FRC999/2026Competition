@@ -9,6 +9,9 @@ import frc.robot.RobotContainer;
 import frc.robot.Constants.OperatorConstants.IntakeConstants;
 
 /* You should consider using the more terse Command factories API instead https://docs.wpilib.org/en/stable/docs/software/commandbased/organizing-command-based.html#defining-commands */
+/**
+ * Requests intake roller collection for an enclosing path/race; cancellation always stops rollers.
+ */
 public class StartIntake extends Command {
   /** Creates a new StartIntake. */
   public StartIntake() {

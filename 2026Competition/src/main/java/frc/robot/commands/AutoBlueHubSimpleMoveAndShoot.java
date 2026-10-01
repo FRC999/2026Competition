@@ -11,6 +11,10 @@ import frc.robot.RobotContainer;
 // NOTE:  Consider using this command inline, rather than writing a subclass.  For more
 // information, see:
 // https://docs.wpilib.org/en/stable/docs/software/commandbased/convenience-features.html
+/**
+ * Alliance-flipped hub departure followed by two bounded shot phases and an intake retract.
+ * All phases remain inside RobotContainer's enclosing AUTO deadline.
+ */
 public class AutoBlueHubSimpleMoveAndShoot extends SequentialCommandGroup {
   /** Creates a new AutoBlueHubSimpleMoveAndShoot. */
   public AutoBlueHubSimpleMoveAndShoot() {

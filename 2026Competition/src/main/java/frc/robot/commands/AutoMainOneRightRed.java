@@ -11,6 +11,11 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
 
+/**
+ * Red-only Main sequence using blue-authored paths resolved once for RED. The original full plan is
+ * over budget; the first-collection/conditional-pickup decision remains pending. The outer deadline
+ * bounds execution without asserting that the complete strategy will finish.
+ */
 public class AutoMainOneRightRed extends SequentialCommandGroup {
   public AutoMainOneRightRed() {
     addCommands(

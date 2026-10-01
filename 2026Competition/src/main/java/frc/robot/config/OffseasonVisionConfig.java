@@ -23,6 +23,7 @@ public record OffseasonVisionConfig(
     String profile, String layoutSha256, AprilTagFieldLayout layout,
     boolean layoutConfirmedOnCoprocessors, List<Camera> cameras) {
 
+  /** Measured robot-to-camera transform in meters/radians; noise factors are dimensionless multipliers. */
   public record Camera(String name, boolean calibrated, Transform3d robotToCamera,
       double xyStdDevFactor, double thetaStdDevFactor, boolean trustRotation) {}
 
@@ -30,6 +31,11 @@ public record OffseasonVisionConfig(
     cameras = List.copyOf(cameras);
   }
 
+  /**
+   * Validates the complete startup JSON and referenced field identity. Mount rotations in JSON are
+   * degrees and are converted to Rotation3d radians here. Layout acknowledgment is an operator claim;
+   * a local hash alone cannot verify the remote PhotonVision field selection.
+   */
   public static OffseasonVisionConfig load(Path configFile) throws IOException {
     JsonNode root = new ObjectMapper().readTree(configFile.toFile());
     if (root.path("schemaVersion").asInt(-1) != 1) {

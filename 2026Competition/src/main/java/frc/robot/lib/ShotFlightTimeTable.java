@@ -10,6 +10,7 @@ import java.util.TreeMap;
 public final class ShotFlightTimeTable {
   private final TreeMap<Double, Double> samples = new TreeMap<>();
 
+  /** Missing/header-only files give an empty table; malformed or duplicate rows reject the load. */
   public static ShotFlightTimeTable load(Path file) throws IOException {
     ShotFlightTimeTable result = new ShotFlightTimeTable();
     if (!Files.exists(file)) return result;
@@ -29,6 +30,7 @@ public final class ShotFlightTimeTable {
     return result;
   }
 
+  /** Interpolates seconds at a distance in meters; requires two samples and never extrapolates. */
   public OptionalDouble atDistance(double distance) {
     if (!Double.isFinite(distance) || samples.size() < 2
         || distance < samples.firstKey() || distance > samples.lastKey()) return OptionalDouble.empty();

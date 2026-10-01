@@ -7,7 +7,13 @@ import frc.robot.subsystems.PrecisionDrive;
 import java.util.function.BooleanSupplier;
 import org.littletonrobotics.junction.Logger;
 
-/** Brake once and qualify an ordinary route stop without chasing camera pose noise. */
+/**
+ * Owns drive, brakes and qualifies an ordinary route stop without correcting pose error.
+ * Current pose, measured module/gyro motion and localization must remain acceptable continuously.
+ * Timeout and interruption stop outputs but do not report success. Callers must inspect succeeded()
+ * after end(); PrecisionPathCommands turns failure into a hold instead of advancing the auto.
+ * Targets use the blue-origin field frame. Tolerances below are provisional route settings.
+ */
 public final class StopAtRouteEnd extends Command {
   // Provisional route acceptance, deliberately separate from centimeter-level alignment tests.
   public static final double POSITION_TOLERANCE_METERS = .20;
@@ -59,5 +65,6 @@ public final class StopAtRouteEnd extends Command {
     timer.stop(); drive.stop();
     Logger.recordOutput("Auto/RouteStop/Result", interrupted ? "INTERRUPTED" : succeeded ? "SUCCEEDED" : "FAILED");
   }
+  /** True only after a normal end following continuous qualification, never merely after timeout. */
   public boolean succeeded() { return succeeded; }
 }

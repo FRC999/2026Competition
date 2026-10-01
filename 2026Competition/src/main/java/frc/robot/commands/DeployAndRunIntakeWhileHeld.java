@@ -5,6 +5,11 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.RobotContainer;
 
+/**
+ * LT intake action: deploy once while running rollers, then coast after successful deployment.
+ * A blocked deployment times out and brakes the pivot while rollers remain requested until release.
+ * Cancellation stops pivot and rollers; RobotContainer decides whether release schedules a retract.
+ */
 public class DeployAndRunIntakeWhileHeld extends Command {
   private boolean waitingForDeployRelease = false;
   private final edu.wpi.first.wpilibj.Timer deployTimer = new edu.wpi.first.wpilibj.Timer();

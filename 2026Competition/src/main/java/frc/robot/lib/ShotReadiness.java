@@ -6,9 +6,15 @@ public final class ShotReadiness {
 
   public enum Reason { READY, IDLE, NO_SOLUTION, POSE_UNREADY, PATH_FAILED, HUB_ZONE_UNCONFIRMED, TRENCH_LOCKED,
     TURRET_UNTRUSTED, TURRET_NOT_AIMED, RPM_UNREADY, HOOD_UNREADY, MOVING_IN_STATIC_MODE, COOLDOWN }
+  /**
+   * One-loop gate snapshot. Positive flags mean permission; {@code trenchLocked} and
+   * {@code coolingDown} are inhibits. {@code path} means no latched auto-path failure.
+   * The supervisor applies the authorized manual-pose exception before building this record.
+   */
   public record Inputs(boolean requested, boolean solution, boolean pose, boolean path,
       boolean trenchLocked, boolean turretTrusted, boolean turretAimed, boolean rpm,
       boolean hood, boolean motion, boolean coolingDown, boolean fieldZone) {}
+  /** Returns the first failing gate in diagnostic priority order; only READY permits feeding. */
   public static Reason evaluate(Inputs in) {
     if (!in.requested()) return Reason.IDLE;
     if (in.trenchLocked()) return Reason.TRENCH_LOCKED;

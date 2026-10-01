@@ -7,6 +7,11 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.RobotContainer;
 
+/**
+ * Owns intake through a bounded retract. Teleop retains existing roller action during the move, then
+ * stops it. Success holds the target with normal gains; timeout/interruption stops the pivot, and
+ * temporary boost is removed on every end path.
+ */
 public class RetractIntakeSequence extends Command {
   private final Timer timeoutTimer = new Timer();
   private final boolean useTeleopPowerBoost;

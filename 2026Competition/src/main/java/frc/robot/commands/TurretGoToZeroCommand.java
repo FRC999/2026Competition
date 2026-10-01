@@ -4,6 +4,10 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;
 import frc.robot.RobotContainer;
 
+/**
+ * Owns a turret move to its trusted integrated zero. Normal arrival retains the position hold;
+ * interruption stops output. Subsystem trust/limit guards remain active throughout.
+ */
 public class TurretGoToZeroCommand extends Command {
 
   public TurretGoToZeroCommand() {

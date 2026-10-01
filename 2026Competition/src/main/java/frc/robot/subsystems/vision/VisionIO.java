@@ -59,9 +59,8 @@ public interface VisionIO extends AutoCloseable {
   /**
    * One field-relative robot-pose estimate from one frame.
    *
-   * @param timestamp capture time in the WPILib FPGA time base (converted to the CTRE time base by the
-   *     consumer -- see {@link Vision} and {@code RobotContainer}).
-   * @param pose field-relative robot pose solved by PhotonVision
+   * @param timestamp capture time in FPGA seconds; DriveSubsystem converts to CTRE time exactly once
+   * @param pose blue-origin field-to-robot pose in meters/radians, not the raw field-to-camera solve
    * @param ambiguity PnP ambiguity (single-tag only; ~0 for multi-tag)
    * @param tagCount number of tags used in the solve
    * @param averageTagDistance mean camera-to-tag distance, used for distance-squared covariance
@@ -79,5 +78,10 @@ public interface VisionIO extends AutoCloseable {
       double averageTagDistance,
       int primaryTagId) {}
 
+  /**
+   * Refreshes this loop's input snapshot on the scheduler thread. Implementations drain unread camera
+   * results, expose only the newest solvable pose, and clear per-loop arrays when no new frame exists.
+   * Consumers still check capture timestamps; connected alone never means a fresh usable observation.
+   */
   public default void updateInputs(VisionIOInputs inputs) {}
 }

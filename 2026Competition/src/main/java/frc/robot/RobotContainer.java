@@ -59,6 +59,13 @@ import frc.robot.subsystems.HoodSubsystem;
 import frc.robot.commands.PrintTurretShotDiagnosticsCommand;
 import frc.robot.commands.RetractIntakeSequence;
 
+/**
+ * One process-wide robot assembly: hardware, vision, command factories and operator bindings.
+ * Commands express intent; subsystem guards still apply to every output. Deferred auto factories
+ * resolve alliance/pose when scheduled, and the cached outer command supplies the 20-second deadline.
+ * Operator release actions check teleop/panic before taking requirements. Static CAN/logger ownership
+ * means a full robot integration test belongs in a separate JVM.
+ */
 public class RobotContainer {
 
   /* Setting up bindings for necessary control of the swerve drive platform */
@@ -406,6 +413,11 @@ public class RobotContainer {
     return -xboxDriveController.getRightStickX();
   }
 
+  /**
+   * Defers path loading/frame resolution until scheduling, validates the competition frame and start,
+   * then follows with brake-only route qualification. resetToStart requires known physical placement;
+   * normal competition callers keep it false. Errors produce a latched hold, never a skipped segment.
+   */
   public static Command followCompetitionPath(String name,
       boolean resetToStart, frc.robot.commands.PrecisionPathCommands.FieldFrame frame) {
     return Commands.defer(() -> {
@@ -497,6 +509,7 @@ public class RobotContainer {
     }
   }
 
+  /** Returns a reusable, once-composed deadline wrapper; cleanup runs on timeout and mode cancellation. */
   public Command getAutonomousCommand() {
     Command selected = autoChooser.getSelected();
     return selected == null ? Commands.run(driveSubsystem::stop, driveSubsystem)

@@ -47,6 +47,12 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePidConstants.RollerVelocityVoltageConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 
+/**
+ * Owns paired roller/pivot hardware, encoder trust, soft limits and temporary gain/current modes.
+ * Pivot targets are arm degrees; roller methods distinguish duty from mechanism RPS. A confirmed
+ * physical reference is required before ordinary pivot motion. Commands must restore temporary
+ * boosts and explicitly stop or transfer pivot/roller ownership on all end paths.
+ */
 public class IntakeSubsystem extends SubsystemBase {
   private TalonFX intakeRollerMotor;
   private TalonFX intakeRollerFollowerMotor;

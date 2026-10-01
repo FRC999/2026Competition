@@ -6,6 +6,11 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.RobotContainer;
 
+/**
+ * Bounded opening deployment. Owns intake, stops rollers, and temporarily raises current limits.
+ * Boost ends at its separate maximum; target arrival or overall timeout ends the command. Every end
+ * restores current limits and stops/brakes the pivot. Timeout does not establish a new encoder zero.
+ */
 public class InitialAutoDeployWhileHeld extends Command {
   private final Timer timeoutTimer = new Timer();
 

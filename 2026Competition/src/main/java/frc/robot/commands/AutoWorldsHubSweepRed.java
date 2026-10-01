@@ -9,6 +9,11 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
 
+/**
+ * Red-only Worlds sweep with its retained alliance-specific delay and shorter depot tail. The full
+ * original sequence still exceeds the AUTO budget; strategy revision is pending. Paths resolve once
+ * to RED coordinates and the enclosing deadline cancels unfinished work.
+ */
 public class AutoWorldsHubSweepRed extends SequentialCommandGroup {
   public AutoWorldsHubSweepRed() {
     addCommands(

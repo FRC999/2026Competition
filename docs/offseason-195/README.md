@@ -23,6 +23,9 @@ do not establish centimeter accuracy, shot percentage, or a safe mechanism envel
 
 ## Developers
 
+Read the [code guide](code-guide.md) for architecture, coordinate/unit contracts, interruption rules,
+configuration, logging and API documentation generation.
+
 Robot project: `2026Competition/`. Documentation, calibration tools, session records and skills are
 outside that project's `src/` tree. Its Gradle build archives `src/` in the JAR, so do not move these
 documents into `src/main/resources` or `src/main/deploy`.

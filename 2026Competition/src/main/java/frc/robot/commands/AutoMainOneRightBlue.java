@@ -11,6 +11,11 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
 
+/**
+ * Blue-only original Main collection sequence. Route joins and stop policy are audited, but the full
+ * sequence exceeds the AUTO budget; shortening/conditional pickup remains a mentor decision.
+ * RobotContainer supplies the hard deadline and cleanup.
+ */
 public class AutoMainOneRightBlue extends SequentialCommandGroup {
   public AutoMainOneRightBlue() {
     addCommands(

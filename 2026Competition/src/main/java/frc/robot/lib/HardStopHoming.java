@@ -6,10 +6,13 @@ public final class HardStopHoming {
   private final double minimum, confirm, timeout;
   private double start, evidenceSince = Double.NaN;
   private Result result = Result.MOVING;
+  /** Durations in seconds: ignore early contact, then require continuous evidence before the hard cap. */
   public HardStopHoming(double minimum, double confirm, double timeout) {
     this.minimum = minimum; this.confirm = confirm; this.timeout = timeout;
   }
+  /** Starts a new attempt using a monotonic clock, normally FPGA seconds. */
   public void start(double now) { start = now; evidenceSince = Double.NaN; result = Result.MOVING; }
+  /** Terminal results stay latched until start(); stale/absent evidence resets the confirmation timer. */
   public Result update(double now, boolean freshStallEvidence) {
     if (result != Result.MOVING) return result;
     if (now - start >= timeout) { result = Result.TIMED_OUT; return result; }

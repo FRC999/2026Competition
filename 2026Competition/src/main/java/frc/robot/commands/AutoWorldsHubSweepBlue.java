@@ -9,6 +9,11 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.robot.RobotContainer;
 
+/**
+ * Blue-only Worlds sweep with retained start delay and shot/pickup phases. The complete original
+ * sequence is over budget; strategy revision is pending. Every phase is interruptible by the outer
+ * AUTO deadline and cleans up through its child command's end method.
+ */
 public class AutoWorldsHubSweepBlue extends SequentialCommandGroup {
   public AutoWorldsHubSweepBlue() {
     addCommands(

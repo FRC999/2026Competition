@@ -6,6 +6,9 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.RobotBase;
 
+/**
+ * WPILib entry point for real and desktop execution; Robot owns lifecycle and logging setup.
+ */
 public final class Main {
   private Main() {}
 

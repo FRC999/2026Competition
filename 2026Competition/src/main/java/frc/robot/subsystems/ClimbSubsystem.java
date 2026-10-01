@@ -41,6 +41,11 @@ import frc.robot.Constants.EnabledSubsystems;
 import frc.robot.Constants.OperatorConstants.ClimbConstants;
 import frc.robot.Constants.OperatorConstants.ClimbConstants.ClimbMotionMagicDutyCycleConstants;
 
+/**
+ * Paired climb motor control with configuration, enable/panic and guarded SysId checks. The climb
+ * remains disabled by configuration pending physical home/limit/follower validation; simulation is
+ * a rotary load model and cannot establish a safe climbing envelope.
+ */
 public class ClimbSubsystem extends SubsystemBase {
 
   private TalonFX climbMotorLeft;

@@ -11,9 +11,10 @@ import edu.wpi.first.math.numbers.N3;
 import frc.robot.config.VisionConstants;
 
 /**
- * The pure, stateless vision fusion policy: every rejection gate, covariance model, and timing rule,
- * with zero HAL/hardware dependencies so it is headless-unit-testable. {@link Vision} owns the per-loop orchestration and
- * logging; THIS class owns the decisions. Split out 2026-07-16 (was static methods inside
+ * Stateless observation validity, covariance and timestamp calculations with no hardware IO.
+ * {@link Vision} owns camera configuration, per-loop orchestration and logging;
+ * {@link LocalizationBootstrap} owns stable disabled initialization. Split out in the prototype
+ * on 2026-07-16 (was static methods inside
  * {@code Vision}).
  *
  * <p>Idea traceability is preserved from the original in-class versions: 6328 (covariance shape, single-tag heading = +Infinity), 3467 (rejection reason enums), 125 (conservative
@@ -43,9 +44,10 @@ public final class VisionPolicy {
    * How a single-tag frame becomes a fused pose.
    *
    * <ul>
-   *   <li>{@link #PNP}: trust the coprocessor's single-tag PnP robot pose (translation only; heading
-   *       is never fused for single tags). The validated 2026-06-30 baseline.
-   *   <li>{@link #TRIG_SOLVE}: recompute XY from the camera-to-tag translation + the odometry-buffer
+   *   <li>{@link SingleTagStrategy#PNP}: use the coprocessor's single-tag PnP robot pose (translation
+   *       only; heading is never fused for single tags). Retained prototype baseline, not physical
+   *       validation on this competition robot.
+   *   <li>{@link SingleTagStrategy#TRIG_SOLVE}: recompute XY from the camera-to-tag translation + the odometry-buffer
    *       heading at the frame timestamp ({@link SingleTagTrigSolver}). Idea: 6328 via PhotonVision
    *       {@code PNP_DISTANCE_TRIG_SOLVE}; 1678 C2026 runs it in production. 2026-07-16 survey.
    * </ul>
@@ -59,9 +61,9 @@ public final class VisionPolicy {
    * Which measurement-noise model weights an accepted frame.
    *
    * <ul>
-   *   <li>{@link #ISOTROPIC}: the validated baseline -- {@code baseline * dist^2 / tagCount^2 *
+   *   <li>{@link CovarianceModel#ISOTROPIC}: retained prototype baseline -- {@code baseline * dist^2 / tagCount^2 *
    *       cameraFactor}, same in X and Y (6328/6995 shape).
-   *   <li>{@link #ANISOTROPIC}: 5940-style (2026-07-16 survey) -- separate power-law sigmas parallel
+   *   <li>{@link CovarianceModel#ANISOTROPIC}: 5940-style (2026-07-16 survey) -- separate power-law sigmas parallel
    *       and perpendicular to the camera->tag ray, rotated into field axes. Range error grows faster
    *       than bearing error, so the noise ellipse is real; coefficients are PROVISIONAL until fitted
    *       from robot logs (see docs/offseason-195/testing.md, stage R2).

@@ -10,9 +10,11 @@ import frc.robot.subsystems.DriveSubsystem;
 import java.nio.file.Path;
 import org.littletonrobotics.junction.Logger;
 
+/** Startup-only profile/IO wiring; configuration failure preserves manual drive with no vision fusion. */
 public final class VisionFactory {
   private VisionFactory() {}
 
+  /** Loads real deploy configuration or the separate desktop profile; never substitutes synthetic real calibration. */
   public static Vision create(DriveSubsystem drive) {
     try {
       Path configPath = RobotBase.isSimulation() ? Path.of("simulation/vision.json")
@@ -50,10 +52,10 @@ public final class VisionFactory {
   }
 
   private static Vision createWithIO(DriveSubsystem drive, VisionIO[] io) {
+    // DriveSubsystem.addVisionMeasurement performs FPGA -> CTRE time conversion exactly once.
     Vision vision = new Vision(drive::addVisionMeasurement, drive::getPose, drive::getLastPoseResetSeconds,
         timestamp -> drive.getSample(timestamp).map(pose -> pose.getRotation()), io);
     vision.configureLocalization(drive::hasFieldReference, drive::resetPoseFromVision);
     return vision;
-    // DriveSubsystem.addVisionMeasurement performs FPGA -> CTRE time conversion exactly once.
   }
 }

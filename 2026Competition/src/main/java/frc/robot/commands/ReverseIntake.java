@@ -9,6 +9,9 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.RobotContainer;
 
 /* You should consider using the more terse Command factories API instead https://docs.wpilib.org/en/stable/docs/software/commandbased/organizing-command-based.html#defining-commands */
+/**
+ * Owns the intake roller reverse action until canceled; end always stops rollers.
+ */
 public class ReverseIntake extends Command {
   /** Creates a new ReverseIntake. */
   public ReverseIntake() {

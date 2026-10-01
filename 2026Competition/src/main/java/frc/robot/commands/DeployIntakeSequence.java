@@ -6,6 +6,10 @@ import frc.robot.Constants.OperatorConstants.IntakeConstants;
 import frc.robot.Constants.OperatorConstants.IntakeConstants.IntakePositions;
 import frc.robot.RobotContainer;
 
+/**
+ * Owns intake through a bounded pivot deployment. Success releases the deployed pivot to coast;
+ * timeout/interruption stops it in brake. Optional teleop gain boost always rolls back in end().
+ */
 public class DeployIntakeSequence extends Command {
   private final Timer timeoutTimer = new Timer();
   private final boolean useTeleopPowerBoost;
