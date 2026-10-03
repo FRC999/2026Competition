@@ -284,3 +284,10 @@ been collected. Ignored historical desktop logs/reports are reproducible but are
 The pending AUTO question is still unanswered. Commit/push authorization to OffSeason-195 persists;
 there is no authorization to operate/deploy hardware. New paths on the next computer must come from
 its actual checkout/tool installation, not the historical S:/T:/Codex paths in this record.
+
+Portable-package verification: a fresh full-history clone of `e1a91c9`, created without shared/local
+Git objects, passed `tools/verify_handoff.py` using system Python without a virtual environment. It
+verified 60 required tracked files, 229 relative links/anchors, 24 diagram pairs, all three skill mirrors
+and the Houston baseline; the clone was clean. All six skill files also passed the available skill
+validator, and the staged whitespace check passed. No robot source/configuration diff was introduced.
+This records repository portability, not a fresh full Java run or verification on another OS.

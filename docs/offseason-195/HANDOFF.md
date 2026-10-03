@@ -8,6 +8,11 @@ the [copy-and-paste continuation prompt](CONTINUE_PROMPT.md), [current task list
 [PROMPTS.md](PROMPTS.md) preserves human instructions. Current status and tasks supersede historical
 completion statements about earlier phases.
 
+The package at `e1a91c9` was verified in a fresh full-history checkout without the old virtual
+environment: 60 required tracked files, 229 local links/anchors, 24 diagram pairs and three matching
+skill pairs passed. The Houston baseline was present and the checkout was clean. This verifies the
+handoff contents; full robot build/hardware evidence remains distinct below.
+
 ## Get the correct checkout
 
 From a parent folder of your choice on the new computer:
