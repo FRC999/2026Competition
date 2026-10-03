@@ -4,6 +4,9 @@ This branch retrofits the **2026 competition robot**, retaining its drivetrain a
 It replaces the active Limelight/Quest localization with PhotonVision, adds a measured-motion finish
 to stopping paths, and refactors localization, driver controls, shot planning and mechanism ownership.
 
+For a new computer/chat, use [HANDOFF.md](HANDOFF.md) and the copyable [continuation prompt](CONTINUE_PROMPT.md).
+[TASKS.md](TASKS.md) is the current open-work list; [GOTCHAS.md](GOTCHAS.md) preserves key constraints.
+
 **It is a software candidate for robot testing, not a calibrated competition release.** The shipped
 real-camera transforms are deliberately unmeasured. Those cameras can produce calibration data but
 cannot correct odometry until calibrated and the field-layout acknowledgment is set. Desktop tests

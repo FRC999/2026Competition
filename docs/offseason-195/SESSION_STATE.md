@@ -1,6 +1,11 @@
 # OffSeason-195 session state
 
-## Status — October 1, 2026
+## Status — October 3, 2026
+
+For a new computer/chat, start with [HANDOFF.md](HANDOFF.md) and [CONTINUE_PROMPT.md](CONTINUE_PROMPT.md).
+[TASKS.md](TASKS.md) is the authoritative open-work list; [GOTCHAS.md](GOTCHAS.md) preserves current
+constraints. The sections below retain chronological evidence. Earlier “complete” statements refer
+to their delivered phase, not to the still-pending autonomous strategy or physical acceptance.
 
 Initial implementation delivered at 5a3e431 and the first full refactor at 80acda9.
 The second audit's independent fixes are verified; autonomous strategy selection remains pending.
@@ -12,6 +17,8 @@ Delivery branch is OffSeason-195; use Git history and its origin tracking status
 No physical robot operation or deployment has occurred. User authorized commits/push to this branch;
 no PR requested. Remaining work is the mentor's auto strategy choice, its implementation/final count
 refresh, and the team's measured calibration and physical testing.
+Source/API documentation and the two visual guides are delivered; the latter are at `cc094fc`.
+The current task packages portable continuation records and checks; it does not change robot behavior.
 
 ## Locations and pinned sources
 
@@ -59,7 +66,8 @@ and proposed pitch/yaw with zero roll. Proposed rear-left +165 yaw / rear-right 
 Rear pair enabled for capture; optional front pair disabled. Fusion requires calibrated and matching-layout acknowledgment.
 Turret can physically rotate farther: ±110 code limits are extension-envelope limits, not hard stops.
 Retain ±110 commands / ±105 automatic aim, now enforce rotor-position soft limits in CTRE too.
-User explicitly approves AdvantageKit for testing. No pending user answers currently block desktop work.
+User explicitly approves AdvantageKit for testing. Initial setup questions were resolved; the later
+autonomous strategy question remains open as recorded in TASKS.md.
 
 ## Initial delivery at 5a3e431 (historical; current follow-up below supersedes behavior)
 
@@ -158,7 +166,8 @@ The report must give old locations, high-level effects, replacement code and ver
   7 Python tests, six skill validations and three mirror checks; full test/robotSmoke/build passes.
   Desktop CAN/joystick/loop-overrun warnings persist; no physical/performance claim follows.
 
-Remaining work is operator-led calibration and physical acceptance, not unfinished desktop refactoring.
+At the end of this first refactor, remaining work was operator-led calibration and physical acceptance.
+The later second-audit request below added an autonomous strategy decision and implementation work.
 Use Git history and origin tracking for the delivered follow-up commit. No deployment occurred.
 
 ## Second audit — verified independent changes, strategy decision pending
@@ -255,3 +264,23 @@ The source-count snapshot remains valid; this is Markdown/SVG/documentation tool
 
 This request does not select the pending autonomous strategy or authorize physical operation. Delivery
 branch remains OffSeason-195; use Git history and origin tracking for the documentation receipt.
+
+### Portable continuation follow-up — October 3, 2026
+
+The mentor will continue on another computer and explicitly requested saved state, gotchas, tasks,
+skills, supporting files and a Markdown continuation prompt, committed and pushed. Added HANDOFF.md,
+CONTINUE_PROMPT.md, TASKS.md and GOTCHAS.md; linked them from both assistant entrypoints, READMEs and
+all three mirrored skill pairs. HANDOFF records the exact branch/baseline, delivered revisions, prior
+verification, portable dependency setup, optional diagram tooling and what Git does/does not contain.
+
+`tools/verify_handoff.py` uses only Python's standard library and local Git. It checks required tracked
+files, relative document links/anchors, SVG/source pairing, skill mirrors and baseline availability.
+Use it after cloning; a successful handoff check is not a robot build or hardware acceptance result.
+Historical claims about completed phases and the outdated 105-test headline are clarified; current
+behavioral receipt remains 117 Java tests plus robotSmoke and seven Python tests. Robot source and
+configuration remain unchanged. No physical evidence is missing from this session: it has not yet
+been collected. Ignored historical desktop logs/reports are reproducible but are not transferred.
+
+The pending AUTO question is still unanswered. Commit/push authorization to OffSeason-195 persists;
+there is no authorization to operate/deploy hardware. New paths on the next computer must come from
+its actual checkout/tool installation, not the historical S:/T:/Codex paths in this record.

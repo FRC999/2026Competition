@@ -7,6 +7,10 @@ Use [calibration.md](../../../docs/offseason-195/calibration.md) as the maintain
 and `tools/vision_calibration.py` as the executable workflow. Read
 [installation.md](../../../docs/offseason-195/installation.md) when focus, resolution, brackets or
 camera identity changed.
+For a new computer, follow [HANDOFF.md](../../../docs/offseason-195/HANDOFF.md); use
+[TASKS.md](../../../docs/offseason-195/TASKS.md) and [GOTCHAS.md](../../../docs/offseason-195/GOTCHAS.md)
+for current measured-data gaps. No real survey/camera fit was completed in the original session.
+Keep tasks and evidence locations current; ignored local artifacts do not transfer through Git.
 
 - Proposed rear mounts are 12-inch lens height, roll 0°, WPILib pitch -15° (up), yaw +165°/-165°.
   They are not measurements. X/Y and final six offsets must come from a survey/fit.

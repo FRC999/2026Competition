@@ -2,7 +2,9 @@
 
 ## Evidence from this branch
 
-The final desktop suite has 105 passing Java tests, plus one passing whole-robot startup smoke test.
+The latest full desktop suite has 117 passing Java tests, plus one passing whole-robot startup smoke test
+(the earlier refactor receipt was 105). These are prior Windows results; see [HANDOFF.md](HANDOFF.md)
+for a fresh computer's setup and [TASKS.md](TASKS.md) for remaining strategy and physical work.
 All seven Python tests pass, including fit/layout/apply and live NetworkTables **localhost** capture.
 `gradlew test robotSmoke build` completed successfully. All six Codex/Claude skill files validated,
 and their three pairs match byte for byte. The built JAR contains none of the new documentation,

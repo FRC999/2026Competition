@@ -6,6 +6,10 @@ description: Maintain the FRC999 OffSeason-195 PhotonVision retrofit, including 
 Read [session state](../../../docs/offseason-195/SESSION_STATE.md) and the relevant section of the
 [full audit](../../../docs/offseason-195/full-refactor-audit.md) before changing the retrofit. The robot subproject is
 `2026Competition/`; the historical QuestVibeGPT project is not the target.
+On a new computer/chat, read [HANDOFF](../../../docs/offseason-195/HANDOFF.md),
+[current tasks](../../../docs/offseason-195/TASKS.md) and [gotchas](../../../docs/offseason-195/GOTCHAS.md).
+Use the local checkout root, not historical machine paths. Run `python tools/verify_handoff.py`;
+keep TASKS.md current with session state, and do not treat an unanswered AUTO choice as selected.
 The [code guide](../../../docs/offseason-195/code-guide.md) maps the current runtime contracts and
 logging. Update it and source/package comments when those contracts change; verify `gradlew javadoc`.
 Keep the [visual programming guide](../../../docs/offseason-195/programming-diagrams.md) and

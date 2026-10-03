@@ -7,6 +7,10 @@ Read the [second-pass audit](../../../docs/offseason-195/second-pass-audit.md),
 [full audit](../../../docs/offseason-195/full-refactor-audit.md) and [test plan](../../../docs/offseason-195/testing.md).
 Use session state for the exact code/calibration under test. Separate verified code behavior,
 simulation evidence and physical robot evidence in the result.
+Use [TASKS.md](../../../docs/offseason-195/TASKS.md) for current open work and
+[GOTCHAS.md](../../../docs/offseason-195/GOTCHAS.md) for constraints. New-computer setup is in
+[HANDOFF.md](../../../docs/offseason-195/HANDOFF.md); keep the task list and handoff current when
+decisions change. Never infer the pending autonomous strategy from a documentation/transfer request.
 Use the [code guide](../../../docs/offseason-195/code-guide.md) for units, frames, ownership and API
 contracts. Keep Java/package comments current; `gradlew javadoc` validates rendered API documentation.
 The [team overview](../../../docs/offseason-195/team-overview.md) and

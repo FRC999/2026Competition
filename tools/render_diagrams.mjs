@@ -3,7 +3,7 @@
  * This is documentation tooling only; nothing here is part of the robot deploy tree.
  *
  * From repo root, install local tooling (or pass existing package roots):
- *   npm install --prefix artifacts/diagram-renderer --no-audit --no-fund mermaid@11.12.2 playwright
+ *   npm install --prefix artifacts/diagram-renderer --no-audit --no-fund mermaid@11.12.2 playwright@1.62.1
  *   node artifacts/diagram-renderer/node_modules/playwright/cli.js install chromium
  *   node tools/render_diagrams.mjs
  *
